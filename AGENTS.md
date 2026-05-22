@@ -20,19 +20,22 @@ The original target use case is an Irish work/family wall calendar, but the proj
 
 ```text
 printable-calendar-generator/
-  generator/
-    __init__.py
-    calendar_pdf.py      # ReportLab-based Python PDF generator
-    holidays.py          # Holiday/date calculations
   docs/
-    index.html           # GitHub Pages web app
+    index.html           # Calendar generator web app (and the GitHub Pages site)
+    today.html           # Companion "this month" page with today highlighted
     styles.css
-    app.js               # Browser/jsPDF generator and preview
-  custom_dates.example.json
-  requirements.txt
+    app.js               # Holiday math, layout/rendering, UI, and jsPDF export
+    today.js             # Renders the current month, reusing app.js
+    vendor/
+      jspdf.umd.min.js   # Bundled jsPDF 2.5.1 — no CDN dependency
+  Original Sample month/ # Reference printed sample PDF
   README.md
   AGENTS.md
+  CLAUDE.md
 ```
+
+The entire application is the static site in `docs/`. There is no build step and no
+server: it runs by opening `index.html`, and it is deployed as-is via GitHub Pages.
 
 ## Design rules to preserve
 
@@ -53,34 +56,24 @@ When changing layout code, preserve these visual decisions unless the user expli
 
 ## Current tuned layout values
 
-The current printed prototype was tuned after printer testing. Be careful changing these values:
+The current printed prototype was tuned after printer testing. Be careful changing these
+values. Positions use the top-left coordinate system of the canvas preview and jsPDF
+(origin at the top-left of the page, y increasing downward).
 
-- Page: A4 landscape
+- Page: A4 landscape (297 mm wide, 210 mm tall)
 - Margin: `10 mm`
 - Header height: `22 mm`
-- Title y-position: `page_h - margin - 8 mm` in ReportLab bottom-left coordinates
-- Weekday y-position: `grid_y1 + 1.5 mm` in ReportLab bottom-left coordinates
+- Month title baseline: `margin + 8 mm` from the top edge
+- Weekday baseline: `margin + header_h - 1.5 mm`
+- Grid: from `margin + header_h` down to `margin` above the bottom edge
 - Date font size: `22 pt`
-- Weekday font size: `20 pt`
+- Weekday font size: `20 pt` (auto-shrunk to fit the column when full weekday names are used)
 - Month title font size: `40 pt`
 - Grid line width: `1.6`
 - Writing guide line style: light grey, dash pattern `2, 3`
 - Holiday font: bold italic, black, about `9 pt`
 
-If these values are changed, generate a PDF and visually inspect it before committing.
-
-## Coordinate systems warning
-
-The Python generator uses ReportLab, where the origin is bottom-left. The browser preview and jsPDF code use a top-left coordinate system. Do not blindly copy y-coordinate formulas between the two implementations.
-
-Equivalent tuned positions:
-
-- ReportLab title baseline: `page_h - margin - 8 mm`
-- Browser/jsPDF title baseline: `margin + 8 mm`
-- ReportLab grid bottom: `margin`
-- Browser/jsPDF grid top: `margin + header_h`
-- ReportLab weekday baseline: `grid_y1 + 1.5 mm`
-- Browser/jsPDF weekday baseline: `margin + header_h - 1.5 mm`
+If these values are changed, download a PDF and visually inspect it before committing.
 
 ## Holiday policy
 
@@ -104,53 +97,37 @@ Do not add broad multi-day school breaks by default. The agreed approach is to i
 
 ## Custom dates
 
-Custom dates should use a simple, user-editable format:
+Custom dates are entered in the app's **Custom dates** box, one per line, in the format
+`YYYY-MM-DD | Label`:
 
-```json
-[
-  { "date": "2026-09-01", "label": "School Starts" },
-  { "date": "2026-11-12", "label": "Birthday" }
-]
+```text
+2026-09-01 | School Starts
+2026-11-12 | Birthday
 ```
 
-If multiple labels fall on the same date, combine them with ` / `.
+Lines beginning with `#` are treated as comments. Dates can also be added by clicking a
+day in the preview, or by importing an `.ics` file. If multiple labels fall on the same
+date, combine them with ` / `.
 
-## Python generator
+## The web app
 
-Primary reproducible generator:
+The application is a single static site in `docs/`. It uses jsPDF — bundled in
+`docs/vendor/` — to produce the downloadable PDF. There is no build step and nothing to
+install.
 
-```bash
-python -m generator.calendar_pdf --year 2026 --country IE --output output/irish_calendar_2026.pdf
-```
+`app.js` holds everything: holiday calculations, the layout maths, rendering, the UI,
+`.ics` import, and PDF export. It is shared by both pages — `index.html` (the generator)
+and `today.html` (the live month view). Its `DOMContentLoaded` handler exits early when
+the generator controls are absent, so it is safe to load on `today.html`.
 
-Single month:
+`app.js` renders the calendar through two paths that must be kept consistent:
 
-```bash
-python -m generator.calendar_pdf --year 2026 --month 6 --country IE --output output/june_2026.pdf
-```
+- `drawCalendar` — draws to a `<canvas>` for the on-screen preview and the today page.
+- `drawPdfMonth` — draws the same layout with jsPDF for the downloaded PDF.
 
-With custom dates:
-
-```bash
-python -m generator.calendar_pdf --year 2026 --country IE --custom-dates custom_dates.example.json --output output/calendar_2026.pdf
-```
-
-No holidays:
-
-```bash
-python -m generator.calendar_pdf --year 2026 --no-holidays --output output/calendar_2026_plain.pdf
-```
-
-## Web app
-
-The GitHub Pages app is in `docs/` and uses jsPDF in the browser. It should mirror the Python generator as closely as possible.
-
-When updating calendar layout logic, update both:
-
-- `generator/calendar_pdf.py`
-- `docs/app.js`
-
-The Python generator is the source of truth for print quality. The browser preview can be approximate, but the downloaded web PDF should match the same overall design.
+Any layout change must be made in **both**, or the preview and the PDF will disagree.
+The downloaded PDF is the print-quality output and the one to trust; the canvas preview
+is approximate because it uses the browser's own font rendering.
 
 ## Testing checklist
 
@@ -170,11 +147,11 @@ Before finishing any change, verify:
 
 Suggested local smoke test:
 
-```bash
-pip install -r requirements.txt
-python -m generator.calendar_pdf --year 2026 --country IE --output output/smoke_2026.pdf
-python -m generator.calendar_pdf --year 2026 --month 6 --country IE --output output/smoke_june_2026.pdf
-```
+1. Open `docs/index.html` in a browser, or serve the `docs/` folder with a static server.
+2. Generate a full-year 2026 calendar with IE holidays and download the PDF.
+3. Generate a single month (for example June 2026) and download it.
+4. Open `docs/today.html` and confirm the current month renders with today highlighted.
+5. Visually inspect each PDF against the checklist above.
 
 ## Coding style
 
@@ -190,12 +167,9 @@ python -m generator.calendar_pdf --year 2026 --month 6 --country IE --output out
 Good future additions:
 
 - more country holiday providers
-- user-importable custom dates
 - Sunday-start option
 - portrait option
 - different paper sizes
-- downloadable full-year PDF from the web app
 - optional localisation of weekday/month labels
-- GitHub Action to generate release PDFs automatically
 
 Avoid adding clutter to the default design. The core value of this project is that the calendar is clean, readable, and easy to write on.
