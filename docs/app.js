@@ -888,6 +888,27 @@ function clearIcs() {
   document.getElementById("icsFile").value = "";
 }
 
+// --- Setup drawer (the mobile slide-in menu) ---
+function openDrawer() {
+  document.getElementById("drawer").classList.add("open");
+  document.getElementById("scrim").classList.add("show");
+  document.getElementById("menuBtn").setAttribute("aria-expanded", "true");
+  document.body.classList.add("drawer-open");
+  document.getElementById("drawerCloseBtn").focus();
+}
+
+function closeDrawer() {
+  document.getElementById("drawer").classList.remove("open");
+  document.getElementById("scrim").classList.remove("show");
+  document.getElementById("menuBtn").setAttribute("aria-expanded", "false");
+  document.body.classList.remove("drawer-open");
+}
+
+function toggleDrawer() {
+  if (document.getElementById("drawer").classList.contains("open")) closeDrawer();
+  else openDrawer();
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   if (!document.getElementById("previewBtn")) return;
   document.getElementById("previewBtn").addEventListener("click", renderPreview);
@@ -895,6 +916,15 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("preview").addEventListener("click", handlePreviewClick);
   document.getElementById("prevMonthBtn").addEventListener("click", () => stepMonth(-1));
   document.getElementById("nextMonthBtn").addEventListener("click", () => stepMonth(1));
+  document.getElementById("menuBtn").addEventListener("click", toggleDrawer);
+  document.getElementById("drawerCloseBtn").addEventListener("click", () => {
+    closeDrawer();
+    document.getElementById("menuBtn").focus();
+  });
+  document.getElementById("scrim").addEventListener("click", closeDrawer);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeDrawer();
+  });
   document.getElementById("saveBtn").addEventListener("click", saveCalendar);
   document.getElementById("loadBtn").addEventListener("click", loadCalendar);
   document.getElementById("deleteBtn").addEventListener("click", deleteCalendar);
