@@ -120,16 +120,20 @@ function monthRows(year, monthIndex) {
   return mondayIndex(first) + days <= 35 ? 5 : 6;
 }
 
-function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
+function layout(scale = 1) {
   const w = 297 * scale;
   const h = 210 * scale;
   const margin = 10 * scale;
   const headerH = 22 * scale;
   const gridX = margin;
-  const gridY = margin;
+  const gridY = margin + headerH;
   const gridW = w - 2 * margin;
   const gridH = h - 2 * margin - headerH;
-  const gridTop = gridY + gridH;
+  return { w, h, margin, headerH, gridX, gridY, gridW, gridH };
+}
+
+function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
+  const { w, h, margin, headerH, gridX, gridY, gridW, gridH } = layout(scale);
   const rows = monthRows(year, monthIndex);
   const cols = 7;
   const colW = gridW / cols;
@@ -137,6 +141,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
   const shadeWeekends = document.getElementById("shadeWeekends").checked;
   const guideLines = document.getElementById("guideLines").checked;
 
+  ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = "white";
   ctx.fillRect(0, 0, w, h);
 
@@ -144,7 +149,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
   ctx.font = `bold ${40 * scale}px Arial`;
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(`${MONTH_NAMES[monthIndex]} ${year}`, w / 2, h - margin - 8 * scale);
+  ctx.fillText(`${MONTH_NAMES[monthIndex]} ${year}`, w / 2, margin + 8 * scale);
 
   if (shadeWeekends) {
     ctx.fillStyle = "#ebebeb";
@@ -155,7 +160,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
   ctx.font = `bold ${20 * scale}px Arial`;
   ctx.textAlign = "center";
   for (let i = 0; i < 7; i++) {
-    ctx.fillText(WEEKDAYS[i], gridX + i * colW + colW / 2, gridTop + 7 * scale);
+    ctx.fillText(WEEKDAYS[i], gridX + i * colW + colW / 2, margin + headerH - 1.5 * scale);
   }
 
   if (guideLines) {
@@ -167,13 +172,13 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
       for (let col = 0; col < cols; col++) {
         const x0 = gridX + col * colW + 3 * scale;
         const x1 = gridX + (col + 1) * colW - 3 * scale;
-        const yb = gridY + (rows - 1 - r) * rowH;
-        const yt = yb + rowH;
-        const yStart = yt - 10 * scale;
-        const yEnd = yb + 2 * scale;
-        const spacing = (yStart - yEnd) / 4;
+        const yt = gridY + r * rowH;
+        const yb = yt + rowH;
+        const yStart = yt + 10 * scale;
+        const yEnd = yb - 2 * scale;
+        const spacing = (yEnd - yStart) / 4;
         for (let k = 1; k <= 3; k++) {
-          const y = yStart - k * spacing;
+          const y = yStart + k * spacing;
           ctx.beginPath();
           ctx.moveTo(x0, y);
           ctx.lineTo(x1, y);
@@ -204,15 +209,15 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
     const offset = (day - 1) + mondayIndex(first);
     const r = Math.floor(offset / cols);
     const col = offset % cols;
-    const y = gridY + (rows - 1 - r) * rowH;
+    const y = gridY + r * rowH;
     const x = gridX + col * colW;
     ctx.font = `bold ${22 * scale}px Arial`;
     ctx.textAlign = "left";
-    ctx.fillText(String(day), x + 3.5 * scale, y + rowH - 9 * scale);
+    ctx.fillText(String(day), x + 3.5 * scale, y + 9 * scale);
     const label = labels.get(isoDate(d));
     if (label) {
       ctx.font = `italic bold ${9 * scale}px Arial`;
-      ctx.fillText(label.slice(0, 32), x + 3 * scale, y + 3.5 * scale);
+      ctx.fillText(label.slice(0, 32), x + 3 * scale, y + rowH - 3.5 * scale);
     }
   }
 }
@@ -229,16 +234,7 @@ function renderPreview() {
 }
 
 function drawPdfMonth(doc, year, monthIndex, labels) {
-  const scale = 1;
-  const w = 297;
-  const h = 210;
-  const margin = 10;
-  const headerH = 22;
-  const gridX = margin;
-  const gridY = margin;
-  const gridW = w - 2 * margin;
-  const gridH = h - 2 * margin - headerH;
-  const gridTop = gridY + gridH;
+  const { w, h, margin, headerH, gridX, gridY, gridW, gridH } = layout(1);
   const rows = monthRows(year, monthIndex);
   const colW = gridW / 7;
   const rowH = gridH / rows;
@@ -250,7 +246,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(40);
-  doc.text(`${MONTH_NAMES[monthIndex]} ${year}`, w / 2, h - margin - 8, { align: "center" });
+  doc.text(`${MONTH_NAMES[monthIndex]} ${year}`, w / 2, margin + 8, { align: "center" });
 
   if (shadeWeekends) {
     doc.setFillColor(235, 235, 235);
@@ -260,7 +256,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
-  for (let i = 0; i < 7; i++) doc.text(WEEKDAYS[i], gridX + i * colW + colW / 2, gridTop + 7, { align: "center" });
+  for (let i = 0; i < 7; i++) doc.text(WEEKDAYS[i], gridX + i * colW + colW / 2, margin + headerH - 1.5, { align: "center" });
 
   if (guideLines) {
     doc.setDrawColor(191, 191, 191);
@@ -270,10 +266,10 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
       for (let col = 0; col < 7; col++) {
         const x0 = gridX + col * colW + 3;
         const x1 = gridX + (col + 1) * colW - 3;
-        const yb = gridY + (rows - 1 - r) * rowH;
-        const yt = yb + rowH;
-        const spacing = ((yt - 10) - (yb + 2)) / 4;
-        for (let k = 1; k <= 3; k++) doc.line(x0, yt - 10 - k * spacing, x1, yt - 10 - k * spacing);
+        const yt = gridY + r * rowH;
+        const yb = yt + rowH;
+        const spacing = ((yb - 2) - (yt + 10)) / 4;
+        for (let k = 1; k <= 3; k++) doc.line(x0, yt + 10 + k * spacing, x1, yt + 10 + k * spacing);
       }
     }
     doc.setLineDashPattern([], 0);
@@ -292,16 +288,17 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     const offset = (day - 1) + mondayIndex(first);
     const r = Math.floor(offset / 7);
     const col = offset % 7;
-    const y = gridY + (rows - 1 - r) * rowH;
+    const y = gridY + r * rowH;
     const x = gridX + col * colW;
+    doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
-    doc.text(String(day), x + 3.5, y + rowH - 9);
+    doc.text(String(day), x + 3.5, y + 9);
     const label = labels.get(isoDate(d));
     if (label) {
       doc.setFont("helvetica", "bolditalic");
       doc.setFontSize(9);
-      doc.text(label.slice(0, 32), x + 3, y + 3.5);
+      doc.text(label.slice(0, 32), x + 3, y + rowH - 3.5);
     }
   }
 }
