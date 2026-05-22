@@ -519,6 +519,92 @@ function deleteCalendar() {
   refreshSavedList();
 }
 
+const GROUPS_KEY = "printableCustomDateGroups";
+
+function readGroups() {
+  try {
+    return JSON.parse(localStorage.getItem(GROUPS_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function writeGroups(all) {
+  try {
+    localStorage.setItem(GROUPS_KEY, JSON.stringify(all));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function refreshGroupList(selectedName) {
+  const select = document.getElementById("customGroups");
+  const names = Object.keys(readGroups()).sort((a, b) => a.localeCompare(b));
+  select.innerHTML = "";
+  for (const name of names) {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    select.appendChild(option);
+  }
+  if (names.length === 0) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No saved groups yet";
+    select.appendChild(option);
+  }
+  if (selectedName && names.includes(selectedName)) select.value = selectedName;
+  const empty = names.length === 0;
+  select.disabled = empty;
+  document.getElementById("addGroupBtn").disabled = empty;
+  document.getElementById("deleteGroupBtn").disabled = empty;
+}
+
+function saveGroup() {
+  const nameInput = document.getElementById("groupName");
+  const name = nameInput.value.trim();
+  if (!name) {
+    window.alert("Enter a name for this date group.");
+    nameInput.focus();
+    return;
+  }
+  const text = document.getElementById("customDates").value.trim();
+  if (!text) {
+    window.alert("There are no custom dates to save as a group.");
+    return;
+  }
+  const all = readGroups();
+  if (all[name] && !window.confirm(`Replace the date group "${name}"?`)) return;
+  all[name] = text;
+  if (!writeGroups(all)) {
+    window.alert("Could not save — this browser's storage is full or unavailable.");
+    return;
+  }
+  refreshGroupList(name);
+}
+
+function addGroup() {
+  const name = document.getElementById("customGroups").value;
+  if (!name) return;
+  const text = readGroups()[name];
+  if (!text) return;
+  const box = document.getElementById("customDates");
+  const current = box.value.replace(/\s+$/, "");
+  box.value = (current ? current + "\n" : "") + text;
+  renderPreview();
+}
+
+function deleteGroup() {
+  const name = document.getElementById("customGroups").value;
+  if (!name) return;
+  if (!window.confirm(`Delete the date group "${name}"?`)) return;
+  const all = readGroups();
+  delete all[name];
+  writeGroups(all);
+  refreshGroupList();
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("previewBtn").addEventListener("click", renderPreview);
   document.getElementById("downloadBtn").addEventListener("click", downloadPdf);
@@ -526,10 +612,14 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("saveBtn").addEventListener("click", saveCalendar);
   document.getElementById("loadBtn").addEventListener("click", loadCalendar);
   document.getElementById("deleteBtn").addEventListener("click", deleteCalendar);
+  document.getElementById("saveGroupBtn").addEventListener("click", saveGroup);
+  document.getElementById("addGroupBtn").addEventListener("click", addGroup);
+  document.getElementById("deleteGroupBtn").addEventListener("click", deleteGroup);
   for (const id of ["year", "month", "country", "shadeWeekends", "zebraWeeks", "guideLines", "holidayLabels", "customDates"]) {
     document.getElementById(id).addEventListener("input", renderPreview);
     document.getElementById(id).addEventListener("change", renderPreview);
   }
   refreshSavedList();
+  refreshGroupList();
   renderPreview();
 });

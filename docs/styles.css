@@ -144,6 +144,12 @@ textarea {
   flex: 0 0 auto;
 }
 
+.date-groups {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
 button {
   border: 0;
   border-radius: 999px;

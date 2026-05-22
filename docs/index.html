@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Printable Calendar Generator</title>
-  <link rel="stylesheet" href="styles.css?v=2026-05-zebra">
+  <link rel="stylesheet" href="styles.css?v=2026-05-groups">
   <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script defer src="app.js?v=2026-05-zebra"></script>
+  <script defer src="app.js?v=2026-05-groups"></script>
 </head>
 <body>
   <main class="wrap">
@@ -62,6 +62,22 @@
       <p class="hint">One per line: <code>YYYY-MM-DD | Label</code></p>
       <textarea id="customDates" rows="6" spellcheck="false">2026-09-01 | School Starts
 2026-11-12 | Birthday</textarea>
+
+      <div class="date-groups">
+        <p class="hint">Reusable date groups (e.g. family birthdays):</p>
+        <div class="save-row">
+          <input id="groupName" type="text" placeholder="Group name" spellcheck="false" aria-label="Date group name">
+          <button id="saveGroupBtn" type="button">Save group</button>
+        </div>
+        <div class="save-row">
+          <select id="customGroups" aria-label="Saved date groups">
+            <option value="">No saved groups yet</option>
+          </select>
+          <button id="addGroupBtn" type="button">Add to dates</button>
+          <button id="deleteGroupBtn" type="button">Delete</button>
+        </div>
+      </div>
+
       <div class="buttons">
         <button id="previewBtn" type="button">Preview</button>
         <button id="downloadBtn" type="button">Download PDF</button>
