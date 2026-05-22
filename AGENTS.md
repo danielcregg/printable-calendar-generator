@@ -140,15 +140,16 @@ weekend and zebra shading, and a custom-date label colour (black, blue or
 green). Both default to the black-and-white choice, and holiday labels are
 always black. Presets live in `SHADE_THEMES` and `LABEL_COLOURS` in `app.js`.
 
-## Empty blocks
+## Leading and trailing cells
 
-Months always start and end with some empty day cells (the grid before day 1
-and after the last day). An optional **Empty blocks** dropdown in the main
-controls lets the user turn that space into either a merged **Notes area**
-(no internal dividers, full-width writing lines per row) or **Adjacent month
-dates** (the trailing days of the previous month and opening days of the
-next, rendered in light grey with a small faint month label). The default
-leaves the cells empty.
+Months always start and end with some cells outside the current month (the
+grid before day 1 and after the last day). By default these are filled with
+**adjacent month dates** — the trailing days of the previous month and the
+opening days of the next, in light grey with a small italic 3-letter month
+tag in the top-right corner. A **Use leading/trailing cells as a Notes
+area** checkbox in the main controls replaces that with a merged Notes
+area (no internal dividers, full-width writing lines per row, a faint
+"Notes" tag in the top-left).
 
 ## The web app
 

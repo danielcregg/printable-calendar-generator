@@ -245,7 +245,7 @@ function pt(points, scale = 1) {
 }
 
 function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
-  const { shadeWeekends, zebraWeeks, zebraColumns, guideLines, highlightDate, shortDayNames, teachingWeeks } = options;
+  const { shadeWeekends, zebraWeeks, zebraColumns, guideLines, highlightDate, shortDayNames, teachingWeeks, notesArea } = options;
   const shade = SHADE_THEMES[options.shadeTheme] || SHADE_THEMES.grey;
   const customCss = rgbCss(LABEL_COLOURS[options.customColour] || LABEL_COLOURS.black);
   const base = layout(scale);
@@ -259,7 +259,6 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   const rowH = gridH / rows;
   const leadingCount = mondayIndex(new Date(year, monthIndex, 1));
   const trailingStart = leadingCount + new Date(year, monthIndex + 1, 0).getDate();
-  const emptyMode = options.emptyMode || "empty";
   const emptyRuns = computeEmptyRuns(leadingCount, trailingStart, rows);
   const emptyCells = new Set();
   for (const run of emptyRuns) for (let c = run.colStart; c <= run.colEnd; c++) emptyCells.add(run.row * cols + c);
@@ -300,7 +299,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     for (const col of [5, 6]) ctx.fillRect(gridX + col * colW, gridY, colW, gridH);
   }
 
-  if (emptyMode === "notes") {
+  if (notesArea) {
     ctx.fillStyle = "white";
     for (const run of emptyRuns) {
       ctx.fillRect(gridX + run.colStart * colW, gridY + run.row * rowH, (run.colEnd - run.colStart + 1) * colW, rowH);
@@ -331,7 +330,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     ctx.setLineDash([2 * scale, 3 * scale]);
     for (let r = 0; r < rows; r++) {
       for (let col = 0; col < cols; col++) {
-        if (emptyMode === "notes" && emptyCells.has(r * cols + col)) continue;
+        if (notesArea && emptyCells.has(r * cols + col)) continue;
         const drop = skips.get(r * cols + col) || 0;
         const x0 = gridX + col * colW + 3 * scale;
         const x1 = gridX + (col + 1) * colW - 3 * scale;
@@ -349,7 +348,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
         }
       }
     }
-    if (emptyMode === "notes") {
+    if (notesArea) {
       for (const run of emptyRuns) {
         const x0 = gridX + run.colStart * colW + 3 * scale;
         const x1 = gridX + (run.colEnd + 1) * colW - 3 * scale;
@@ -373,7 +372,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   ctx.strokeStyle = "black";
   ctx.lineWidth = 1.6 * scale;
   ctx.strokeRect(gridX, gridY, gridW, gridH);
-  if (emptyMode === "notes") {
+  if (notesArea) {
     for (let r = 0; r < rows; r++) {
       const yt = gridY + r * rowH;
       const yb = yt + rowH;
@@ -434,7 +433,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     }
   }
 
-  if (emptyMode === "notes" && emptyRuns.length) {
+  if (notesArea && emptyRuns.length) {
     ctx.fillStyle = "#999999";
     ctx.font = `italic ${pt(10, scale)}px Arial`;
     ctx.textAlign = "left";
@@ -445,7 +444,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     }
   }
 
-  if (emptyMode === "adjacent" && emptyRuns.length) {
+  if (!notesArea && emptyRuns.length) {
     const prev = new Date(year, monthIndex, 0);
     const prevLastDay = prev.getDate();
     const prevMonthName = MONTH_NAMES[prev.getMonth()];
@@ -506,7 +505,7 @@ function renderPreview() {
     teachingWeeks: document.getElementById("teachingWeeks").checked ? teachingWeekMap() : null,
     shadeTheme: document.getElementById("shadeColour").value,
     customColour: document.getElementById("customColour").value,
-    emptyMode: document.getElementById("emptyBlocks").value,
+    notesArea: document.getElementById("notesArea").checked,
   });
   updateMonthNav();
 }
@@ -582,7 +581,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   const rowH = gridH / rows;
   const leadingCount = mondayIndex(new Date(year, monthIndex, 1));
   const trailingStart = leadingCount + new Date(year, monthIndex + 1, 0).getDate();
-  const emptyMode = document.getElementById("emptyBlocks").value;
+  const notesArea = document.getElementById("notesArea").checked;
   const emptyRuns = computeEmptyRuns(leadingCount, trailingStart, rows);
   const emptyCells = new Set();
   for (const run of emptyRuns) for (let c = run.colStart; c <= run.colEnd; c++) emptyCells.add(run.row * 7 + c);
@@ -625,7 +624,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     for (const col of [5, 6]) doc.rect(gridX + col * colW, gridY, colW, gridH, "F");
   }
 
-  if (emptyMode === "notes") {
+  if (notesArea) {
     doc.setFillColor(255, 255, 255);
     for (const run of emptyRuns) {
       doc.rect(gridX + run.colStart * colW, gridY + run.row * rowH, (run.colEnd - run.colStart + 1) * colW, rowH, "F");
@@ -653,7 +652,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     doc.setLineDashPattern([2, 3], 0);
     for (let r = 0; r < rows; r++) {
       for (let col = 0; col < 7; col++) {
-        if (emptyMode === "notes" && emptyCells.has(r * 7 + col)) continue;
+        if (notesArea && emptyCells.has(r * 7 + col)) continue;
         const drop = skips.get(r * 7 + col) || 0;
         const x0 = gridX + col * colW + 3;
         const x1 = gridX + (col + 1) * colW - 3;
@@ -663,7 +662,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
         for (let k = 1; k <= 3 - drop; k++) doc.line(x0, yt + 10 + k * spacing, x1, yt + 10 + k * spacing);
       }
     }
-    if (emptyMode === "notes") {
+    if (notesArea) {
       for (const run of emptyRuns) {
         const x0 = gridX + run.colStart * colW + 3;
         const x1 = gridX + (run.colEnd + 1) * colW - 3;
@@ -679,7 +678,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(1.6);
   doc.rect(gridX, gridY, gridW, gridH);
-  if (emptyMode === "notes") {
+  if (notesArea) {
     for (let r = 0; r < rows; r++) {
       const yt = gridY + r * rowH;
       const yb = yt + rowH;
@@ -720,7 +719,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     }
   }
 
-  if (emptyMode === "notes" && emptyRuns.length) {
+  if (notesArea && emptyRuns.length) {
     doc.setTextColor(153, 153, 153);
     doc.setFont("helvetica", "italic");
     doc.setFontSize(10);
@@ -731,7 +730,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     }
   }
 
-  if (emptyMode === "adjacent" && emptyRuns.length) {
+  if (!notesArea && emptyRuns.length) {
     const prev = new Date(year, monthIndex, 0);
     const prevLastDay = prev.getDate();
     const prevMonthName = MONTH_NAMES[prev.getMonth()];
@@ -826,7 +825,7 @@ function currentSettings() {
     s2Break: document.getElementById("s2Break").value,
     shadeColour: document.getElementById("shadeColour").value,
     customColour: document.getElementById("customColour").value,
-    emptyMode: document.getElementById("emptyBlocks").value,
+    notesArea: document.getElementById("notesArea").checked,
     customDates: document.getElementById("customDates").value,
   };
 }
@@ -852,7 +851,7 @@ function applySettings(settings) {
   }
   document.getElementById("shadeColour").value = settings.shadeColour || "grey";
   document.getElementById("customColour").value = settings.customColour || "black";
-  document.getElementById("emptyBlocks").value = settings.emptyMode || "empty";
+  document.getElementById("notesArea").checked = !!settings.notesArea;
   document.getElementById("customDates").value = settings.customDates;
   updateTeachingPanel();
   renderPreview();
@@ -1178,7 +1177,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("teachingWeeks").addEventListener("change", updateTeachingPanel);
   document.getElementById("year").addEventListener("change", autoFillTeachingDates);
-  for (const id of ["year", "month", "country", "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines", "holidayLabels", "shadeColour", "customColour", "emptyBlocks", "shortDayNames", "teachingWeeks", "s1Start", "s1Break", "s2Start", "s2Break", "customDates"]) {
+  for (const id of ["year", "month", "country", "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines", "holidayLabels", "shadeColour", "customColour", "notesArea", "shortDayNames", "teachingWeeks", "s1Start", "s1Break", "s2Start", "s2Break", "customDates"]) {
     document.getElementById(id).addEventListener("input", renderPreview);
     document.getElementById(id).addEventListener("change", renderPreview);
   }

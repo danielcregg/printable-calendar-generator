@@ -7,9 +7,9 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ffffff">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=2026-05-abbrev-14pt">
+  <link rel="stylesheet" href="styles.css?v=2026-05-notes-checkbox">
   <script defer src="vendor/jspdf.umd.min.js"></script>
-  <script defer src="app.js?v=2026-05-abbrev-14pt"></script>
+  <script defer src="app.js?v=2026-05-notes-checkbox"></script>
 </head>
 <body class="app">
   <header class="topbar">
@@ -65,15 +65,6 @@
             </select>
           </label>
 
-          <label>
-            Empty blocks
-            <select id="emptyBlocks">
-              <option value="empty" selected>Leave empty</option>
-              <option value="notes">Notes area</option>
-              <option value="adjacent">Adjacent month dates</option>
-            </select>
-          </label>
-
           <div class="checks">
             <label class="check"><input id="shadeWeekends" type="checkbox" checked> Shade weekends</label>
             <label class="check"><input id="zebraWeeks" type="checkbox"> Zebra shade weeks</label>
@@ -82,6 +73,7 @@
             <label class="check"><input id="holidayLabels" type="checkbox" checked> Show holiday labels</label>
             <label class="check"><input id="shortDayNames" type="checkbox"> Abbreviate weekday names (Mon, Tue...)</label>
             <label class="check"><input id="teachingWeeks" type="checkbox"> Teaching weeks (W1, W2...)</label>
+            <label class="check"><input id="notesArea" type="checkbox"> Use leading/trailing cells as a Notes area</label>
           </div>
         </section>
 
