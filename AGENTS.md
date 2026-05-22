@@ -14,7 +14,7 @@ This project creates clean, printable A4 landscape wall calendars. The design go
 - holiday/custom-date labels in the bottom-left corner of the relevant day box
 - reliable, reproducible date placement calculated by code, not manually designed
 
-The original target use case is an Irish work/family wall calendar, but the project should be general enough to support other countries and user-defined special dates.
+The original target use case is an Irish work/family/academic wall calendar, but the project should be general enough to support other countries and user-defined special dates.
 
 ## Repository structure
 
@@ -24,14 +24,20 @@ printable-calendar-generator/
     index.html           # Calendar generator web app (and the GitHub Pages site)
     today.html           # Companion "this month" page with today highlighted
     styles.css
-    app.js               # Holiday math, layout/rendering, UI, and jsPDF export
+    app.js               # Calendar/holiday/teaching-week engine, rendering, UI, PDF export
     today.js             # Renders the current month, reusing app.js
+    manifest.json        # PWA manifest — installable-app metadata and icons
+    sw.js                # Service worker — precaches the app shell for offline use
     vendor/
       jspdf.umd.min.js   # Bundled jsPDF 2.5.1 — no CDN dependency
-  Original Sample month/ # Reference printed sample PDF
+    icons/
+      icon-192.png       # App icons referenced by the PWA manifest
+      icon-512.png
+  Original Sample month/      # Reference printed sample PDF
   README.md
   AGENTS.md
   CLAUDE.md
+  android-app-dev-guide.md    # Guide for porting the app to Android
 ```
 
 The entire application is the static site in `docs/`. There is no build step and no
@@ -72,6 +78,7 @@ values. Positions use the top-left coordinate system of the canvas preview and j
 - Grid line width: `1.6`
 - Writing guide line style: light grey, dash pattern `2, 3`
 - Holiday font: bold italic, black, about `9 pt`
+- Teaching-week gutter: `13 mm` wide, with week labels (`W1`…) in `13 pt` bold
 
 If these values are changed, download a PDF and visually inspect it before committing.
 
@@ -109,16 +116,32 @@ Lines beginning with `#` are treated as comments. Dates can also be added by cli
 day in the preview, or by importing an `.ics` file. If multiple labels fall on the same
 date, each one is drawn on its own line, stacked above any holiday label for that day.
 
+## Teaching weeks
+
+An optional **Teaching weeks** checkbox adds a narrow left-hand gutter that numbers the
+week rows `W1`–`W13` for an academic year. The numbering is computed automatically:
+
+- **Semester 1** — 13 weeks. The reading week is the week of the October bank-holiday
+  Monday; `W1` is six weeks before it, and `W7`–`W13` follow it.
+- **Semester 2** — 13 weeks, starting the third Monday of January, with a two-week
+  Easter break (the week of Easter Sunday and the week after).
+
+Break weeks are left blank so the count resumes correctly after them. The **Teaching
+week schedule** panel exposes four auto-filled but editable dates — each semester's
+Week 1 start and break start — for years whose schedule differs, plus a button to reset
+them to the automatic values.
+
 ## The web app
 
 The application is a single static site in `docs/`. It uses jsPDF — bundled in
 `docs/vendor/` — to produce the downloadable PDF. There is no build step and nothing to
 install.
 
-`app.js` holds everything: holiday calculations, the layout maths, rendering, the UI,
-`.ics` import, and PDF export. It is shared by both pages — `index.html` (the generator)
-and `today.html` (the live month view). Its `DOMContentLoaded` handler exits early when
-the generator controls are absent, so it is safe to load on `today.html`.
+`app.js` holds everything: holiday calculations, teaching-week numbering, the layout
+maths, rendering, the UI, `.ics` import, browser-stored saved calendars and date groups,
+and PDF export. It is shared by both pages — `index.html` (the generator) and
+`today.html` (the live month view). Its `DOMContentLoaded` handler exits early when the
+generator controls are absent, so it is safe to load on `today.html`.
 
 `app.js` renders the calendar through two paths that must be kept consistent:
 
@@ -128,6 +151,18 @@ the generator controls are absent, so it is safe to load on `today.html`.
 Any layout change must be made in **both**, or the preview and the PDF will disagree.
 The downloaded PDF is the print-quality output and the one to trust; the canvas preview
 is approximate because it uses the browser's own font rendering.
+
+## Offline support (PWA)
+
+The site is an installable Progressive Web App. `manifest.json` carries the install
+metadata and icons; `sw.js` is a service worker that precaches the whole app shell —
+both HTML pages, the CSS and JS, the vendored jsPDF, the manifest and the icons — so the
+app loads and generates PDFs with no network connection.
+
+The service worker is cache-first. **When you change any precached asset, bump the
+`CACHE` constant in `sw.js`** (for example `printable-calendar-v2` to `-v3`). Otherwise
+the service worker keeps serving the old cached file to returning visitors, even when
+the `?v=` query on the script tags changes — it matches requests with `ignoreSearch`.
 
 ## Testing checklist
 
@@ -144,14 +179,16 @@ Before finishing any change, verify:
 6. Weekend shading applies only to Saturday and Sunday columns.
 7. Holiday labels are black, bold italic, bottom-left.
 8. Generated PDFs print safely with no clipped month title.
+9. With **Teaching weeks** enabled, week rows are numbered `W1`–`W13` and the reading-week and Easter-break rows are left blank.
 
 Suggested local smoke test:
 
-1. Open `docs/index.html` in a browser, or serve the `docs/` folder with a static server.
+1. Serve the `docs/` folder with a static server (a served URL, not `file://`, is needed for the service worker).
 2. Generate a full-year 2026 calendar with IE holidays and download the PDF.
 3. Generate a single month (for example June 2026) and download it.
-4. Open `docs/today.html` and confirm the current month renders with today highlighted.
-5. Visually inspect each PDF against the checklist above.
+4. Open `today.html` and confirm the current month renders with today highlighted.
+5. Reload once, then load again with the network disabled, to confirm the service worker serves the app offline.
+6. Visually inspect each PDF against the checklist above.
 
 ## Coding style
 
@@ -171,5 +208,6 @@ Good future additions:
 - portrait option
 - different paper sizes
 - optional localisation of weekday/month labels
+- a native Android app (see `android-app-dev-guide.md`)
 
 Avoid adding clutter to the default design. The core value of this project is that the calendar is clean, readable, and easy to write on.

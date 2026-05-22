@@ -373,6 +373,34 @@ function renderPreview() {
     fullDayNames: document.getElementById("fullDayNames").checked,
     teachingWeeks: document.getElementById("teachingWeeks").checked ? teachingWeekMap() : null,
   });
+  updateMonthNav();
+}
+
+// Updates the preview's month-stepper label, and disables the arrows in
+// full-year mode (there is no single month to step from).
+function updateMonthNav() {
+  const monthValue = document.getElementById("month").value;
+  const year = Number(document.getElementById("year").value);
+  const isFullYear = monthValue === "all";
+  document.getElementById("monthNavLabel").textContent =
+    isFullYear ? `Full year ${year}` : `${MONTH_NAMES[Number(monthValue)]} ${year}`;
+  document.getElementById("prevMonthBtn").disabled = isFullYear;
+  document.getElementById("nextMonthBtn").disabled = isFullYear;
+}
+
+// Steps the Month selector by delta months, rolling the Year over at the
+// December/January boundary, then re-renders.
+function stepMonth(delta) {
+  const monthSelect = document.getElementById("month");
+  if (monthSelect.value === "all") return;
+  const yearInput = document.getElementById("year");
+  let month = Number(monthSelect.value) + delta;
+  let year = Number(yearInput.value);
+  if (month > 11) { month = 0; year += 1; }
+  else if (month < 0) { month = 11; year -= 1; }
+  monthSelect.value = String(month);
+  yearInput.value = String(year);
+  renderPreview();
 }
 
 function handlePreviewClick(event) {
@@ -857,11 +885,43 @@ function clearIcs() {
   document.getElementById("icsFile").value = "";
 }
 
+// --- Setup drawer (the mobile slide-in menu) ---
+function openDrawer() {
+  document.getElementById("drawer").classList.add("open");
+  document.getElementById("scrim").classList.add("show");
+  document.getElementById("menuBtn").setAttribute("aria-expanded", "true");
+  document.body.classList.add("drawer-open");
+  document.getElementById("drawerCloseBtn").focus();
+}
+
+function closeDrawer() {
+  document.getElementById("drawer").classList.remove("open");
+  document.getElementById("scrim").classList.remove("show");
+  document.getElementById("menuBtn").setAttribute("aria-expanded", "false");
+  document.body.classList.remove("drawer-open");
+}
+
+function toggleDrawer() {
+  if (document.getElementById("drawer").classList.contains("open")) closeDrawer();
+  else openDrawer();
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   if (!document.getElementById("previewBtn")) return;
   document.getElementById("previewBtn").addEventListener("click", renderPreview);
   document.getElementById("downloadBtn").addEventListener("click", downloadPdf);
   document.getElementById("preview").addEventListener("click", handlePreviewClick);
+  document.getElementById("prevMonthBtn").addEventListener("click", () => stepMonth(-1));
+  document.getElementById("nextMonthBtn").addEventListener("click", () => stepMonth(1));
+  document.getElementById("menuBtn").addEventListener("click", toggleDrawer);
+  document.getElementById("drawerCloseBtn").addEventListener("click", () => {
+    closeDrawer();
+    document.getElementById("menuBtn").focus();
+  });
+  document.getElementById("scrim").addEventListener("click", closeDrawer);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeDrawer();
+  });
   document.getElementById("saveBtn").addEventListener("click", saveCalendar);
   document.getElementById("loadBtn").addEventListener("click", loadCalendar);
   document.getElementById("deleteBtn").addEventListener("click", deleteCalendar);
