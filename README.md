@@ -1,6 +1,7 @@
 # Printable Calendar Generator
 
-A clean, reproducible A4 calendar generator for printable wall calendars.
+A clean, browser-based generator for printable A4 wall calendars. No install and no
+build step — open the page, set it up, and download a PDF.
 
 The design is intentionally simple and non-fussy:
 
@@ -8,49 +9,26 @@ The design is intentionally simple and non-fussy:
 - large bold month title
 - Monday-start weeks
 - bold weekday headers and date numbers
-- lightly shaded weekends
+- lightly shaded weekends, with optional zebra shading
 - three dashed writing guide lines per day box
 - optional holiday labels in the bottom-left corner
 - Irish public/bank holidays plus Good Friday and Easter Sunday support
 - optional custom dates such as birthdays, school starts, appointments, or reminders
 
-## Python PDF generator
+## Using it
 
-Install dependencies:
+The whole app is the static site in `docs/`. To run it locally, open `docs/index.html`
+in a browser, or serve the folder with any static file server.
 
-```bash
-pip install -r requirements.txt
-```
+Pick a year and a month (or a full year), toggle the holiday and shading options, add
+your own dates, then click **Download PDF**. `docs/today.html` is a companion page that
+shows the current month with today highlighted.
 
-Generate a full year:
+Generating a PDF needs nothing online — jsPDF is bundled in `docs/vendor/`.
 
-```bash
-python -m generator.calendar_pdf --year 2026 --country IE --output output/irish_calendar_2026.pdf
-```
+## GitHub Pages
 
-Generate one month:
-
-```bash
-python -m generator.calendar_pdf --year 2026 --month 6 --country IE --output output/june_2026.pdf
-```
-
-Generate without holidays:
-
-```bash
-python -m generator.calendar_pdf --year 2026 --month 6 --no-holidays --output output/june_2026_plain.pdf
-```
-
-Add custom dates with JSON:
-
-```bash
-python -m generator.calendar_pdf --year 2026 --country IE --custom-dates custom_dates.example.json --output output/calendar_2026.pdf
-```
-
-## GitHub Pages web app
-
-The static web app lives in `docs/`. It can be served by GitHub Pages.
-
-In GitHub:
+The site is published straight from this repository:
 
 1. Open repository **Settings**
 2. Go to **Pages**
@@ -58,18 +36,17 @@ In GitHub:
 4. Choose branch `main` and folder `/docs`
 5. Save
 
-The web version lets people choose a year, toggle Irish holidays, add custom dates, and download a PDF in the same style.
+## Custom dates
 
-## Custom dates format
+Add your own dates in the **Custom dates** box, one per line, as `YYYY-MM-DD | Label`:
 
-See `custom_dates.example.json`.
-
-```json
-[
-  { "date": "2026-09-01", "label": "School Starts" },
-  { "date": "2026-11-12", "label": "Birthday" }
-]
 ```
+2026-09-01 | School Starts
+2026-11-12 | Birthday
+```
+
+Lines starting with `#` are ignored. You can also click any day in the preview to add a
+date, or import an `.ics` file (Outlook, Google, Apple) and tick the dates to include.
 
 ## Holiday notes
 
@@ -88,7 +65,8 @@ For Ireland, the generator includes:
 - Christmas Day
 - St Stephen's Day
 
-If Christmas Day or St Stephen's Day falls on a weekend, the generator also labels the common observed substitute weekdays.
+If Christmas Day or St Stephen's Day falls on a weekend, the generator also labels the
+common observed substitute weekdays.
 
 ## License
 

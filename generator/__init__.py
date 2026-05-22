@@ -1,1 +1,0 @@
-"""Printable calendar generator package."""
