@@ -148,17 +148,74 @@ function updateTeachingPanel() {
   document.getElementById("teachingPanel").hidden = !document.getElementById("teachingWeeks").checked;
 }
 
-function parseCustomDates(text) {
+// Parses a recurrence rule into { unit, n, count, until } or null if it
+// cannot be parsed. Accepts the shortcuts daily/weekly/monthly/yearly and
+// "every N <day|week|month|year>", optionally followed by "x N" (occurrence
+// count) and/or "until YYYY-MM-DD". The two suffixes may appear in either
+// order. Unparseable rules return null; the caller falls back to a one-off
+// date.
+function parseRule(text) {
+  const r = text.toLowerCase().trim();
+  if (!r) return null;
+  let body = r, count = null, until = null;
+  let progress = true;
+  while (progress) {
+    progress = false;
+    const um = body.match(/\s+until\s+(\d{4}-\d{2}-\d{2})$/);
+    if (um) { until = um[1]; body = body.slice(0, um.index); progress = true; continue; }
+    const cm = body.match(/\s+x\s*(\d+)$/);
+    if (cm) { count = Number(cm[1]); body = body.slice(0, cm.index); progress = true; }
+  }
+  body = body.trim();
+  const aliases = { daily: "day", weekly: "week", monthly: "month", yearly: "year" };
+  if (aliases[body]) return { unit: aliases[body], n: 1, count, until };
+  const m = body.match(/^every\s+(?:(\d+)\s+)?(day|days|week|weeks|month|months|year|years)$/);
+  if (m) {
+    const n = m[1] ? Number(m[1]) : 1;
+    const unit = m[2].replace(/s$/, "");
+    return { unit, n, count, until };
+  }
+  return null;
+}
+
+// Yields ISO dates of a recurrence starting at startISO. Bounded by the
+// rule's count, its until date, and the start of year + 2 (the calendar
+// only ever renders one year at a time). A hard cap of 5000 occurrences
+// guards against pathological inputs.
+function* expandRule(startISO, rule, year) {
+  if (!rule) { yield startISO; return; }
+  const start = new Date(startISO + "T00:00:00");
+  const untilDate = rule.until ? new Date(rule.until + "T00:00:00") : null;
+  const stopAt = new Date(year + 2, 0, 1);
+  const maxCount = Math.min(rule.count != null ? rule.count : Infinity, 5000);
+  const current = new Date(start);
+  let i = 0;
+  while (i < maxCount) {
+    if (untilDate && current > untilDate) break;
+    if (current >= stopAt) break;
+    yield isoDate(current);
+    i++;
+    if (rule.unit === "day") current.setDate(current.getDate() + rule.n);
+    else if (rule.unit === "week") current.setDate(current.getDate() + rule.n * 7);
+    else if (rule.unit === "month") current.setMonth(current.getMonth() + rule.n);
+    else if (rule.unit === "year") current.setFullYear(current.getFullYear() + rule.n);
+  }
+}
+
+function parseCustomDates(text, year) {
   const labels = new Map();
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
     if (!line || line.startsWith("#")) continue;
-    const [datePart, ...rest] = line.split("|");
-    const label = rest.join("|").trim();
-    const date = datePart.trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(date) && label) {
-      if (!labels.has(date)) labels.set(date, []);
-      labels.get(date).push(label);
+    const parts = line.split("|");
+    const date = (parts[0] || "").trim();
+    const label = (parts[1] || "").trim();
+    const ruleText = parts.slice(2).join("|").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !label) continue;
+    const rule = ruleText ? parseRule(ruleText) : null;
+    for (const occ of expandRule(date, rule, year)) {
+      if (!labels.has(occ)) labels.set(occ, []);
+      labels.get(occ).push(label);
     }
   }
   return labels;
@@ -175,7 +232,7 @@ function buildLabels(year) {
   if (country === "IE" && showHolidays) {
     for (const [d, label] of irelandHolidays(year)) entryFor(d).holiday = label;
   }
-  for (const [d, list] of parseCustomDates(document.getElementById("customDates").value)) {
+  for (const [d, list] of parseCustomDates(document.getElementById("customDates").value, year)) {
     entryFor(d).custom = list;
   }
   return labels;

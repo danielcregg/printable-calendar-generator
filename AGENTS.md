@@ -105,12 +105,21 @@ Do not add broad multi-day school breaks by default. The agreed approach is to i
 ## Custom dates
 
 Custom dates are entered in the app's **Custom dates** box, one per line, in the format
-`YYYY-MM-DD | Label`:
+`YYYY-MM-DD | Label`, with an optional third pipe-separated field for a recurrence
+rule:
 
 ```text
 2026-09-01 | School Starts
-2026-11-12 | Birthday
+2026-11-12 | Birthday | yearly
+2026-09-08 | Bins | every 2 weeks
+2026-09-15 | Swimming | every week x 10
+2026-04-01 | Yoga | every 2 weeks until 2026-06-30
 ```
+
+Recurrence shortcuts are `daily`, `weekly`, `monthly`, `yearly`. The general form is
+`every N <day(s)|week(s)|month(s)|year(s)>` with optional `x N` (occurrence count) or
+`until YYYY-MM-DD` suffixes (either order). Unparseable rules fall back to a one-off
+date on the start day.
 
 Lines beginning with `#` are treated as comments. Dates can also be added by clicking a
 day in the preview, or by importing an `.ics` file. If multiple labels fall on the same
