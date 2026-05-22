@@ -147,6 +147,11 @@
         <h2>Preview</h2>
         <p>Click any day to add a custom date. The browser preview is approximate; the downloaded PDF uses the same layout logic.</p>
       </div>
+      <div class="month-nav">
+        <button id="prevMonthBtn" type="button" aria-label="Previous month">&lsaquo;</button>
+        <span id="monthNavLabel" aria-live="polite"></span>
+        <button id="nextMonthBtn" type="button" aria-label="Next month">&rsaquo;</button>
+      </div>
       <canvas id="preview" width="1123" height="794" aria-label="Calendar preview"></canvas>
     </section>
   </main>

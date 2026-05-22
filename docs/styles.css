@@ -280,3 +280,25 @@ a {
     width: 100%;
   }
 }
+
+.month-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.month-nav button {
+  background: #111;
+  padding: 6px 16px;
+  font-size: 22px;
+  line-height: 1;
+}
+
+#monthNavLabel {
+  font-weight: 800;
+  font-size: 18px;
+  min-width: 150px;
+  text-align: center;
+}
