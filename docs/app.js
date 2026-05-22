@@ -3,6 +3,7 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December"
 ];
 const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+const FULL_WEEKDAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
 const CUSTOM_DATE_RGB = [26, 86, 219];
 const CUSTOM_DATE_CSS = `rgb(${CUSTOM_DATE_RGB.join(", ")})`;
 
@@ -161,7 +162,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   const cols = 7;
   const colW = gridW / cols;
   const rowH = gridH / rows;
-  const { shadeWeekends, zebraWeeks, guideLines, highlightDate } = options;
+  const { shadeWeekends, zebraWeeks, guideLines, highlightDate, fullDayNames } = options;
 
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = "white";
@@ -184,10 +185,19 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   }
 
   ctx.fillStyle = "black";
-  ctx.font = `bold ${pt(20, scale)}px Arial`;
   ctx.textAlign = "center";
+  const weekdayLabels = fullDayNames ? FULL_WEEKDAYS : WEEKDAYS;
+  let weekdayPt = 20;
+  ctx.font = `bold ${pt(weekdayPt, scale)}px Arial`;
+  let widestWeekday = 0;
+  for (const label of weekdayLabels) widestWeekday = Math.max(widestWeekday, ctx.measureText(label).width);
+  const weekdayMaxW = colW - 4 * scale;
+  if (widestWeekday > weekdayMaxW) {
+    weekdayPt *= weekdayMaxW / widestWeekday;
+    ctx.font = `bold ${pt(weekdayPt, scale)}px Arial`;
+  }
   for (let i = 0; i < 7; i++) {
-    ctx.fillText(WEEKDAYS[i], gridX + i * colW + colW / 2, margin + headerH - 1.5 * scale);
+    ctx.fillText(weekdayLabels[i], gridX + i * colW + colW / 2, margin + headerH - 1.5 * scale);
   }
 
   if (guideLines) {
@@ -290,6 +300,7 @@ function renderPreview() {
     shadeWeekends: document.getElementById("shadeWeekends").checked,
     zebraWeeks: document.getElementById("zebraWeeks").checked,
     guideLines: document.getElementById("guideLines").checked,
+    fullDayNames: document.getElementById("fullDayNames").checked,
   });
 }
 
@@ -333,6 +344,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   const shadeWeekends = document.getElementById("shadeWeekends").checked;
   const zebraWeeks = document.getElementById("zebraWeeks").checked;
   const guideLines = document.getElementById("guideLines").checked;
+  const fullDayNames = document.getElementById("fullDayNames").checked;
 
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, w, h, "F");
@@ -353,8 +365,17 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
 
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  for (let i = 0; i < 7; i++) doc.text(WEEKDAYS[i], gridX + i * colW + colW / 2, margin + headerH - 1.5, { align: "center" });
+  const weekdayLabels = fullDayNames ? FULL_WEEKDAYS : WEEKDAYS;
+  let weekdaySize = 20;
+  doc.setFontSize(weekdaySize);
+  let widestWeekday = 0;
+  for (const label of weekdayLabels) widestWeekday = Math.max(widestWeekday, doc.getTextWidth(label));
+  const weekdayMaxW = colW - 4;
+  if (widestWeekday > weekdayMaxW) {
+    weekdaySize *= weekdayMaxW / widestWeekday;
+    doc.setFontSize(weekdaySize);
+  }
+  for (let i = 0; i < 7; i++) doc.text(weekdayLabels[i], gridX + i * colW + colW / 2, margin + headerH - 1.5, { align: "center" });
 
   if (guideLines) {
     const skip = stackedOffsets(year, monthIndex, labels);
@@ -459,6 +480,7 @@ function currentSettings() {
     zebraWeeks: document.getElementById("zebraWeeks").checked,
     guideLines: document.getElementById("guideLines").checked,
     holidayLabels: document.getElementById("holidayLabels").checked,
+    fullDayNames: document.getElementById("fullDayNames").checked,
     customDates: document.getElementById("customDates").value,
   };
 }
@@ -471,6 +493,7 @@ function applySettings(settings) {
   document.getElementById("zebraWeeks").checked = settings.zebraWeeks;
   document.getElementById("guideLines").checked = settings.guideLines;
   document.getElementById("holidayLabels").checked = settings.holidayLabels;
+  document.getElementById("fullDayNames").checked = settings.fullDayNames;
   document.getElementById("customDates").value = settings.customDates;
   renderPreview();
 }
@@ -757,7 +780,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("icsAddBtn").addEventListener("click", addIcsSelected);
   document.getElementById("icsClearBtn").addEventListener("click", clearIcs);
-  for (const id of ["year", "month", "country", "shadeWeekends", "zebraWeeks", "guideLines", "holidayLabels", "customDates"]) {
+  for (const id of ["year", "month", "country", "shadeWeekends", "zebraWeeks", "guideLines", "holidayLabels", "fullDayNames", "customDates"]) {
     document.getElementById(id).addEventListener("input", renderPreview);
     document.getElementById(id).addEventListener("change", renderPreview);
   }
