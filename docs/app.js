@@ -89,6 +89,29 @@ function irelandHolidays(year) {
   return labels;
 }
 
+// Maps each teaching week's Monday (ISO date) to its label, W1..W13 per
+// semester, skipping the reading/Easter break weeks.
+function teachingWeekMap(year) {
+  const map = new Map();
+  const fill = (startMonday, breakMondays) => {
+    const breaks = new Set(breakMondays.map(isoDate));
+    let count = 1;
+    for (let i = 0; count <= 13 && i < 30; i++) {
+      const key = isoDate(addDays(startMonday, i * 7));
+      if (breaks.has(key)) continue;
+      map.set(key, "W" + count);
+      count++;
+    }
+  };
+  // Semester 1: 13 weeks around the October bank-holiday reading week.
+  const octBreak = lastMonday(year, 9);
+  fill(addDays(octBreak, -42), [octBreak]);
+  // Semester 2: starts the 3rd Monday of January, two weeks off at Easter.
+  const easterBreak = addDays(easterSunday(year), -6);
+  fill(addDays(firstMonday(year, 0), 14), [easterBreak, addDays(easterBreak, 7)]);
+  return map;
+}
+
 function parseCustomDates(text) {
   const labels = new Map();
   for (const raw of text.split(/\r?\n/)) {
@@ -157,12 +180,16 @@ function pt(points, scale = 1) {
 }
 
 function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
-  const { w, h, margin, headerH, gridX, gridY, gridW, gridH } = layout(scale);
+  const { shadeWeekends, zebraWeeks, zebraColumns, guideLines, highlightDate, fullDayNames, teachingWeeks } = options;
+  const base = layout(scale);
+  const { w, h, margin, headerH, gridY, gridH } = base;
+  const gutter = teachingWeeks ? 13 * scale : 0;
+  const gridX = base.gridX + gutter;
+  const gridW = base.gridW - gutter;
   const rows = monthRows(year, monthIndex);
   const cols = 7;
   const colW = gridW / cols;
   const rowH = gridH / rows;
-  const { shadeWeekends, zebraWeeks, zebraColumns, guideLines, highlightDate, fullDayNames } = options;
 
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = "white";
@@ -291,6 +318,19 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
       }
     }
   }
+
+  if (teachingWeeks) {
+    const monthFirst = new Date(year, monthIndex, 1);
+    const row0Monday = addDays(monthFirst, -mondayIndex(monthFirst));
+    ctx.fillStyle = "black";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `bold ${pt(13, scale)}px Arial`;
+    for (let r = 0; r < rows; r++) {
+      const wLabel = teachingWeeks.get(isoDate(addDays(row0Monday, r * 7)));
+      if (wLabel) ctx.fillText(wLabel, base.gridX + gutter / 2, gridY + r * rowH + rowH / 2);
+    }
+  }
 }
 
 function renderPreview() {
@@ -307,6 +347,7 @@ function renderPreview() {
     zebraColumns: document.getElementById("zebraColumns").checked,
     guideLines: document.getElementById("guideLines").checked,
     fullDayNames: document.getElementById("fullDayNames").checked,
+    teachingWeeks: document.getElementById("teachingWeeks").checked ? teachingWeekMap(year) : null,
   });
 }
 
@@ -343,7 +384,12 @@ function handlePreviewClick(event) {
 }
 
 function drawPdfMonth(doc, year, monthIndex, labels) {
-  const { w, h, margin, headerH, gridX, gridY, gridW, gridH } = layout(1);
+  const teachingWeeks = document.getElementById("teachingWeeks").checked ? teachingWeekMap(year) : null;
+  const base = layout(1);
+  const { w, h, margin, headerH, gridY, gridH } = base;
+  const gutter = teachingWeeks ? 13 : 0;
+  const gridX = base.gridX + gutter;
+  const gridW = base.gridW - gutter;
   const rows = monthRows(year, monthIndex);
   const colW = gridW / 7;
   const rowH = gridH / rows;
@@ -447,6 +493,18 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
       }
     }
   }
+
+  if (teachingWeeks) {
+    const monthFirst = new Date(year, monthIndex, 1);
+    const row0Monday = addDays(monthFirst, -mondayIndex(monthFirst));
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    for (let r = 0; r < rows; r++) {
+      const wLabel = teachingWeeks.get(isoDate(addDays(row0Monday, r * 7)));
+      if (wLabel) doc.text(wLabel, base.gridX + gutter / 2, gridY + r * rowH + rowH / 2, { align: "center", baseline: "middle" });
+    }
+  }
 }
 
 function downloadPdf() {
@@ -494,6 +552,7 @@ function currentSettings() {
     guideLines: document.getElementById("guideLines").checked,
     holidayLabels: document.getElementById("holidayLabels").checked,
     fullDayNames: document.getElementById("fullDayNames").checked,
+    teachingWeeks: document.getElementById("teachingWeeks").checked,
     customDates: document.getElementById("customDates").value,
   };
 }
@@ -508,6 +567,7 @@ function applySettings(settings) {
   document.getElementById("guideLines").checked = settings.guideLines;
   document.getElementById("holidayLabels").checked = settings.holidayLabels;
   document.getElementById("fullDayNames").checked = settings.fullDayNames;
+  document.getElementById("teachingWeeks").checked = settings.teachingWeeks;
   document.getElementById("customDates").value = settings.customDates;
   renderPreview();
 }
@@ -794,7 +854,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("icsAddBtn").addEventListener("click", addIcsSelected);
   document.getElementById("icsClearBtn").addEventListener("click", clearIcs);
-  for (const id of ["year", "month", "country", "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines", "holidayLabels", "fullDayNames", "customDates"]) {
+  for (const id of ["year", "month", "country", "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines", "holidayLabels", "fullDayNames", "teachingWeeks", "customDates"]) {
     document.getElementById(id).addEventListener("input", renderPreview);
     document.getElementById(id).addEventListener("change", renderPreview);
   }
