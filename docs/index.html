@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Printable Calendar Generator</title>
-  <link rel="stylesheet" href="styles.css?v=2026-05-teaching-weeks">
+  <link rel="stylesheet" href="styles.css?v=2026-05-week-schedule">
   <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script defer src="app.js?v=2026-05-teaching-weeks"></script>
+  <script defer src="app.js?v=2026-05-week-schedule"></script>
 </head>
 <body>
   <main class="wrap">
@@ -57,6 +57,28 @@
         <label class="check"><input id="holidayLabels" type="checkbox" checked> Show holiday labels</label>
         <label class="check"><input id="fullDayNames" type="checkbox"> Full weekday names</label>
         <label class="check"><input id="teachingWeeks" type="checkbox"> Teaching weeks (W1, W2...)</label>
+      </div>
+    </section>
+
+    <section class="panel" id="teachingPanel" hidden>
+      <h2>Teaching week schedule</h2>
+      <p class="hint">Auto-filled from the year &mdash; edit any date if your schedule differs. The Easter break covers two weeks.</p>
+      <div class="controls">
+        <label>Semester 1: Week 1 starts
+          <input id="s1Start" type="date">
+        </label>
+        <label>Semester 1: Reading week
+          <input id="s1Break" type="date">
+        </label>
+        <label>Semester 2: Week 1 starts
+          <input id="s2Start" type="date">
+        </label>
+        <label>Semester 2: Easter break starts
+          <input id="s2Break" type="date">
+        </label>
+      </div>
+      <div class="buttons">
+        <button id="autoFillWeeksBtn" type="button">Reset to automatic dates</button>
       </div>
     </section>
 
