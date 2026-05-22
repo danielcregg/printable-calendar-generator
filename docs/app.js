@@ -213,6 +213,20 @@ function monthRows(year, monthIndex) {
   return mondayIndex(first) + days <= 35 ? 5 : 6;
 }
 
+// Row-by-row runs of empty day cells: at most one leading run on row 0 and
+// one trailing run from the last-day row onward (which may span more than
+// one row). Empties on a single row are returned as one run.
+function computeEmptyRuns(leadingCount, trailingStart, rows) {
+  const runs = [];
+  if (leadingCount > 0) runs.push({ row: 0, colStart: 0, colEnd: leadingCount - 1, type: "leading" });
+  const lastDayOffset = trailingStart - 1;
+  const lastDayRow = Math.floor(lastDayOffset / 7);
+  const lastDayCol = lastDayOffset % 7;
+  if (lastDayCol < 6) runs.push({ row: lastDayRow, colStart: lastDayCol + 1, colEnd: 6, type: "trailing" });
+  for (let r = lastDayRow + 1; r < rows; r++) runs.push({ row: r, colStart: 0, colEnd: 6, type: "trailing" });
+  return runs;
+}
+
 function layout(scale = 1) {
   const w = 297 * scale;
   const h = 210 * scale;
@@ -243,6 +257,12 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   const cols = 7;
   const colW = gridW / cols;
   const rowH = gridH / rows;
+  const leadingCount = mondayIndex(new Date(year, monthIndex, 1));
+  const trailingStart = leadingCount + new Date(year, monthIndex + 1, 0).getDate();
+  const emptyMode = options.emptyMode || "empty";
+  const emptyRuns = computeEmptyRuns(leadingCount, trailingStart, rows);
+  const emptyCells = new Set();
+  for (const run of emptyRuns) for (let c = run.colStart; c <= run.colEnd; c++) emptyCells.add(run.row * cols + c);
 
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = "white";
@@ -280,6 +300,13 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     for (const col of [5, 6]) ctx.fillRect(gridX + col * colW, gridY, colW, gridH);
   }
 
+  if (emptyMode === "notes") {
+    ctx.fillStyle = "white";
+    for (const run of emptyRuns) {
+      ctx.fillRect(gridX + run.colStart * colW, gridY + run.row * rowH, (run.colEnd - run.colStart + 1) * colW, rowH);
+    }
+  }
+
   ctx.fillStyle = "black";
   ctx.textAlign = "center";
   const weekdayLabels = shortDayNames ? WEEKDAYS : FULL_WEEKDAYS;
@@ -304,6 +331,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     ctx.setLineDash([2 * scale, 3 * scale]);
     for (let r = 0; r < rows; r++) {
       for (let col = 0; col < cols; col++) {
+        if (emptyMode !== "empty" && emptyCells.has(r * cols + col)) continue;
         const drop = skips.get(r * cols + col) || 0;
         const x0 = gridX + col * colW + 3 * scale;
         const x1 = gridX + (col + 1) * colW - 3 * scale;
@@ -321,15 +349,45 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
         }
       }
     }
+    if (emptyMode === "notes") {
+      for (const run of emptyRuns) {
+        const x0 = gridX + run.colStart * colW + 3 * scale;
+        const x1 = gridX + (run.colEnd + 1) * colW - 3 * scale;
+        const yt = gridY + run.row * rowH;
+        const yb = yt + rowH;
+        const yStart = yt + 10 * scale;
+        const yEnd = yb - 2 * scale;
+        const spacing = (yEnd - yStart) / 4;
+        for (let k = 1; k <= 3; k++) {
+          const y = yStart + k * spacing;
+          ctx.beginPath();
+          ctx.moveTo(x0, y);
+          ctx.lineTo(x1, y);
+          ctx.stroke();
+        }
+      }
+    }
     ctx.restore();
   }
 
   ctx.strokeStyle = "black";
   ctx.lineWidth = 1.6 * scale;
   ctx.strokeRect(gridX, gridY, gridW, gridH);
-  for (let i = 1; i < cols; i++) {
-    const x = gridX + i * colW;
-    ctx.beginPath(); ctx.moveTo(x, gridY); ctx.lineTo(x, gridY + gridH); ctx.stroke();
+  if (emptyMode === "notes") {
+    for (let r = 0; r < rows; r++) {
+      const yt = gridY + r * rowH;
+      const yb = yt + rowH;
+      for (let i = 1; i < cols; i++) {
+        if (emptyCells.has(r * cols + (i - 1)) && emptyCells.has(r * cols + i)) continue;
+        const x = gridX + i * colW;
+        ctx.beginPath(); ctx.moveTo(x, yt); ctx.lineTo(x, yb); ctx.stroke();
+      }
+    }
+  } else {
+    for (let i = 1; i < cols; i++) {
+      const x = gridX + i * colW;
+      ctx.beginPath(); ctx.moveTo(x, gridY); ctx.lineTo(x, gridY + gridH); ctx.stroke();
+    }
   }
   for (let j = 1; j < rows; j++) {
     const y = gridY + j * rowH;
@@ -376,6 +434,34 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     }
   }
 
+  if (emptyMode === "adjacent" && emptyRuns.length) {
+    const prev = new Date(year, monthIndex, 0);
+    const prevLastDay = prev.getDate();
+    const prevMonthName = MONTH_NAMES[prev.getMonth()];
+    const nextMonthName = MONTH_NAMES[(monthIndex + 1) % 12];
+    ctx.fillStyle = "#a8a8a8";
+    ctx.font = `bold ${pt(22, scale)}px Arial`;
+    ctx.textAlign = "left";
+    for (const run of emptyRuns) {
+      for (let c = run.colStart; c <= run.colEnd; c++) {
+        const offset = run.row * cols + c;
+        const day = run.type === "leading"
+          ? prevLastDay - leadingCount + 1 + offset
+          : offset - trailingStart + 1;
+        ctx.fillText(String(day), gridX + c * colW + 3.5 * scale, gridY + run.row * rowH + 9 * scale);
+      }
+    }
+    ctx.fillStyle = "#999999";
+    ctx.font = `italic ${pt(8, scale)}px Arial`;
+    ctx.textAlign = "center";
+    for (const run of emptyRuns) {
+      const name = run.type === "leading" ? prevMonthName : nextMonthName;
+      const cx = gridX + ((run.colStart + run.colEnd + 1) / 2) * colW;
+      const cy = gridY + run.row * rowH + 5 * scale;
+      ctx.fillText(name, cx, cy);
+    }
+  }
+
   if (teachingWeeks) {
     const monthFirst = new Date(year, monthIndex, 1);
     const row0Monday = addDays(monthFirst, -mondayIndex(monthFirst));
@@ -407,6 +493,7 @@ function renderPreview() {
     teachingWeeks: document.getElementById("teachingWeeks").checked ? teachingWeekMap() : null,
     shadeTheme: document.getElementById("shadeColour").value,
     customColour: document.getElementById("customColour").value,
+    emptyMode: document.getElementById("emptyBlocks").value,
   });
   updateMonthNav();
 }
@@ -480,6 +567,12 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   const rows = monthRows(year, monthIndex);
   const colW = gridW / 7;
   const rowH = gridH / rows;
+  const leadingCount = mondayIndex(new Date(year, monthIndex, 1));
+  const trailingStart = leadingCount + new Date(year, monthIndex + 1, 0).getDate();
+  const emptyMode = document.getElementById("emptyBlocks").value;
+  const emptyRuns = computeEmptyRuns(leadingCount, trailingStart, rows);
+  const emptyCells = new Set();
+  for (const run of emptyRuns) for (let c = run.colStart; c <= run.colEnd; c++) emptyCells.add(run.row * 7 + c);
   const shadeWeekends = document.getElementById("shadeWeekends").checked;
   const zebraWeeks = document.getElementById("zebraWeeks").checked;
   const zebraColumns = document.getElementById("zebraColumns").checked;
@@ -519,6 +612,13 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     for (const col of [5, 6]) doc.rect(gridX + col * colW, gridY, colW, gridH, "F");
   }
 
+  if (emptyMode === "notes") {
+    doc.setFillColor(255, 255, 255);
+    for (const run of emptyRuns) {
+      doc.rect(gridX + run.colStart * colW, gridY + run.row * rowH, (run.colEnd - run.colStart + 1) * colW, rowH, "F");
+    }
+  }
+
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
   const weekdayLabels = shortDayNames ? WEEKDAYS : FULL_WEEKDAYS;
@@ -540,6 +640,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     doc.setLineDashPattern([2, 3], 0);
     for (let r = 0; r < rows; r++) {
       for (let col = 0; col < 7; col++) {
+        if (emptyMode !== "empty" && emptyCells.has(r * 7 + col)) continue;
         const drop = skips.get(r * 7 + col) || 0;
         const x0 = gridX + col * colW + 3;
         const x1 = gridX + (col + 1) * colW - 3;
@@ -549,13 +650,34 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
         for (let k = 1; k <= 3 - drop; k++) doc.line(x0, yt + 10 + k * spacing, x1, yt + 10 + k * spacing);
       }
     }
+    if (emptyMode === "notes") {
+      for (const run of emptyRuns) {
+        const x0 = gridX + run.colStart * colW + 3;
+        const x1 = gridX + (run.colEnd + 1) * colW - 3;
+        const yt = gridY + run.row * rowH;
+        const yb = yt + rowH;
+        const spacing = ((yb - 2) - (yt + 10)) / 4;
+        for (let k = 1; k <= 3; k++) doc.line(x0, yt + 10 + k * spacing, x1, yt + 10 + k * spacing);
+      }
+    }
     doc.setLineDashPattern([], 0);
   }
 
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(1.6);
   doc.rect(gridX, gridY, gridW, gridH);
-  for (let i = 1; i < 7; i++) doc.line(gridX + i * colW, gridY, gridX + i * colW, gridY + gridH);
+  if (emptyMode === "notes") {
+    for (let r = 0; r < rows; r++) {
+      const yt = gridY + r * rowH;
+      const yb = yt + rowH;
+      for (let i = 1; i < 7; i++) {
+        if (emptyCells.has(r * 7 + (i - 1)) && emptyCells.has(r * 7 + i)) continue;
+        doc.line(gridX + i * colW, yt, gridX + i * colW, yb);
+      }
+    }
+  } else {
+    for (let i = 1; i < 7; i++) doc.line(gridX + i * colW, gridY, gridX + i * colW, gridY + gridH);
+  }
   for (let j = 1; j < rows; j++) doc.line(gridX, gridY + j * rowH, gridX + gridW, gridY + j * rowH);
 
   const first = new Date(year, monthIndex, 1);
@@ -582,6 +704,34 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
         else doc.setTextColor(0, 0, 0);
         doc.text(item.text.slice(0, 32), x + 3, bottomY - (stack.length - 1 - i) * 4);
       });
+    }
+  }
+
+  if (emptyMode === "adjacent" && emptyRuns.length) {
+    const prev = new Date(year, monthIndex, 0);
+    const prevLastDay = prev.getDate();
+    const prevMonthName = MONTH_NAMES[prev.getMonth()];
+    const nextMonthName = MONTH_NAMES[(monthIndex + 1) % 12];
+    doc.setTextColor(168, 168, 168);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    for (const run of emptyRuns) {
+      for (let c = run.colStart; c <= run.colEnd; c++) {
+        const offset = run.row * 7 + c;
+        const day = run.type === "leading"
+          ? prevLastDay - leadingCount + 1 + offset
+          : offset - trailingStart + 1;
+        doc.text(String(day), gridX + c * colW + 3.5, gridY + run.row * rowH + 9);
+      }
+    }
+    doc.setTextColor(153, 153, 153);
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8);
+    for (const run of emptyRuns) {
+      const name = run.type === "leading" ? prevMonthName : nextMonthName;
+      const cx = gridX + ((run.colStart + run.colEnd + 1) / 2) * colW;
+      const cy = gridY + run.row * rowH + 5;
+      doc.text(name, cx, cy, { align: "center" });
     }
   }
 
@@ -650,6 +800,7 @@ function currentSettings() {
     s2Break: document.getElementById("s2Break").value,
     shadeColour: document.getElementById("shadeColour").value,
     customColour: document.getElementById("customColour").value,
+    emptyMode: document.getElementById("emptyBlocks").value,
     customDates: document.getElementById("customDates").value,
   };
 }
@@ -675,6 +826,7 @@ function applySettings(settings) {
   }
   document.getElementById("shadeColour").value = settings.shadeColour || "grey";
   document.getElementById("customColour").value = settings.customColour || "black";
+  document.getElementById("emptyBlocks").value = settings.emptyMode || "empty";
   document.getElementById("customDates").value = settings.customDates;
   updateTeachingPanel();
   renderPreview();
@@ -1000,7 +1152,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("teachingWeeks").addEventListener("change", updateTeachingPanel);
   document.getElementById("year").addEventListener("change", autoFillTeachingDates);
-  for (const id of ["year", "month", "country", "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines", "holidayLabels", "shadeColour", "customColour", "shortDayNames", "teachingWeeks", "s1Start", "s1Break", "s2Start", "s2Break", "customDates"]) {
+  for (const id of ["year", "month", "country", "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines", "holidayLabels", "shadeColour", "customColour", "emptyBlocks", "shortDayNames", "teachingWeeks", "s1Start", "s1Break", "s2Start", "s2Break", "customDates"]) {
     document.getElementById(id).addEventListener("input", renderPreview);
     document.getElementById(id).addEventListener("change", renderPreview);
   }

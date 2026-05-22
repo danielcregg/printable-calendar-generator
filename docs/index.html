@@ -7,9 +7,9 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ffffff">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=2026-05-colour-presets">
+  <link rel="stylesheet" href="styles.css?v=2026-05-empty-blocks">
   <script defer src="vendor/jspdf.umd.min.js"></script>
-  <script defer src="app.js?v=2026-05-colour-presets"></script>
+  <script defer src="app.js?v=2026-05-empty-blocks"></script>
 </head>
 <body class="app">
   <header class="topbar">
@@ -62,6 +62,15 @@
             <select id="country">
               <option value="IE" selected>Ireland</option>
               <option value="NONE">No holidays</option>
+            </select>
+          </label>
+
+          <label>
+            Empty blocks
+            <select id="emptyBlocks">
+              <option value="empty" selected>Leave empty</option>
+              <option value="notes">Notes area</option>
+              <option value="adjacent">Adjacent month dates</option>
             </select>
           </label>
 
