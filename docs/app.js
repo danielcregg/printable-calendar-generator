@@ -162,7 +162,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   const cols = 7;
   const colW = gridW / cols;
   const rowH = gridH / rows;
-  const { shadeWeekends, zebraWeeks, guideLines, highlightDate, fullDayNames } = options;
+  const { shadeWeekends, zebraWeeks, zebraColumns, guideLines, highlightDate, fullDayNames } = options;
 
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = "white";
@@ -177,6 +177,11 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   if (zebraWeeks) {
     ctx.fillStyle = "#f4f4f4";
     for (let r = 1; r < rows; r += 2) ctx.fillRect(gridX, gridY + r * rowH, gridW, rowH);
+  }
+
+  if (zebraColumns) {
+    ctx.fillStyle = "#f4f4f4";
+    for (let c = 1; c < cols; c += 2) ctx.fillRect(gridX + c * colW, gridY, colW, gridH);
   }
 
   if (shadeWeekends) {
@@ -299,6 +304,7 @@ function renderPreview() {
   drawCalendar(ctx, year, month, labels, scale, {
     shadeWeekends: document.getElementById("shadeWeekends").checked,
     zebraWeeks: document.getElementById("zebraWeeks").checked,
+    zebraColumns: document.getElementById("zebraColumns").checked,
     guideLines: document.getElementById("guideLines").checked,
     fullDayNames: document.getElementById("fullDayNames").checked,
   });
@@ -343,6 +349,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   const rowH = gridH / rows;
   const shadeWeekends = document.getElementById("shadeWeekends").checked;
   const zebraWeeks = document.getElementById("zebraWeeks").checked;
+  const zebraColumns = document.getElementById("zebraColumns").checked;
   const guideLines = document.getElementById("guideLines").checked;
   const fullDayNames = document.getElementById("fullDayNames").checked;
 
@@ -356,6 +363,11 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   if (zebraWeeks) {
     doc.setFillColor(244, 244, 244);
     for (let r = 1; r < rows; r += 2) doc.rect(gridX, gridY + r * rowH, gridW, rowH, "F");
+  }
+
+  if (zebraColumns) {
+    doc.setFillColor(244, 244, 244);
+    for (let c = 1; c < 7; c += 2) doc.rect(gridX + c * colW, gridY, colW, gridH, "F");
   }
 
   if (shadeWeekends) {
@@ -478,6 +490,7 @@ function currentSettings() {
     country: document.getElementById("country").value,
     shadeWeekends: document.getElementById("shadeWeekends").checked,
     zebraWeeks: document.getElementById("zebraWeeks").checked,
+    zebraColumns: document.getElementById("zebraColumns").checked,
     guideLines: document.getElementById("guideLines").checked,
     holidayLabels: document.getElementById("holidayLabels").checked,
     fullDayNames: document.getElementById("fullDayNames").checked,
@@ -491,6 +504,7 @@ function applySettings(settings) {
   document.getElementById("country").value = settings.country;
   document.getElementById("shadeWeekends").checked = settings.shadeWeekends;
   document.getElementById("zebraWeeks").checked = settings.zebraWeeks;
+  document.getElementById("zebraColumns").checked = settings.zebraColumns;
   document.getElementById("guideLines").checked = settings.guideLines;
   document.getElementById("holidayLabels").checked = settings.holidayLabels;
   document.getElementById("fullDayNames").checked = settings.fullDayNames;
@@ -780,7 +794,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("icsAddBtn").addEventListener("click", addIcsSelected);
   document.getElementById("icsClearBtn").addEventListener("click", clearIcs);
-  for (const id of ["year", "month", "country", "shadeWeekends", "zebraWeeks", "guideLines", "holidayLabels", "fullDayNames", "customDates"]) {
+  for (const id of ["year", "month", "country", "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines", "holidayLabels", "fullDayNames", "customDates"]) {
     document.getElementById(id).addEventListener("input", renderPreview);
     document.getElementById(id).addEventListener("change", renderPreview);
   }
