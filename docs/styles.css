@@ -159,4 +159,5 @@ canvas {
   border-radius: 14px;
   background: white;
   display: block;
+  cursor: pointer;
 }

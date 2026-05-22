@@ -3,6 +3,8 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December"
 ];
 const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+const CUSTOM_DATE_RGB = [26, 86, 219];
+const CUSTOM_DATE_CSS = `rgb(${CUSTOM_DATE_RGB.join(", ")})`;
 
 function mondayIndex(date) {
   return (date.getDay() + 6) % 7;
@@ -103,15 +105,31 @@ function parseCustomDates(text) {
 
 function buildLabels(year) {
   const labels = new Map();
+  const entryFor = (date) => {
+    if (!labels.has(date)) labels.set(date, { holiday: null, custom: null });
+    return labels.get(date);
+  };
   const country = document.getElementById("country").value;
   const showHolidays = document.getElementById("holidayLabels").checked;
   if (country === "IE" && showHolidays) {
-    for (const [d, label] of irelandHolidays(year)) labels.set(d, label);
+    for (const [d, label] of irelandHolidays(year)) entryFor(d).holiday = label;
   }
   for (const [d, label] of parseCustomDates(document.getElementById("customDates").value)) {
-    labels.set(d, labels.has(d) ? `${labels.get(d)} / ${label}` : label);
+    entryFor(d).custom = label;
   }
   return labels;
+}
+
+// Day-cell offsets that carry both a holiday and a custom label (stacked).
+function stackedOffsets(year, monthIndex, labels) {
+  const startOffset = mondayIndex(new Date(year, monthIndex, 1));
+  const days = new Date(year, monthIndex + 1, 0).getDate();
+  const offsets = new Set();
+  for (let day = 1; day <= days; day++) {
+    const entry = labels.get(isoDate(new Date(year, monthIndex, day)));
+    if (entry && entry.holiday && entry.custom) offsets.add((day - 1) + startOffset);
+  }
+  return offsets;
 }
 
 function monthRows(year, monthIndex) {
@@ -169,12 +187,14 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
   }
 
   if (guideLines) {
+    const skip = stackedOffsets(year, monthIndex, labels);
     ctx.save();
     ctx.strokeStyle = "#bfbfbf";
     ctx.lineWidth = 0.6 * scale;
     ctx.setLineDash([2 * scale, 3 * scale]);
     for (let r = 0; r < rows; r++) {
       for (let col = 0; col < cols; col++) {
+        if (skip.has(r * cols + col)) continue;
         const x0 = gridX + col * colW + 3 * scale;
         const x1 = gridX + (col + 1) * colW - 3 * scale;
         const yt = gridY + r * rowH;
@@ -208,7 +228,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
 
   const first = new Date(year, monthIndex, 1);
   const days = new Date(year, monthIndex + 1, 0).getDate();
-  ctx.fillStyle = "black";
+  ctx.textAlign = "left";
   for (let day = 1; day <= days; day++) {
     const d = new Date(year, monthIndex, day);
     const offset = (day - 1) + mondayIndex(first);
@@ -216,13 +236,26 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
     const col = offset % cols;
     const y = gridY + r * rowH;
     const x = gridX + col * colW;
+    ctx.fillStyle = "black";
     ctx.font = `bold ${pt(22, scale)}px Arial`;
-    ctx.textAlign = "left";
     ctx.fillText(String(day), x + 3.5 * scale, y + 9 * scale);
-    const label = labels.get(isoDate(d));
-    if (label) {
+
+    const entry = labels.get(isoDate(d));
+    if (entry) {
       ctx.font = `italic bold ${pt(9, scale)}px Arial`;
-      ctx.fillText(label.slice(0, 32), x + 3 * scale, y + rowH - 3.5 * scale);
+      const bottomY = y + rowH - 3.5 * scale;
+      if (entry.holiday && entry.custom) {
+        ctx.fillStyle = "black";
+        ctx.fillText(entry.holiday.slice(0, 32), x + 3 * scale, bottomY);
+        ctx.fillStyle = CUSTOM_DATE_CSS;
+        ctx.fillText(entry.custom.slice(0, 32), x + 3 * scale, bottomY - 4 * scale);
+      } else if (entry.custom) {
+        ctx.fillStyle = CUSTOM_DATE_CSS;
+        ctx.fillText(entry.custom.slice(0, 32), x + 3 * scale, bottomY);
+      } else {
+        ctx.fillStyle = "black";
+        ctx.fillText(entry.holiday.slice(0, 32), x + 3 * scale, bottomY);
+      }
     }
   }
 }
@@ -236,6 +269,38 @@ function renderPreview() {
   const month = monthValue === "all" ? 0 : Number(monthValue);
   const labels = buildLabels(year);
   drawCalendar(ctx, year, month, labels, scale);
+}
+
+function handlePreviewClick(event) {
+  const canvas = document.getElementById("preview");
+  const rect = canvas.getBoundingClientRect();
+  const scale = canvas.width / 297;
+  const cx = (event.clientX - rect.left) * (canvas.width / rect.width);
+  const cy = (event.clientY - rect.top) * (canvas.height / rect.height);
+  const { gridX, gridY, gridW, gridH } = layout(scale);
+  if (cx < gridX || cx > gridX + gridW || cy < gridY || cy > gridY + gridH) return;
+
+  const year = Number(document.getElementById("year").value);
+  const monthValue = document.getElementById("month").value;
+  const monthIndex = monthValue === "all" ? 0 : Number(monthValue);
+  const rows = monthRows(year, monthIndex);
+  const col = Math.floor((cx - gridX) / (gridW / 7));
+  const row = Math.floor((cy - gridY) / (gridH / rows));
+  if (col < 0 || col > 6 || row < 0 || row >= rows) return;
+
+  const first = new Date(year, monthIndex, 1);
+  const days = new Date(year, monthIndex + 1, 0).getDate();
+  const day = row * 7 + col - mondayIndex(first) + 1;
+  if (day < 1 || day > days) return;
+
+  const date = isoDate(new Date(year, monthIndex, day));
+  const label = (window.prompt(`Add a custom date for ${date}:`) || "").trim();
+  if (!label) return;
+
+  const box = document.getElementById("customDates");
+  const current = box.value.replace(/\s+$/, "");
+  box.value = (current ? current + "\n" : "") + `${date} | ${label}`;
+  renderPreview();
 }
 
 function drawPdfMonth(doc, year, monthIndex, labels) {
@@ -264,11 +329,13 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   for (let i = 0; i < 7; i++) doc.text(WEEKDAYS[i], gridX + i * colW + colW / 2, margin + headerH - 1.5, { align: "center" });
 
   if (guideLines) {
+    const skip = stackedOffsets(year, monthIndex, labels);
     doc.setDrawColor(191, 191, 191);
     doc.setLineWidth(0.6);
     doc.setLineDashPattern([2, 3], 0);
     for (let r = 0; r < rows; r++) {
       for (let col = 0; col < 7; col++) {
+        if (skip.has(r * 7 + col)) continue;
         const x0 = gridX + col * colW + 3;
         const x1 = gridX + (col + 1) * colW - 3;
         const yt = gridY + r * rowH;
@@ -299,11 +366,24 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
     doc.text(String(day), x + 3.5, y + 9);
-    const label = labels.get(isoDate(d));
-    if (label) {
+
+    const entry = labels.get(isoDate(d));
+    if (entry) {
       doc.setFont("helvetica", "bolditalic");
       doc.setFontSize(9);
-      doc.text(label.slice(0, 32), x + 3, y + rowH - 3.5);
+      const bottomY = y + rowH - 3.5;
+      if (entry.holiday && entry.custom) {
+        doc.setTextColor(0, 0, 0);
+        doc.text(entry.holiday.slice(0, 32), x + 3, bottomY);
+        doc.setTextColor(...CUSTOM_DATE_RGB);
+        doc.text(entry.custom.slice(0, 32), x + 3, bottomY - 4);
+      } else if (entry.custom) {
+        doc.setTextColor(...CUSTOM_DATE_RGB);
+        doc.text(entry.custom.slice(0, 32), x + 3, bottomY);
+      } else {
+        doc.setTextColor(0, 0, 0);
+        doc.text(entry.holiday.slice(0, 32), x + 3, bottomY);
+      }
     }
   }
 }
@@ -326,6 +406,7 @@ function downloadPdf() {
 window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("previewBtn").addEventListener("click", renderPreview);
   document.getElementById("downloadBtn").addEventListener("click", downloadPdf);
+  document.getElementById("preview").addEventListener("click", handlePreviewClick);
   for (const id of ["year", "month", "country", "shadeWeekends", "guideLines", "holidayLabels", "customDates"]) {
     document.getElementById(id).addEventListener("input", renderPreview);
     document.getElementById(id).addEventListener("change", renderPreview);
