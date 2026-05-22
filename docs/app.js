@@ -162,6 +162,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
   const colW = gridW / cols;
   const rowH = gridH / rows;
   const shadeWeekends = document.getElementById("shadeWeekends").checked;
+  const zebraWeeks = document.getElementById("zebraWeeks").checked;
   const guideLines = document.getElementById("guideLines").checked;
 
   ctx.clearRect(0, 0, w, h);
@@ -173,6 +174,11 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.fillText(`${MONTH_NAMES[monthIndex]} ${year}`, w / 2, margin + 8 * scale);
+
+  if (zebraWeeks) {
+    ctx.fillStyle = "#f4f4f4";
+    for (let r = 1; r < rows; r += 2) ctx.fillRect(gridX, gridY + r * rowH, gridW, rowH);
+  }
 
   if (shadeWeekends) {
     ctx.fillStyle = "#ebebeb";
@@ -309,6 +315,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   const colW = gridW / 7;
   const rowH = gridH / rows;
   const shadeWeekends = document.getElementById("shadeWeekends").checked;
+  const zebraWeeks = document.getElementById("zebraWeeks").checked;
   const guideLines = document.getElementById("guideLines").checked;
 
   doc.setFillColor(255, 255, 255);
@@ -317,6 +324,11 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(40);
   doc.text(`${MONTH_NAMES[monthIndex]} ${year}`, w / 2, margin + 8, { align: "center" });
+
+  if (zebraWeeks) {
+    doc.setFillColor(244, 244, 244);
+    for (let r = 1; r < rows; r += 2) doc.rect(gridX, gridY + r * rowH, gridW, rowH, "F");
+  }
 
   if (shadeWeekends) {
     doc.setFillColor(235, 235, 235);
@@ -428,6 +440,7 @@ function currentSettings() {
     month: document.getElementById("month").value,
     country: document.getElementById("country").value,
     shadeWeekends: document.getElementById("shadeWeekends").checked,
+    zebraWeeks: document.getElementById("zebraWeeks").checked,
     guideLines: document.getElementById("guideLines").checked,
     holidayLabels: document.getElementById("holidayLabels").checked,
     customDates: document.getElementById("customDates").value,
@@ -439,6 +452,7 @@ function applySettings(settings) {
   document.getElementById("month").value = settings.month;
   document.getElementById("country").value = settings.country;
   document.getElementById("shadeWeekends").checked = settings.shadeWeekends;
+  document.getElementById("zebraWeeks").checked = settings.zebraWeeks;
   document.getElementById("guideLines").checked = settings.guideLines;
   document.getElementById("holidayLabels").checked = settings.holidayLabels;
   document.getElementById("customDates").value = settings.customDates;
@@ -512,7 +526,7 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("saveBtn").addEventListener("click", saveCalendar);
   document.getElementById("loadBtn").addEventListener("click", loadCalendar);
   document.getElementById("deleteBtn").addEventListener("click", deleteCalendar);
-  for (const id of ["year", "month", "country", "shadeWeekends", "guideLines", "holidayLabels", "customDates"]) {
+  for (const id of ["year", "month", "country", "shadeWeekends", "zebraWeeks", "guideLines", "holidayLabels", "customDates"]) {
     document.getElementById(id).addEventListener("input", renderPreview);
     document.getElementById(id).addEventListener("change", renderPreview);
   }
