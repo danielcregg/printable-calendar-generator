@@ -174,17 +174,20 @@ function labelStack(entry) {
   return stack;
 }
 
-// Day-cell offsets carrying two or more labels; their guide lines are
-// skipped so the stacked labels do not overwrite the dashes.
-function stackedOffsets(year, monthIndex, labels) {
+// Maps each day-cell offset to how many of its three writing guide lines
+// (counted from the bottom) the stacked labels would cover: one line per
+// extra label, capped at all three. Cells with at most one label keep the
+// full set and are left out of the map.
+function guideLineSkips(year, monthIndex, labels) {
   const startOffset = mondayIndex(new Date(year, monthIndex, 1));
   const days = new Date(year, monthIndex + 1, 0).getDate();
-  const offsets = new Set();
+  const skips = new Map();
   for (let day = 1; day <= days; day++) {
     const entry = labels.get(isoDate(new Date(year, monthIndex, day)));
-    if (labelStack(entry).length >= 2) offsets.add((day - 1) + startOffset);
+    const drop = Math.min(labelStack(entry).length - 1, 3);
+    if (drop > 0) skips.set((day - 1) + startOffset, drop);
   }
-  return offsets;
+  return skips;
 }
 
 function monthRows(year, monthIndex) {
@@ -264,14 +267,14 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   }
 
   if (guideLines) {
-    const skip = stackedOffsets(year, monthIndex, labels);
+    const skips = guideLineSkips(year, monthIndex, labels);
     ctx.save();
     ctx.strokeStyle = "#bfbfbf";
     ctx.lineWidth = 0.6 * scale;
     ctx.setLineDash([2 * scale, 3 * scale]);
     for (let r = 0; r < rows; r++) {
       for (let col = 0; col < cols; col++) {
-        if (skip.has(r * cols + col)) continue;
+        const drop = skips.get(r * cols + col) || 0;
         const x0 = gridX + col * colW + 3 * scale;
         const x1 = gridX + (col + 1) * colW - 3 * scale;
         const yt = gridY + r * rowH;
@@ -279,7 +282,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
         const yStart = yt + 10 * scale;
         const yEnd = yb - 2 * scale;
         const spacing = (yEnd - yStart) / 4;
-        for (let k = 1; k <= 3; k++) {
+        for (let k = 1; k <= 3 - drop; k++) {
           const y = yStart + k * spacing;
           ctx.beginPath();
           ctx.moveTo(x0, y);
@@ -488,19 +491,19 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   for (let i = 0; i < 7; i++) doc.text(weekdayLabels[i], gridX + i * colW + colW / 2, margin + headerH - 1.5, { align: "center" });
 
   if (guideLines) {
-    const skip = stackedOffsets(year, monthIndex, labels);
+    const skips = guideLineSkips(year, monthIndex, labels);
     doc.setDrawColor(191, 191, 191);
     doc.setLineWidth(0.6);
     doc.setLineDashPattern([2, 3], 0);
     for (let r = 0; r < rows; r++) {
       for (let col = 0; col < 7; col++) {
-        if (skip.has(r * 7 + col)) continue;
+        const drop = skips.get(r * 7 + col) || 0;
         const x0 = gridX + col * colW + 3;
         const x1 = gridX + (col + 1) * colW - 3;
         const yt = gridY + r * rowH;
         const yb = yt + rowH;
         const spacing = ((yb - 2) - (yt + 10)) / 4;
-        for (let k = 1; k <= 3; k++) doc.line(x0, yt + 10 + k * spacing, x1, yt + 10 + k * spacing);
+        for (let k = 1; k <= 3 - drop; k++) doc.line(x0, yt + 10 + k * spacing, x1, yt + 10 + k * spacing);
       }
     }
     doc.setLineDashPattern([], 0);
