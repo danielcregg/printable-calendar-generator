@@ -3,7 +3,7 @@
 //
 // IMPORTANT: bump CACHE whenever any precached asset below changes, otherwise
 // returning visitors keep being served the old cached file.
-const CACHE = "printable-calendar-v1";
+const CACHE = "printable-calendar-v2";
 
 const ASSETS = [
   "./",
@@ -34,12 +34,15 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Serve precached assets first, fall back to the network. ignoreSearch lets a
-// request like app.js?v=2026-05-teaching-weeks match the cached app.js.
+// Serve precached assets first, fall back to the network. Only same-origin GET
+// requests are handled; ignoreSearch lets a request like
+// app.js?v=2026-05-week-schedule match the cached app.js.
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
+  const request = event.request;
+  if (request.method !== "GET") return;
+  if (new URL(request.url).origin !== self.location.origin) return;
   event.respondWith(
-    caches.match(event.request, { ignoreSearch: true })
-      .then((cached) => cached || fetch(event.request))
+    caches.match(request, { ignoreSearch: true })
+      .then((cached) => cached || fetch(request))
   );
 });
