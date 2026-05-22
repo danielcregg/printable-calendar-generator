@@ -141,7 +141,8 @@ function parseCustomDates(text) {
     const label = rest.join("|").trim();
     const date = datePart.trim();
     if (/^\d{4}-\d{2}-\d{2}$/.test(date) && label) {
-      labels.set(date, labels.has(date) ? `${labels.get(date)} / ${label}` : label);
+      if (!labels.has(date)) labels.set(date, []);
+      labels.get(date).push(label);
     }
   }
   return labels;
@@ -150,7 +151,7 @@ function parseCustomDates(text) {
 function buildLabels(year) {
   const labels = new Map();
   const entryFor = (date) => {
-    if (!labels.has(date)) labels.set(date, { holiday: null, custom: null });
+    if (!labels.has(date)) labels.set(date, { holiday: null, custom: [] });
     return labels.get(date);
   };
   const country = document.getElementById("country").value;
@@ -158,20 +159,30 @@ function buildLabels(year) {
   if (country === "IE" && showHolidays) {
     for (const [d, label] of irelandHolidays(year)) entryFor(d).holiday = label;
   }
-  for (const [d, label] of parseCustomDates(document.getElementById("customDates").value)) {
-    entryFor(d).custom = label;
+  for (const [d, list] of parseCustomDates(document.getElementById("customDates").value)) {
+    entryFor(d).custom = list;
   }
   return labels;
 }
 
-// Day-cell offsets that carry both a holiday and a custom label (stacked).
+// Orders a day's labels into stacked lines, top to bottom: custom dates
+// first (blue), then the holiday (black) at the bottom.
+function labelStack(entry) {
+  if (!entry) return [];
+  const stack = entry.custom.map((text) => ({ text, custom: true }));
+  if (entry.holiday) stack.push({ text: entry.holiday, custom: false });
+  return stack;
+}
+
+// Day-cell offsets carrying two or more labels; their guide lines are
+// skipped so the stacked labels do not overwrite the dashes.
 function stackedOffsets(year, monthIndex, labels) {
   const startOffset = mondayIndex(new Date(year, monthIndex, 1));
   const days = new Date(year, monthIndex + 1, 0).getDate();
   const offsets = new Set();
   for (let day = 1; day <= days; day++) {
     const entry = labels.get(isoDate(new Date(year, monthIndex, day)));
-    if (entry && entry.holiday && entry.custom) offsets.add((day - 1) + startOffset);
+    if (labelStack(entry).length >= 2) offsets.add((day - 1) + startOffset);
   }
   return offsets;
 }
@@ -320,22 +331,15 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     ctx.font = `bold ${pt(22, scale)}px Arial`;
     ctx.fillText(String(day), x + 3.5 * scale, y + 9 * scale);
 
-    const entry = labels.get(isoDate(d));
-    if (entry) {
+    const stack = labelStack(labels.get(isoDate(d)));
+    if (stack.length) {
       ctx.font = `italic bold ${pt(9, scale)}px Arial`;
       const bottomY = y + rowH - 3.5 * scale;
-      if (entry.holiday && entry.custom) {
-        ctx.fillStyle = "black";
-        ctx.fillText(entry.holiday.slice(0, 32), x + 3 * scale, bottomY);
-        ctx.fillStyle = CUSTOM_DATE_CSS;
-        ctx.fillText(entry.custom.slice(0, 32), x + 3 * scale, bottomY - 4 * scale);
-      } else if (entry.custom) {
-        ctx.fillStyle = CUSTOM_DATE_CSS;
-        ctx.fillText(entry.custom.slice(0, 32), x + 3 * scale, bottomY);
-      } else {
-        ctx.fillStyle = "black";
-        ctx.fillText(entry.holiday.slice(0, 32), x + 3 * scale, bottomY);
-      }
+      stack.forEach((item, i) => {
+        ctx.fillStyle = item.custom ? CUSTOM_DATE_CSS : "black";
+        const lineY = bottomY - (stack.length - 1 - i) * 4 * scale;
+        ctx.fillText(item.text.slice(0, 32), x + 3 * scale, lineY);
+      });
     }
   }
 
@@ -494,23 +498,16 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     doc.setFontSize(22);
     doc.text(String(day), x + 3.5, y + 9);
 
-    const entry = labels.get(isoDate(d));
-    if (entry) {
+    const stack = labelStack(labels.get(isoDate(d)));
+    if (stack.length) {
       doc.setFont("helvetica", "bolditalic");
       doc.setFontSize(9);
       const bottomY = y + rowH - 3.5;
-      if (entry.holiday && entry.custom) {
-        doc.setTextColor(0, 0, 0);
-        doc.text(entry.holiday.slice(0, 32), x + 3, bottomY);
-        doc.setTextColor(...CUSTOM_DATE_RGB);
-        doc.text(entry.custom.slice(0, 32), x + 3, bottomY - 4);
-      } else if (entry.custom) {
-        doc.setTextColor(...CUSTOM_DATE_RGB);
-        doc.text(entry.custom.slice(0, 32), x + 3, bottomY);
-      } else {
-        doc.setTextColor(0, 0, 0);
-        doc.text(entry.holiday.slice(0, 32), x + 3, bottomY);
-      }
+      stack.forEach((item, i) => {
+        if (item.custom) doc.setTextColor(...CUSTOM_DATE_RGB);
+        else doc.setTextColor(0, 0, 0);
+        doc.text(item.text.slice(0, 32), x + 3, bottomY - (stack.length - 1 - i) * 4);
+      });
     }
   }
 

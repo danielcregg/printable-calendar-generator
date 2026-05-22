@@ -107,7 +107,7 @@ Custom dates are entered in the app's **Custom dates** box, one per line, in the
 
 Lines beginning with `#` are treated as comments. Dates can also be added by clicking a
 day in the preview, or by importing an `.ics` file. If multiple labels fall on the same
-date, combine them with ` / `.
+date, each one is drawn on its own line, stacked above any holiday label for that day.
 
 ## The web app
 

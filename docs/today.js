@@ -10,7 +10,7 @@ function renderTodayCalendar() {
 
   const labels = new Map();
   for (const [date, holiday] of irelandHolidays(year)) {
-    labels.set(date, { holiday, custom: null });
+    labels.set(date, { holiday, custom: [] });
   }
 
   drawCalendar(ctx, year, monthIndex, labels, scale, {
