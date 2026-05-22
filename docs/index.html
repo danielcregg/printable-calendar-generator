@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Printable Calendar Generator</title>
-  <link rel="stylesheet" href="styles.css?v=2026-05-today">
+  <link rel="stylesheet" href="styles.css?v=2026-05-ics">
   <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script defer src="app.js?v=2026-05-today"></script>
+  <script defer src="app.js?v=2026-05-ics"></script>
 </head>
 <body>
   <main class="wrap">
@@ -81,6 +81,20 @@
       <div class="buttons">
         <button id="previewBtn" type="button">Preview</button>
         <button id="downloadBtn" type="button">Download PDF</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Import from a calendar file</h2>
+      <p class="hint">Select or drag in an .ics file (Outlook, Google, Apple), then tick the dates to add.</p>
+      <div id="icsDrop" class="ics-drop">
+        <p>Drop an <strong>.ics</strong> file here, or choose one:</p>
+        <input id="icsFile" type="file" accept=".ics,text/calendar">
+      </div>
+      <div id="icsResults" class="ics-results" hidden></div>
+      <div id="icsActions" class="ics-actions" hidden>
+        <button id="icsAddBtn" type="button">Add selected dates</button>
+        <button id="icsClearBtn" type="button">Clear</button>
       </div>
     </section>
 
