@@ -331,7 +331,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     ctx.setLineDash([2 * scale, 3 * scale]);
     for (let r = 0; r < rows; r++) {
       for (let col = 0; col < cols; col++) {
-        if (emptyMode !== "empty" && emptyCells.has(r * cols + col)) continue;
+        if (emptyMode === "notes" && emptyCells.has(r * cols + col)) continue;
         const drop = skips.get(r * cols + col) || 0;
         const x0 = gridX + col * colW + 3 * scale;
         const x1 = gridX + (col + 1) * colW - 3 * scale;
@@ -453,17 +453,15 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     }
     ctx.fillStyle = "#999999";
     ctx.font = `italic ${pt(8, scale)}px Arial`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
+    ctx.textAlign = "right";
     for (const run of emptyRuns) {
-      const name = run.type === "leading" ? prevMonthName : nextMonthName;
+      const name = (run.type === "leading" ? prevMonthName : nextMonthName).slice(0, 3);
       for (let c = run.colStart; c <= run.colEnd; c++) {
-        const cx = gridX + (c + 0.5) * colW;
-        const cy = gridY + run.row * rowH + rowH / 2;
+        const cx = gridX + (c + 1) * colW - 3.5 * scale;
+        const cy = gridY + run.row * rowH + 5 * scale;
         ctx.fillText(name, cx, cy);
       }
     }
-    ctx.textBaseline = "alphabetic";
   }
 
   if (teachingWeeks) {
@@ -644,7 +642,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     doc.setLineDashPattern([2, 3], 0);
     for (let r = 0; r < rows; r++) {
       for (let col = 0; col < 7; col++) {
-        if (emptyMode !== "empty" && emptyCells.has(r * 7 + col)) continue;
+        if (emptyMode === "notes" && emptyCells.has(r * 7 + col)) continue;
         const drop = skips.get(r * 7 + col) || 0;
         const x0 = gridX + col * colW + 3;
         const x1 = gridX + (col + 1) * colW - 3;
@@ -732,11 +730,11 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     doc.setFont("helvetica", "italic");
     doc.setFontSize(8);
     for (const run of emptyRuns) {
-      const name = run.type === "leading" ? prevMonthName : nextMonthName;
+      const name = (run.type === "leading" ? prevMonthName : nextMonthName).slice(0, 3);
       for (let c = run.colStart; c <= run.colEnd; c++) {
-        const cx = gridX + (c + 0.5) * colW;
-        const cy = gridY + run.row * rowH + rowH / 2;
-        doc.text(name, cx, cy, { align: "center", baseline: "middle" });
+        const cx = gridX + (c + 1) * colW - 3.5;
+        const cy = gridY + run.row * rowH + 5;
+        doc.text(name, cx, cy, { align: "right" });
       }
     }
   }
