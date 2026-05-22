@@ -4,8 +4,6 @@ const MONTH_NAMES = [
 ];
 const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const FULL_WEEKDAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
-const CUSTOM_DATE_RGB = [26, 86, 219];
-const CUSTOM_DATE_CSS = `rgb(${CUSTOM_DATE_RGB.join(", ")})`;
 
 function mondayIndex(date) {
   return (date.getDay() + 6) % 7;
@@ -231,10 +229,21 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   ctx.fillRect(0, 0, w, h);
 
   ctx.fillStyle = "black";
-  ctx.font = `bold ${pt(40, scale)}px Arial`;
-  ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
-  ctx.fillText(`${MONTH_NAMES[monthIndex]} ${year}`, w / 2, margin + 8 * scale);
+  ctx.textAlign = "left";
+  const titleBold = `bold ${pt(40, scale)}px Arial`;
+  const titleRegular = `${pt(40, scale)}px Arial`;
+  const monthText = MONTH_NAMES[monthIndex];
+  const yearText = ` ${year}`;
+  ctx.font = titleBold;
+  const monthW = ctx.measureText(monthText).width;
+  ctx.font = titleRegular;
+  const yearW = ctx.measureText(yearText).width;
+  const titleX = w / 2 - (monthW + yearW) / 2;
+  ctx.font = titleBold;
+  ctx.fillText(monthText, titleX, margin + 8 * scale);
+  ctx.font = titleRegular;
+  ctx.fillText(yearText, titleX + monthW, margin + 8 * scale);
 
   if (zebraWeeks) {
     ctx.fillStyle = "#f4f4f4";
@@ -337,10 +346,9 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
 
     const stack = labelStack(labels.get(isoDate(d)));
     if (stack.length) {
-      ctx.font = `italic bold ${pt(9, scale)}px Arial`;
       const bottomY = y + rowH - 3.5 * scale;
       stack.forEach((item, i) => {
-        ctx.fillStyle = item.custom ? CUSTOM_DATE_CSS : "black";
+        ctx.font = `${item.custom ? "italic " : ""}bold ${pt(9, scale)}px Arial`;
         const lineY = bottomY - (stack.length - 1 - i) * 4 * scale;
         ctx.fillText(item.text.slice(0, 32), x + 3 * scale, lineY);
       });
@@ -458,9 +466,18 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, w, h, "F");
   doc.setTextColor(0, 0, 0);
-  doc.setFont("helvetica", "bold");
   doc.setFontSize(40);
-  doc.text(`${MONTH_NAMES[monthIndex]} ${year}`, w / 2, margin + 8, { align: "center" });
+  const monthText = MONTH_NAMES[monthIndex];
+  const yearText = ` ${year}`;
+  doc.setFont("helvetica", "bold");
+  const monthW = doc.getTextWidth(monthText);
+  doc.setFont("helvetica", "normal");
+  const yearW = doc.getTextWidth(yearText);
+  const titleX = w / 2 - (monthW + yearW) / 2;
+  doc.setFont("helvetica", "bold");
+  doc.text(monthText, titleX, margin + 8);
+  doc.setFont("helvetica", "normal");
+  doc.text(yearText, titleX + monthW, margin + 8);
 
   if (zebraWeeks) {
     doc.setFillColor(244, 244, 244);
@@ -532,12 +549,10 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
 
     const stack = labelStack(labels.get(isoDate(d)));
     if (stack.length) {
-      doc.setFont("helvetica", "bolditalic");
       doc.setFontSize(9);
       const bottomY = y + rowH - 3.5;
       stack.forEach((item, i) => {
-        if (item.custom) doc.setTextColor(...CUSTOM_DATE_RGB);
-        else doc.setTextColor(0, 0, 0);
+        doc.setFont("helvetica", item.custom ? "bolditalic" : "bold");
         doc.text(item.text.slice(0, 32), x + 3, bottomY - (stack.length - 1 - i) * 4);
       });
     }

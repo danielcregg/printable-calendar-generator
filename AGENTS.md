@@ -49,14 +49,14 @@ When changing layout code, preserve these visual decisions unless the user expli
 
 1. **A4 landscape** output.
 2. **Monday-first** weeks.
-3. **Large, bold, black** month title.
+3. **Large, black** month title — the month name in bold, the year in regular weight.
 4. Month title should sit slightly below the printable top edge so home printers do not clip it.
 5. Weekday headers should be bold and black.
 6. Date numbers should be bold and black.
 7. Saturday and Sunday columns should be lightly shaded, not dark.
 8. Each day box should have exactly **3 dashed writing guide lines** by default.
 9. Holiday labels should appear in the **bottom-left corner** of the day box.
-10. Holiday labels should be **black, bold italic**, and small enough not to dominate the box.
+10. Holiday labels should be **black and bold**, custom-date labels **black and bold italic**, both small enough not to dominate the box. The default calendar stays black and white.
 11. Keep the layout clean; do not add icons, decorative graphics, coloured holiday markers, or busy styling by default.
 12. Grid boxes may be slightly rectangular; maximizing writing space is more important than perfect square cells.
 
@@ -77,7 +77,7 @@ values. Positions use the top-left coordinate system of the canvas preview and j
 - Month title font size: `40 pt`
 - Grid line width: `1.6`
 - Writing guide line style: light grey, dash pattern `2, 3`
-- Holiday font: bold italic, black, about `9 pt`
+- Label font: black, about `9 pt` — holiday labels bold, custom-date labels bold italic
 - Teaching-week gutter: `13 mm` wide, with week labels (`W1`…) in `13 pt` bold
 
 If these values are changed, download a PDF and visually inspect it before committing.
@@ -177,7 +177,7 @@ Before finishing any change, verify:
    - Easter Sunday: 2026-04-05
    - Easter Monday: 2026-04-06
 6. Weekend shading applies only to Saturday and Sunday columns.
-7. Holiday labels are black, bold italic, bottom-left.
+7. Holiday labels are black and bold, custom-date labels black and bold italic, bottom-left.
 8. Generated PDFs print safely with no clipped month title.
 9. With **Teaching weeks** enabled, week rows are numbered `W1`–`W13` and the reading-week and Easter-break rows are left blank.
 
