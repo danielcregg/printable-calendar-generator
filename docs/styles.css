@@ -126,6 +126,24 @@ textarea {
   flex-wrap: wrap;
 }
 
+.save-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.save-row input,
+.save-row select {
+  flex: 1 1 200px;
+  width: auto;
+  min-width: 0;
+}
+
+.save-row button {
+  flex: 0 0 auto;
+}
+
 button {
   border: 0;
   border-radius: 999px;
@@ -138,6 +156,11 @@ button {
 
 button:first-child {
   background: #444;
+}
+
+button:disabled {
+  opacity: .45;
+  cursor: default;
 }
 
 .preview-head {

@@ -403,13 +403,119 @@ function downloadPdf() {
   doc.save(name);
 }
 
+const STORAGE_KEY = "printableCalendars";
+
+function readSavedCalendars() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function writeSavedCalendars(all) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function currentSettings() {
+  return {
+    year: document.getElementById("year").value,
+    month: document.getElementById("month").value,
+    country: document.getElementById("country").value,
+    shadeWeekends: document.getElementById("shadeWeekends").checked,
+    guideLines: document.getElementById("guideLines").checked,
+    holidayLabels: document.getElementById("holidayLabels").checked,
+    customDates: document.getElementById("customDates").value,
+  };
+}
+
+function applySettings(settings) {
+  document.getElementById("year").value = settings.year;
+  document.getElementById("month").value = settings.month;
+  document.getElementById("country").value = settings.country;
+  document.getElementById("shadeWeekends").checked = settings.shadeWeekends;
+  document.getElementById("guideLines").checked = settings.guideLines;
+  document.getElementById("holidayLabels").checked = settings.holidayLabels;
+  document.getElementById("customDates").value = settings.customDates;
+  renderPreview();
+}
+
+function refreshSavedList(selectedName) {
+  const select = document.getElementById("savedCalendars");
+  const names = Object.keys(readSavedCalendars()).sort((a, b) => a.localeCompare(b));
+  select.innerHTML = "";
+  for (const name of names) {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    select.appendChild(option);
+  }
+  if (names.length === 0) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No saved calendars yet";
+    select.appendChild(option);
+  }
+  if (selectedName && names.includes(selectedName)) select.value = selectedName;
+  const empty = names.length === 0;
+  select.disabled = empty;
+  document.getElementById("loadBtn").disabled = empty;
+  document.getElementById("deleteBtn").disabled = empty;
+}
+
+function saveCalendar() {
+  const nameInput = document.getElementById("calendarName");
+  const name = nameInput.value.trim();
+  if (!name) {
+    window.alert("Enter a name for this calendar.");
+    nameInput.focus();
+    return;
+  }
+  const all = readSavedCalendars();
+  if (all[name] && !window.confirm(`Replace the saved calendar "${name}"?`)) return;
+  all[name] = currentSettings();
+  if (!writeSavedCalendars(all)) {
+    window.alert("Could not save — this browser's storage is full or unavailable.");
+    return;
+  }
+  refreshSavedList(name);
+}
+
+function loadCalendar() {
+  const name = document.getElementById("savedCalendars").value;
+  if (!name) return;
+  const settings = readSavedCalendars()[name];
+  if (!settings) return;
+  applySettings(settings);
+  document.getElementById("calendarName").value = name;
+}
+
+function deleteCalendar() {
+  const name = document.getElementById("savedCalendars").value;
+  if (!name) return;
+  if (!window.confirm(`Delete the saved calendar "${name}"?`)) return;
+  const all = readSavedCalendars();
+  delete all[name];
+  writeSavedCalendars(all);
+  refreshSavedList();
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("previewBtn").addEventListener("click", renderPreview);
   document.getElementById("downloadBtn").addEventListener("click", downloadPdf);
   document.getElementById("preview").addEventListener("click", handlePreviewClick);
+  document.getElementById("saveBtn").addEventListener("click", saveCalendar);
+  document.getElementById("loadBtn").addEventListener("click", loadCalendar);
+  document.getElementById("deleteBtn").addEventListener("click", deleteCalendar);
   for (const id of ["year", "month", "country", "shadeWeekends", "guideLines", "holidayLabels", "customDates"]) {
     document.getElementById(id).addEventListener("input", renderPreview);
     document.getElementById(id).addEventListener("change", renderPreview);
   }
+  refreshSavedList();
   renderPreview();
 });

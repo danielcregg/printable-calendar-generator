@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Printable Calendar Generator</title>
-  <link rel="stylesheet" href="styles.css?v=2026-05-custom-dates">
+  <link rel="stylesheet" href="styles.css?v=2026-05-saved-calendars">
   <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script defer src="app.js?v=2026-05-custom-dates"></script>
+  <script defer src="app.js?v=2026-05-saved-calendars"></script>
 </head>
 <body>
   <main class="wrap">
@@ -64,6 +64,22 @@
       <div class="buttons">
         <button id="previewBtn" type="button">Preview</button>
         <button id="downloadBtn" type="button">Download PDF</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Saved calendars</h2>
+      <p class="hint">Saved in this browser only.</p>
+      <div class="save-row">
+        <input id="calendarName" type="text" placeholder="Name this calendar" spellcheck="false" aria-label="Calendar name">
+        <button id="saveBtn" type="button">Save</button>
+      </div>
+      <div class="save-row">
+        <select id="savedCalendars" aria-label="Saved calendars">
+          <option value="">No saved calendars yet</option>
+        </select>
+        <button id="loadBtn" type="button">Load</button>
+        <button id="deleteBtn" type="button">Delete</button>
       </div>
     </section>
 
