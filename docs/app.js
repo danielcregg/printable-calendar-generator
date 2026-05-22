@@ -175,16 +175,17 @@ function labelStack(entry) {
 }
 
 // Maps each day-cell offset to how many of its three writing guide lines
-// (counted from the bottom) the stacked labels would cover: one line per
-// extra label, capped at all three. Cells with at most one label keep the
-// full set and are left out of the map.
-function guideLineSkips(year, monthIndex, labels) {
+// (counted from the bottom) the stacked labels would cover. One line is
+// dropped per extra label; six-row months have shorter cells, so there a
+// single label already reaches the lowest line. Capped at all three.
+function guideLineSkips(year, monthIndex, labels, rows) {
   const startOffset = mondayIndex(new Date(year, monthIndex, 1));
   const days = new Date(year, monthIndex + 1, 0).getDate();
+  const extraDrop = rows === 6 ? 1 : 0;
   const skips = new Map();
   for (let day = 1; day <= days; day++) {
     const entry = labels.get(isoDate(new Date(year, monthIndex, day)));
-    const drop = Math.min(labelStack(entry).length - 1, 3);
+    const drop = Math.min(labelStack(entry).length - 1 + extraDrop, 3);
     if (drop > 0) skips.set((day - 1) + startOffset, drop);
   }
   return skips;
@@ -267,7 +268,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   }
 
   if (guideLines) {
-    const skips = guideLineSkips(year, monthIndex, labels);
+    const skips = guideLineSkips(year, monthIndex, labels, rows);
     ctx.save();
     ctx.strokeStyle = "#bfbfbf";
     ctx.lineWidth = 0.6 * scale;
@@ -491,7 +492,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   for (let i = 0; i < 7; i++) doc.text(weekdayLabels[i], gridX + i * colW + colW / 2, margin + headerH - 1.5, { align: "center" });
 
   if (guideLines) {
-    const skips = guideLineSkips(year, monthIndex, labels);
+    const skips = guideLineSkips(year, monthIndex, labels, rows);
     doc.setDrawColor(191, 191, 191);
     doc.setLineWidth(0.6);
     doc.setLineDashPattern([2, 3], 0);
