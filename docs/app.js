@@ -155,15 +155,13 @@ function pt(points, scale = 1) {
   return points * (25.4 / 72) * scale;
 }
 
-function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
+function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   const { w, h, margin, headerH, gridX, gridY, gridW, gridH } = layout(scale);
   const rows = monthRows(year, monthIndex);
   const cols = 7;
   const colW = gridW / cols;
   const rowH = gridH / rows;
-  const shadeWeekends = document.getElementById("shadeWeekends").checked;
-  const zebraWeeks = document.getElementById("zebraWeeks").checked;
-  const guideLines = document.getElementById("guideLines").checked;
+  const { shadeWeekends, zebraWeeks, guideLines, highlightDate } = options;
 
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = "white";
@@ -232,6 +230,20 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
     ctx.beginPath(); ctx.moveTo(gridX, y); ctx.lineTo(gridX + gridW, y); ctx.stroke();
   }
 
+  if (highlightDate) {
+    const [hYear, hMonth, hDay] = highlightDate.split("-").map(Number);
+    if (hYear === year && hMonth - 1 === monthIndex) {
+      const offset = (hDay - 1) + mondayIndex(new Date(year, monthIndex, 1));
+      const hx = gridX + (offset % cols) * colW;
+      const hy = gridY + Math.floor(offset / cols) * rowH;
+      ctx.fillStyle = "#fff1c2";
+      ctx.fillRect(hx, hy, colW, rowH);
+      ctx.strokeStyle = "#e0a800";
+      ctx.lineWidth = 2.4 * scale;
+      ctx.strokeRect(hx, hy, colW, rowH);
+    }
+  }
+
   const first = new Date(year, monthIndex, 1);
   const days = new Date(year, monthIndex + 1, 0).getDate();
   ctx.textAlign = "left";
@@ -274,7 +286,11 @@ function renderPreview() {
   const monthValue = document.getElementById("month").value;
   const month = monthValue === "all" ? 0 : Number(monthValue);
   const labels = buildLabels(year);
-  drawCalendar(ctx, year, month, labels, scale);
+  drawCalendar(ctx, year, month, labels, scale, {
+    shadeWeekends: document.getElementById("shadeWeekends").checked,
+    zebraWeeks: document.getElementById("zebraWeeks").checked,
+    guideLines: document.getElementById("guideLines").checked,
+  });
 }
 
 function handlePreviewClick(event) {
@@ -606,6 +622,7 @@ function deleteGroup() {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
+  if (!document.getElementById("previewBtn")) return;
   document.getElementById("previewBtn").addEventListener("click", renderPreview);
   document.getElementById("downloadBtn").addEventListener("click", downloadPdf);
   document.getElementById("preview").addEventListener("click", handlePreviewClick);

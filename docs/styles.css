@@ -188,7 +188,15 @@ canvas {
   border-radius: 14px;
   background: white;
   display: block;
+}
+
+#preview {
   cursor: pointer;
+}
+
+a {
+  color: #1a56db;
+  font-weight: 700;
 }
 
 @media (max-width: 640px) {
