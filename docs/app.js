@@ -434,6 +434,17 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     }
   }
 
+  if (emptyMode === "notes" && emptyRuns.length) {
+    ctx.fillStyle = "#999999";
+    ctx.font = `italic ${pt(10, scale)}px Arial`;
+    ctx.textAlign = "left";
+    for (const run of emptyRuns) {
+      const cx = gridX + run.colStart * colW + 3.5 * scale;
+      const cy = gridY + run.row * rowH + 6 * scale;
+      ctx.fillText("Notes", cx, cy);
+    }
+  }
+
   if (emptyMode === "adjacent" && emptyRuns.length) {
     const prev = new Date(year, monthIndex, 0);
     const prevLastDay = prev.getDate();
@@ -706,6 +717,17 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
         else doc.setTextColor(0, 0, 0);
         doc.text(item.text.slice(0, 32), x + 3, bottomY - (stack.length - 1 - i) * 4);
       });
+    }
+  }
+
+  if (emptyMode === "notes" && emptyRuns.length) {
+    doc.setTextColor(153, 153, 153);
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(10);
+    for (const run of emptyRuns) {
+      const cx = gridX + run.colStart * colW + 3.5;
+      const cy = gridY + run.row * rowH + 6;
+      doc.text("Notes", cx, cy);
     }
   }
 
