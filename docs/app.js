@@ -132,6 +132,11 @@ function layout(scale = 1) {
   return { w, h, margin, headerH, gridX, gridY, gridW, gridH };
 }
 
+function pt(points, scale = 1) {
+  // Canvas uses px, while PDF fonts use points. Convert pt -> mm -> scaled px.
+  return points * (25.4 / 72) * scale;
+}
+
 function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
   const { w, h, margin, headerH, gridX, gridY, gridW, gridH } = layout(scale);
   const rows = monthRows(year, monthIndex);
@@ -146,7 +151,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
   ctx.fillRect(0, 0, w, h);
 
   ctx.fillStyle = "black";
-  ctx.font = `bold ${40 * scale}px Arial`;
+  ctx.font = `bold ${pt(40, scale)}px Arial`;
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.fillText(`${MONTH_NAMES[monthIndex]} ${year}`, w / 2, margin + 8 * scale);
@@ -157,7 +162,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
   }
 
   ctx.fillStyle = "black";
-  ctx.font = `bold ${20 * scale}px Arial`;
+  ctx.font = `bold ${pt(20, scale)}px Arial`;
   ctx.textAlign = "center";
   for (let i = 0; i < 7; i++) {
     ctx.fillText(WEEKDAYS[i], gridX + i * colW + colW / 2, margin + headerH - 1.5 * scale);
@@ -211,12 +216,12 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1) {
     const col = offset % cols;
     const y = gridY + r * rowH;
     const x = gridX + col * colW;
-    ctx.font = `bold ${22 * scale}px Arial`;
+    ctx.font = `bold ${pt(22, scale)}px Arial`;
     ctx.textAlign = "left";
     ctx.fillText(String(day), x + 3.5 * scale, y + 9 * scale);
     const label = labels.get(isoDate(d));
     if (label) {
-      ctx.font = `italic bold ${9 * scale}px Arial`;
+      ctx.font = `italic bold ${pt(9, scale)}px Arial`;
       ctx.fillText(label.slice(0, 32), x + 3 * scale, y + rowH - 3.5 * scale);
     }
   }
