@@ -463,7 +463,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
       }
     }
     ctx.fillStyle = "#999999";
-    ctx.font = `italic ${pt(12, scale)}px Arial`;
+    ctx.font = `italic ${pt(14, scale)}px Arial`;
     ctx.textAlign = "right";
     for (const run of emptyRuns) {
       const name = (run.type === "leading" ? prevMonthName : nextMonthName).slice(0, 3);
@@ -750,7 +750,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     }
     doc.setTextColor(153, 153, 153);
     doc.setFont("helvetica", "italic");
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     for (const run of emptyRuns) {
       const name = (run.type === "leading" ? prevMonthName : nextMonthName).slice(0, 3);
       for (let c = run.colStart; c <= run.colEnd; c++) {
