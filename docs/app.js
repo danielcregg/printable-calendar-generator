@@ -211,7 +211,7 @@ function pt(points, scale = 1) {
 }
 
 function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
-  const { shadeWeekends, zebraWeeks, zebraColumns, guideLines, highlightDate, fullDayNames, teachingWeeks } = options;
+  const { shadeWeekends, zebraWeeks, zebraColumns, guideLines, highlightDate, shortDayNames, teachingWeeks } = options;
   const base = layout(scale);
   const { w, h, margin, headerH, gridY, gridH } = base;
   const gutter = teachingWeeks ? 13 * scale : 0;
@@ -249,7 +249,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
 
   ctx.fillStyle = "black";
   ctx.textAlign = "center";
-  const weekdayLabels = fullDayNames ? FULL_WEEKDAYS : WEEKDAYS;
+  const weekdayLabels = shortDayNames ? WEEKDAYS : FULL_WEEKDAYS;
   let weekdayPt = 20;
   ctx.font = `bold ${pt(weekdayPt, scale)}px Arial`;
   let widestWeekday = 0;
@@ -370,7 +370,7 @@ function renderPreview() {
     zebraWeeks: document.getElementById("zebraWeeks").checked,
     zebraColumns: document.getElementById("zebraColumns").checked,
     guideLines: document.getElementById("guideLines").checked,
-    fullDayNames: document.getElementById("fullDayNames").checked,
+    shortDayNames: document.getElementById("shortDayNames").checked,
     teachingWeeks: document.getElementById("teachingWeeks").checked ? teachingWeekMap() : null,
   });
   updateMonthNav();
@@ -449,7 +449,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   const zebraWeeks = document.getElementById("zebraWeeks").checked;
   const zebraColumns = document.getElementById("zebraColumns").checked;
   const guideLines = document.getElementById("guideLines").checked;
-  const fullDayNames = document.getElementById("fullDayNames").checked;
+  const shortDayNames = document.getElementById("shortDayNames").checked;
 
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, w, h, "F");
@@ -475,7 +475,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
 
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
-  const weekdayLabels = fullDayNames ? FULL_WEEKDAYS : WEEKDAYS;
+  const weekdayLabels = shortDayNames ? WEEKDAYS : FULL_WEEKDAYS;
   let weekdaySize = 20;
   doc.setFontSize(weekdaySize);
   let widestWeekday = 0;
@@ -596,7 +596,7 @@ function currentSettings() {
     zebraColumns: document.getElementById("zebraColumns").checked,
     guideLines: document.getElementById("guideLines").checked,
     holidayLabels: document.getElementById("holidayLabels").checked,
-    fullDayNames: document.getElementById("fullDayNames").checked,
+    shortDayNames: document.getElementById("shortDayNames").checked,
     teachingWeeks: document.getElementById("teachingWeeks").checked,
     s1Start: document.getElementById("s1Start").value,
     s1Break: document.getElementById("s1Break").value,
@@ -615,7 +615,7 @@ function applySettings(settings) {
   document.getElementById("zebraColumns").checked = settings.zebraColumns;
   document.getElementById("guideLines").checked = settings.guideLines;
   document.getElementById("holidayLabels").checked = settings.holidayLabels;
-  document.getElementById("fullDayNames").checked = settings.fullDayNames;
+  document.getElementById("shortDayNames").checked = settings.shortDayNames;
   document.getElementById("teachingWeeks").checked = settings.teachingWeeks;
   if (settings.s1Start) {
     document.getElementById("s1Start").value = settings.s1Start;
@@ -950,7 +950,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("teachingWeeks").addEventListener("change", updateTeachingPanel);
   document.getElementById("year").addEventListener("change", autoFillTeachingDates);
-  for (const id of ["year", "month", "country", "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines", "holidayLabels", "fullDayNames", "teachingWeeks", "s1Start", "s1Break", "s2Start", "s2Break", "customDates"]) {
+  for (const id of ["year", "month", "country", "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines", "holidayLabels", "shortDayNames", "teachingWeeks", "s1Start", "s1Break", "s2Start", "s2Break", "customDates"]) {
     document.getElementById(id).addEventListener("input", renderPreview);
     document.getElementById(id).addEventListener("change", renderPreview);
   }
