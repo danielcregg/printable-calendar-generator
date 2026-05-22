@@ -7,9 +7,9 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ffffff">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=2026-05-bw-labels">
+  <link rel="stylesheet" href="styles.css?v=2026-05-colour-presets">
   <script defer src="vendor/jspdf.umd.min.js"></script>
-  <script defer src="app.js?v=2026-05-bw-labels"></script>
+  <script defer src="app.js?v=2026-05-colour-presets"></script>
 </head>
 <body class="app">
   <header class="topbar">
@@ -73,6 +73,28 @@
             <label class="check"><input id="holidayLabels" type="checkbox" checked> Show holiday labels</label>
             <label class="check"><input id="shortDayNames" type="checkbox"> Abbreviate weekday names (Mon, Tue...)</label>
             <label class="check"><input id="teachingWeeks" type="checkbox"> Teaching weeks (W1, W2...)</label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Colours</h2>
+          <p class="hint">Optional &mdash; the calendar is black and white by default.</p>
+          <div class="controls">
+            <label>Shading colour
+              <select id="shadeColour">
+                <option value="grey" selected>Grey (default)</option>
+                <option value="blue">Blue</option>
+                <option value="green">Green</option>
+                <option value="warm">Warm</option>
+              </select>
+            </label>
+            <label>Custom date colour
+              <select id="customColour">
+                <option value="black" selected>Black (default)</option>
+                <option value="blue">Blue</option>
+                <option value="green">Green</option>
+              </select>
+            </label>
           </div>
         </section>
 

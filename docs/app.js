@@ -5,6 +5,24 @@ const MONTH_NAMES = [
 const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const FULL_WEEKDAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
 
+// Opt-in colour presets. The defaults (grey shading, black labels) keep the
+// printed calendar black and white.
+const SHADE_THEMES = {
+  grey:  { weekend: [235, 235, 235], zebra: [244, 244, 244] },
+  blue:  { weekend: [219, 229, 242], zebra: [237, 242, 249] },
+  green: { weekend: [222, 233, 222], zebra: [239, 244, 239] },
+  warm:  { weekend: [244, 232, 218], zebra: [250, 244, 234] },
+};
+const LABEL_COLOURS = {
+  black: [0, 0, 0],
+  blue:  [26, 86, 219],
+  green: [34, 113, 58],
+};
+
+function rgbCss(rgb) {
+  return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+}
+
 function mondayIndex(date) {
   return (date.getDay() + 6) % 7;
 }
@@ -214,6 +232,8 @@ function pt(points, scale = 1) {
 
 function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   const { shadeWeekends, zebraWeeks, zebraColumns, guideLines, highlightDate, shortDayNames, teachingWeeks } = options;
+  const shade = SHADE_THEMES[options.shadeTheme] || SHADE_THEMES.grey;
+  const customCss = rgbCss(LABEL_COLOURS[options.customColour] || LABEL_COLOURS.black);
   const base = layout(scale);
   const { w, h, margin, headerH, gridY, gridH } = base;
   const gutter = teachingWeeks ? 13 * scale : 0;
@@ -246,17 +266,17 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   ctx.fillText(yearText, titleX + monthW, margin + 8 * scale);
 
   if (zebraWeeks) {
-    ctx.fillStyle = "#f4f4f4";
+    ctx.fillStyle = rgbCss(shade.zebra);
     for (let r = 1; r < rows; r += 2) ctx.fillRect(gridX, gridY + r * rowH, gridW, rowH);
   }
 
   if (zebraColumns) {
-    ctx.fillStyle = "#f4f4f4";
+    ctx.fillStyle = rgbCss(shade.zebra);
     for (let c = 1; c < cols; c += 2) ctx.fillRect(gridX + c * colW, gridY, colW, gridH);
   }
 
   if (shadeWeekends) {
-    ctx.fillStyle = "#ebebeb";
+    ctx.fillStyle = rgbCss(shade.weekend);
     for (const col of [5, 6]) ctx.fillRect(gridX + col * colW, gridY, colW, gridH);
   }
 
@@ -349,6 +369,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
       const bottomY = y + rowH - 3.5 * scale;
       stack.forEach((item, i) => {
         ctx.font = `${item.custom ? "italic " : ""}bold ${pt(9, scale)}px Arial`;
+        ctx.fillStyle = item.custom ? customCss : "black";
         const lineY = bottomY - (stack.length - 1 - i) * 4 * scale;
         ctx.fillText(item.text.slice(0, 32), x + 3 * scale, lineY);
       });
@@ -384,6 +405,8 @@ function renderPreview() {
     guideLines: document.getElementById("guideLines").checked,
     shortDayNames: document.getElementById("shortDayNames").checked,
     teachingWeeks: document.getElementById("teachingWeeks").checked ? teachingWeekMap() : null,
+    shadeTheme: document.getElementById("shadeColour").value,
+    customColour: document.getElementById("customColour").value,
   });
   updateMonthNav();
 }
@@ -462,6 +485,8 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   const zebraColumns = document.getElementById("zebraColumns").checked;
   const guideLines = document.getElementById("guideLines").checked;
   const shortDayNames = document.getElementById("shortDayNames").checked;
+  const shade = SHADE_THEMES[document.getElementById("shadeColour").value] || SHADE_THEMES.grey;
+  const customRgb = LABEL_COLOURS[document.getElementById("customColour").value] || LABEL_COLOURS.black;
 
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, w, h, "F");
@@ -480,17 +505,17 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   doc.text(yearText, titleX + monthW, margin + 8);
 
   if (zebraWeeks) {
-    doc.setFillColor(244, 244, 244);
+    doc.setFillColor(...shade.zebra);
     for (let r = 1; r < rows; r += 2) doc.rect(gridX, gridY + r * rowH, gridW, rowH, "F");
   }
 
   if (zebraColumns) {
-    doc.setFillColor(244, 244, 244);
+    doc.setFillColor(...shade.zebra);
     for (let c = 1; c < 7; c += 2) doc.rect(gridX + c * colW, gridY, colW, gridH, "F");
   }
 
   if (shadeWeekends) {
-    doc.setFillColor(235, 235, 235);
+    doc.setFillColor(...shade.weekend);
     for (const col of [5, 6]) doc.rect(gridX + col * colW, gridY, colW, gridH, "F");
   }
 
@@ -553,6 +578,8 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
       const bottomY = y + rowH - 3.5;
       stack.forEach((item, i) => {
         doc.setFont("helvetica", item.custom ? "bolditalic" : "bold");
+        if (item.custom) doc.setTextColor(...customRgb);
+        else doc.setTextColor(0, 0, 0);
         doc.text(item.text.slice(0, 32), x + 3, bottomY - (stack.length - 1 - i) * 4);
       });
     }
@@ -621,6 +648,8 @@ function currentSettings() {
     s1Break: document.getElementById("s1Break").value,
     s2Start: document.getElementById("s2Start").value,
     s2Break: document.getElementById("s2Break").value,
+    shadeColour: document.getElementById("shadeColour").value,
+    customColour: document.getElementById("customColour").value,
     customDates: document.getElementById("customDates").value,
   };
 }
@@ -644,6 +673,8 @@ function applySettings(settings) {
   } else {
     autoFillTeachingDates();
   }
+  document.getElementById("shadeColour").value = settings.shadeColour || "grey";
+  document.getElementById("customColour").value = settings.customColour || "black";
   document.getElementById("customDates").value = settings.customDates;
   updateTeachingPanel();
   renderPreview();
@@ -969,7 +1000,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("teachingWeeks").addEventListener("change", updateTeachingPanel);
   document.getElementById("year").addEventListener("change", autoFillTeachingDates);
-  for (const id of ["year", "month", "country", "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines", "holidayLabels", "shortDayNames", "teachingWeeks", "s1Start", "s1Break", "s2Start", "s2Break", "customDates"]) {
+  for (const id of ["year", "month", "country", "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines", "holidayLabels", "shadeColour", "customColour", "shortDayNames", "teachingWeeks", "s1Start", "s1Break", "s2Start", "s2Break", "customDates"]) {
     document.getElementById(id).addEventListener("input", renderPreview);
     document.getElementById(id).addEventListener("change", renderPreview);
   }

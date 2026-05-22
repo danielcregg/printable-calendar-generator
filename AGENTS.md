@@ -131,6 +131,15 @@ week schedule** panel exposes four auto-filled but editable dates — each semes
 Week 1 start and break start — for years whose schedule differs, plus a button to reset
 them to the automatic values.
 
+## Colour options
+
+The calendar is black and white by default — that simplicity is the core of
+the design. Two optional dropdowns in the **Colours** panel let a user opt
+into colour: a shading theme (grey, blue, green or warm) that tints the
+weekend and zebra shading, and a custom-date label colour (black, blue or
+green). Both default to the black-and-white choice, and holiday labels are
+always black. Presets live in `SHADE_THEMES` and `LABEL_COLOURS` in `app.js`.
+
 ## The web app
 
 The application is a single static site in `docs/`. It uses jsPDF — bundled in
