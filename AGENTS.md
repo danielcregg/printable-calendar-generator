@@ -26,8 +26,13 @@ printable-calendar-generator/
     styles.css
     app.js               # Holiday math, layout/rendering, UI, and jsPDF export
     today.js             # Renders the current month, reusing app.js
+    manifest.json        # PWA manifest — installable-app metadata and icons
+    sw.js                # Service worker — precaches the app shell for offline use
     vendor/
       jspdf.umd.min.js   # Bundled jsPDF 2.5.1 — no CDN dependency
+    icons/
+      icon-192.png       # App icons referenced by the PWA manifest
+      icon-512.png
   Original Sample month/ # Reference printed sample PDF
   README.md
   AGENTS.md
@@ -129,6 +134,18 @@ Any layout change must be made in **both**, or the preview and the PDF will disa
 The downloaded PDF is the print-quality output and the one to trust; the canvas preview
 is approximate because it uses the browser's own font rendering.
 
+## Offline support (PWA)
+
+The site is an installable Progressive Web App. `manifest.json` carries the install
+metadata and icons; `sw.js` is a service worker that precaches the whole app shell —
+both HTML pages, the CSS and JS, the vendored jsPDF, the manifest and the icons — so the
+app loads and generates PDFs with no network connection.
+
+The service worker is cache-first. **When you change any precached asset, bump the
+`CACHE` constant in `sw.js`** (for example `printable-calendar-v1` to `-v2`). Otherwise
+the service worker keeps serving the old cached file to returning visitors, even when
+the `?v=` query on the script tags changes — it matches requests with `ignoreSearch`.
+
 ## Testing checklist
 
 Before finishing any change, verify:
@@ -147,11 +164,12 @@ Before finishing any change, verify:
 
 Suggested local smoke test:
 
-1. Open `docs/index.html` in a browser, or serve the `docs/` folder with a static server.
+1. Serve the `docs/` folder with a static server (a served URL, not `file://`, is needed for the service worker).
 2. Generate a full-year 2026 calendar with IE holidays and download the PDF.
 3. Generate a single month (for example June 2026) and download it.
-4. Open `docs/today.html` and confirm the current month renders with today highlighted.
-5. Visually inspect each PDF against the checklist above.
+4. Open `today.html` and confirm the current month renders with today highlighted.
+5. Reload once, then load again with the network disabled, to confirm the service worker serves the app offline.
+6. Visually inspect each PDF against the checklist above.
 
 ## Coding style
 

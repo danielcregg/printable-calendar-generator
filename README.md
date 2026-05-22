@@ -24,7 +24,9 @@ Pick a year and a month (or a full year), toggle the holiday and shading options
 your own dates, then click **Download PDF**. `docs/today.html` is a companion page that
 shows the current month with today highlighted.
 
-Generating a PDF needs nothing online — jsPDF is bundled in `docs/vendor/`.
+Generating a PDF needs nothing online — jsPDF is bundled in `docs/vendor/`. The site is
+also a Progressive Web App: your browser can install it as a standalone app, and once
+visited it keeps working with no internet connection.
 
 ## GitHub Pages
 
