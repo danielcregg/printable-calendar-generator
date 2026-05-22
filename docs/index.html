@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Printable Calendar Generator</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <p class="eyebrow">Clean A4 landscape calendars</p>
+      <h1>Printable Calendar Generator</h1>
+      <p>Create a simple wall calendar with weekend shading, writing guide lines, Irish holidays, and your own dates.</p>
+    </header>
+
+    <section class="panel controls">
+      <label>
+        Year
+        <input id="year" type="number" min="1900" max="2200" value="2026">
+      </label>
+
+      <label>
+        Month
+        <select id="month">
+          <option value="all">Full year</option>
+          <option value="0">January</option>
+          <option value="1">February</option>
+          <option value="2">March</option>
+          <option value="3">April</option>
+          <option value="4">May</option>
+          <option value="5" selected>June</option>
+          <option value="6">July</option>
+          <option value="7">August</option>
+          <option value="8">September</option>
+          <option value="9">October</option>
+          <option value="10">November</option>
+          <option value="11">December</option>
+        </select>
+      </label>
+
+      <label>
+        Holidays
+        <select id="country">
+          <option value="IE" selected>Ireland</option>
+          <option value="NONE">No holidays</option>
+        </select>
+      </label>
+
+      <label class="check"><input id="shadeWeekends" type="checkbox" checked> Shade weekends</label>
+      <label class="check"><input id="guideLines" type="checkbox" checked> Add 3 writing guide lines</label>
+      <label class="check"><input id="holidayLabels" type="checkbox" checked> Show holiday labels</label>
+    </section>
+
+    <section class="panel">
+      <h2>Custom dates</h2>
+      <p class="hint">One per line: <code>YYYY-MM-DD | Label</code></p>
+      <textarea id="customDates" rows="6" spellcheck="false">2026-09-01 | School Starts
+2026-11-12 | Birthday</textarea>
+      <div class="buttons">
+        <button id="previewBtn" type="button">Preview</button>
+        <button id="downloadBtn" type="button">Download PDF</button>
+      </div>
+    </section>
+
+    <section class="panel preview-panel">
+      <div class="preview-head">
+        <h2>Preview</h2>
+        <p>Browser preview is approximate. The downloaded PDF is generated from the same layout logic.</p>
+      </div>
+      <canvas id="preview" width="1123" height="794" aria-label="Calendar preview"></canvas>
+    </section>
+  </main>
+</body>
+</html>
