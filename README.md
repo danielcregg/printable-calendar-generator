@@ -7,7 +7,7 @@ The default design is intentionally simple, black and white, and easy to write o
 
 - A4 landscape pages, Monday-start weeks
 - Large month title with the **month bold** and the year in regular weight
-- Full weekday names by default, switchable to abbreviated `MON`/`TUE`
+- Abbreviated weekday names (`MON`/`TUE`) by default, switchable to the full names
 - Bold black date numbers, three dashed writing guide lines per day box
 - Lightly shaded weekends, with optional zebra-shading of alternate weeks or day columns
 - Holiday and custom-date labels in the bottom-left of each cell — holidays bold, custom dates bold italic, always black so the default stays black and white
@@ -52,7 +52,7 @@ calendar:
 - **Shade weekends / Zebra weeks / Zebra columns** — gentle background shading.
 - **Add 3 writing guide lines** — the dashed lines per cell; the calendar drops one extra line per stacked label so the text never overwrites the dashes, and tightens further in six-row months.
 - **Show holiday labels** — show or hide the Irish bank-holiday labels.
-- **Abbreviate weekday names** — switch from `MONDAY` to `MON`.
+- **Full weekday names** — switch from `MON` to `MONDAY`.
 - **Teaching weeks** — adds a `W1`–`W13` gutter and reveals an editable schedule panel for years that don't fit the standard ATU pattern.
 - **Colours** — choose an opt-in shading theme (grey / blue / green / warm) and custom-date label colour (black / blue / green).
 - **Use leading/trailing cells as a Notes area** — replaces the adjacent-month dates with a merged writing block per row, with full-width guide lines and a faint "Notes" tag in the top-left.

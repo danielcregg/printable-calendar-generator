@@ -380,7 +380,7 @@ function guideLineSkips(year, monthIndex, labels) {
 // ============================================================================
 
 function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
-  const { shadeWeekends, zebraWeeks, zebraColumns, guideLines, highlightDate, shortDayNames, teachingWeeks, notesArea } = options;
+  const { shadeWeekends, zebraWeeks, zebraColumns, guideLines, highlightDate, fullDayNames, teachingWeeks, notesArea } = options;
   const shade = SHADE_THEMES[options.shadeColour] || SHADE_THEMES.grey;
   const customCss = rgbCss(LABEL_COLOURS[options.customColour] || LABEL_COLOURS.black);
   const base = layout(scale);
@@ -447,7 +447,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   // Weekday header (auto-shrinks if the full names don't fit).
   ctx.fillStyle = "black";
   ctx.textAlign = "center";
-  const weekdayLabels = shortDayNames ? WEEKDAYS : FULL_WEEKDAYS;
+  const weekdayLabels = fullDayNames ? FULL_WEEKDAYS : WEEKDAYS;
   let weekdayPt = 20;
   ctx.font = `bold ${pt(weekdayPt, scale)}px Arial`;
   let widestWeekday = 0;
@@ -660,7 +660,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   const zebraWeeks = document.getElementById("zebraWeeks").checked;
   const zebraColumns = document.getElementById("zebraColumns").checked;
   const guideLines = document.getElementById("guideLines").checked;
-  const shortDayNames = document.getElementById("shortDayNames").checked;
+  const fullDayNames = document.getElementById("fullDayNames").checked;
   const shade = SHADE_THEMES[document.getElementById("shadeColour").value] || SHADE_THEMES.grey;
   const customRgb = LABEL_COLOURS[document.getElementById("customColour").value] || LABEL_COLOURS.black;
 
@@ -706,7 +706,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   // Weekday header (auto-shrinks if the full names don't fit).
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
-  const weekdayLabels = shortDayNames ? WEEKDAYS : FULL_WEEKDAYS;
+  const weekdayLabels = fullDayNames ? FULL_WEEKDAYS : WEEKDAYS;
   let weekdaySize = 20;
   doc.setFontSize(weekdaySize);
   let widestWeekday = 0;
@@ -902,7 +902,7 @@ function renderPreview() {
     zebraWeeks: document.getElementById("zebraWeeks").checked,
     zebraColumns: document.getElementById("zebraColumns").checked,
     guideLines: document.getElementById("guideLines").checked,
-    shortDayNames: document.getElementById("shortDayNames").checked,
+    fullDayNames: document.getElementById("fullDayNames").checked,
     teachingWeeks: document.getElementById("teachingWeeks").checked ? teachingWeekMap() : null,
     shadeColour: document.getElementById("shadeColour").value,
     customColour: document.getElementById("customColour").value,
@@ -1142,7 +1142,7 @@ function currentSettings() {
     zebraColumns: document.getElementById("zebraColumns").checked,
     guideLines: document.getElementById("guideLines").checked,
     holidayLabels: document.getElementById("holidayLabels").checked,
-    shortDayNames: document.getElementById("shortDayNames").checked,
+    fullDayNames: document.getElementById("fullDayNames").checked,
     teachingWeeks: document.getElementById("teachingWeeks").checked,
     s1Start: document.getElementById("s1Start").value,
     s1Break: document.getElementById("s1Break").value,
@@ -1165,7 +1165,7 @@ function applySettings(settings) {
   document.getElementById("zebraColumns").checked = settings.zebraColumns;
   document.getElementById("guideLines").checked = settings.guideLines;
   document.getElementById("holidayLabels").checked = settings.holidayLabels;
-  document.getElementById("shortDayNames").checked = settings.shortDayNames;
+  document.getElementById("fullDayNames").checked = settings.fullDayNames;
   document.getElementById("teachingWeeks").checked = settings.teachingWeeks;
   if (settings.s1Start) {
     document.getElementById("s1Start").value = settings.s1Start;
@@ -1340,7 +1340,7 @@ const RENDER_TRIGGER_IDS = [
   "year", "month", "country",
   "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines",
   "holidayLabels", "shadeColour", "customColour", "notesArea",
-  "shortDayNames", "teachingWeeks",
+  "fullDayNames", "teachingWeeks",
   "s1Start", "s1Break", "s2Start", "s2Break",
   "customDates",
 ];
