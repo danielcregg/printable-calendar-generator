@@ -87,6 +87,15 @@ values. Positions use the top-left coordinate system of the canvas preview and j
 
 If these values are changed, download a PDF and visually inspect it before committing.
 
+## Language
+
+The calendar grid (month title, weekday headers, adjacent-month tags, and
+the Month dropdown options) can be rendered in either English (default) or
+Irish (`ga` / Gaeilge). UI controls, holiday labels and the `today.html`
+page stay in English. The translations live in `MONTH_NAMES`, `WEEKDAYS`
+and `FULL_WEEKDAYS` (now keyed by language code) and the chosen language
+is stored with saved calendars.
+
 ## Holiday policy
 
 For Ireland (`IE`), include practical work/family dates:

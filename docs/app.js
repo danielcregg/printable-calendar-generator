@@ -9,12 +9,24 @@
 // Constants
 // ============================================================================
 
-const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
-];
-const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
-const FULL_WEEKDAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
+// Calendar-grid display names by language. UI controls and the Today
+// page stay in English; only month and weekday names on the rendered
+// calendar switch when the user picks a different language.
+const MONTH_NAMES = {
+  en: ["January", "February", "March", "April", "May", "June",
+       "July", "August", "September", "October", "November", "December"],
+  ga: ["Eanáir", "Feabhra", "Márta", "Aibreán", "Bealtaine", "Meitheamh",
+       "Iúil", "Lúnasa", "Meán Fómhair", "Deireadh Fómhair", "Samhain", "Nollaig"],
+};
+const WEEKDAYS = {
+  en: ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"],
+  ga: ["LUA", "MÁI", "CÉA", "DÉA", "AOI", "SAT", "DOM"],
+};
+const FULL_WEEKDAYS = {
+  en: ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"],
+  ga: ["LUAN", "MÁIRT", "CÉADAOIN", "DÉARDAOIN", "AOINE", "SATHARN", "DOMHNACH"],
+};
+const FULL_YEAR_LABELS = { en: "Full year", ga: "An bhliain ar fad" };
 
 // Year-picker range: from the current year through 2099. MIN_YEAR is
 // captured at page load and is shared by the dropdown, the month stepper
@@ -311,6 +323,19 @@ function updateTeachingPanel() {
   document.getElementById("teachingPanel").hidden = !document.getElementById("teachingWeeks").checked;
 }
 
+// Rewrites the visible text of the Month dropdown options to match the
+// current Language selection. Option values stay numeric so saved
+// calendars and the renderer don't care about the UI language.
+function applyLanguage() {
+  const lang = document.getElementById("language").value || "en";
+  const months = MONTH_NAMES[lang] || MONTH_NAMES.en;
+  const fullYear = FULL_YEAR_LABELS[lang] || FULL_YEAR_LABELS.en;
+  for (const opt of document.getElementById("month").options) {
+    if (opt.value === "all") opt.textContent = fullYear;
+    else opt.textContent = months[Number(opt.value)];
+  }
+}
+
 // ============================================================================
 // Layout geometry — A4 landscape, row count, guide-line plan
 // ============================================================================
@@ -381,6 +406,10 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   const { shadeWeekends, zebraWeeks, zebraColumns, guideLines, highlightDate, fullDayNames, teachingWeeks, notesArea } = options;
   const shade = SHADE_THEMES[options.shadeColour] || SHADE_THEMES.grey;
   const customCss = rgbCss(LABEL_COLOURS[options.customColour] || LABEL_COLOURS.black);
+  const lang = options.lang || "en";
+  const monthNames = MONTH_NAMES[lang] || MONTH_NAMES.en;
+  const weekdayNames = WEEKDAYS[lang] || WEEKDAYS.en;
+  const fullWeekdayNames = FULL_WEEKDAYS[lang] || FULL_WEEKDAYS.en;
   const base = layout(scale);
   const { w, h, margin, headerH, gridY, gridH } = base;
   const rows = monthRows(year, monthIndex);
@@ -410,7 +439,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   const titleY = margin + 8 * scale;
   ctx.font = `bold ${pt(40, scale)}px Arial`;
   ctx.textAlign = "center";
-  ctx.fillText(MONTH_NAMES[monthIndex], w / 2, titleY);
+  ctx.fillText(monthNames[monthIndex], w / 2, titleY);
   ctx.font = `${pt(22, scale)}px Arial`;
   ctx.textAlign = "right";
   ctx.fillText(String(year), w - margin, titleY);
@@ -440,7 +469,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   // Weekday header (auto-shrinks if the full names don't fit).
   ctx.fillStyle = "black";
   ctx.textAlign = "center";
-  const weekdayLabels = fullDayNames ? FULL_WEEKDAYS : WEEKDAYS;
+  const weekdayLabels = fullDayNames ? fullWeekdayNames : weekdayNames;
   let weekdayPt = 20;
   ctx.font = `bold ${pt(weekdayPt, scale)}px Arial`;
   let widestWeekday = 0;
@@ -586,8 +615,8 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   if (!notesArea && emptyRuns.length) {
     const prev = new Date(year, monthIndex, 0);
     const prevLastDay = prev.getDate();
-    const prevMonthName = MONTH_NAMES[prev.getMonth()];
-    const nextMonthName = MONTH_NAMES[(monthIndex + 1) % 12];
+    const prevMonthName = monthNames[prev.getMonth()];
+    const nextMonthName = monthNames[(monthIndex + 1) % 12];
     ctx.fillStyle = "#a8a8a8";
     ctx.font = `bold ${pt(22, scale)}px Arial`;
     ctx.textAlign = "left";
@@ -634,6 +663,10 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
 
 function drawPdfMonth(doc, year, monthIndex, labels) {
   const teachingWeeks = document.getElementById("teachingWeeks").checked ? teachingWeekMap() : null;
+  const lang = document.getElementById("language").value || "en";
+  const monthNames = MONTH_NAMES[lang] || MONTH_NAMES.en;
+  const weekdayNames = WEEKDAYS[lang] || WEEKDAYS.en;
+  const fullWeekdayNames = FULL_WEEKDAYS[lang] || FULL_WEEKDAYS.en;
   const base = layout(1);
   const { w, h, margin, headerH, gridY, gridH } = base;
   const rows = monthRows(year, monthIndex);
@@ -667,7 +700,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(40);
-  doc.text(MONTH_NAMES[monthIndex], w / 2, margin + 8, { align: "center" });
+  doc.text(monthNames[monthIndex], w / 2, margin + 8, { align: "center" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(22);
   doc.text(String(year), w - margin, margin + 8, { align: "right" });
@@ -695,7 +728,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   // Weekday header (auto-shrinks if the full names don't fit).
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
-  const weekdayLabels = fullDayNames ? FULL_WEEKDAYS : WEEKDAYS;
+  const weekdayLabels = fullDayNames ? fullWeekdayNames : weekdayNames;
   let weekdaySize = 20;
   doc.setFontSize(weekdaySize);
   let widestWeekday = 0;
@@ -801,8 +834,8 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   if (!notesArea && emptyRuns.length) {
     const prev = new Date(year, monthIndex, 0);
     const prevLastDay = prev.getDate();
-    const prevMonthName = MONTH_NAMES[prev.getMonth()];
-    const nextMonthName = MONTH_NAMES[(monthIndex + 1) % 12];
+    const prevMonthName = monthNames[prev.getMonth()];
+    const nextMonthName = monthNames[(monthIndex + 1) % 12];
     doc.setTextColor(168, 168, 168);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
@@ -862,7 +895,7 @@ function downloadPdf() {
   const year = Number(document.getElementById("year").value);
   const monthValue = document.getElementById("month").value;
   const doc = buildPdfDoc();
-  const name = monthValue === "all" ? `calendar_${year}.pdf` : `${MONTH_NAMES[Number(monthValue)].toLowerCase()}_${year}.pdf`;
+  const name = monthValue === "all" ? `calendar_${year}.pdf` : `${MONTH_NAMES.en[Number(monthValue)].toLowerCase()}_${year}.pdf`;
   doc.save(name);
 }
 
@@ -896,6 +929,7 @@ function renderPreview() {
     shadeColour: document.getElementById("shadeColour").value,
     customColour: document.getElementById("customColour").value,
     notesArea: document.getElementById("notesArea").checked,
+    lang: document.getElementById("language").value,
   });
   updateMonthNav();
 }
@@ -1139,6 +1173,7 @@ function currentSettings() {
     shadeColour: document.getElementById("shadeColour").value,
     customColour: document.getElementById("customColour").value,
     notesArea: document.getElementById("notesArea").checked,
+    language: document.getElementById("language").value,
     customDates: document.getElementById("customDates").value,
   };
 }
@@ -1165,8 +1200,10 @@ function applySettings(settings) {
   document.getElementById("shadeColour").value = settings.shadeColour || "grey";
   document.getElementById("customColour").value = settings.customColour || "black";
   document.getElementById("notesArea").checked = !!settings.notesArea;
+  document.getElementById("language").value = settings.language || "en";
   document.getElementById("customDates").value = settings.customDates;
   updateTeachingPanel();
+  applyLanguage();
   renderPreview();
 }
 
@@ -1401,6 +1438,10 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("teachingWeeks").addEventListener("change", updateTeachingPanel);
   document.getElementById("year").addEventListener("change", autoFillTeachingDates);
+  document.getElementById("language").addEventListener("change", () => {
+    applyLanguage();
+    renderPreview();
+  });
 
   // Re-render on any setting change.
   for (const id of RENDER_TRIGGER_IDS) {
@@ -1412,5 +1453,6 @@ window.addEventListener("DOMContentLoaded", () => {
   refreshGroupList();
   autoFillTeachingDates();
   updateTeachingPanel();
+  applyLanguage();
   renderPreview();
 });

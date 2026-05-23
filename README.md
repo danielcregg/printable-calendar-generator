@@ -50,7 +50,7 @@ The toolbar above the calendar carries the date dropdowns and the most-used
 visual toggles; the **Setup** drawer holds the bulkier data-entry panels
 (Colours, Teaching-week schedule, Custom dates, .ics import, Saved calendars):
 
-- **Year / Month / Holidays** — between the prev/next arrows. Holidays is `Irish holidays` or `No holidays`.
+- **Year / Month / Holidays / Language** — between the prev/next arrows. Holidays is `Irish holidays` or `No holidays`. Language switches the month and weekday names on the calendar between English and `Gaeilge` (Irish).
 - **Shade: weekends / weeks / weekdays** — three checkboxes for the gentle background shading (weekend columns, alternating week rows, alternating day columns).
 - **Guidelines** — the dashed writing lines per cell; the calendar drops one line per stacked label so text never overwrites the dashes, and tightens further in six-row months.
 - **Full day names** — switch from `MON` to `MONDAY`.
@@ -129,7 +129,7 @@ the served URL above to run the assertions.
 
 ## Known limitations
 
-- **Holidays**: only Ireland (`IE`) is currently supported.
+- **Holidays**: only Ireland (`IE`) is currently supported. Holiday labels are always in English (the Language option only switches the month and weekday names on the calendar grid).
 - **Layout**: Monday-first only; portrait orientation is not available; the page is A4 only.
 - **Year range**: the dropdown lists from the current year through 2099 — past years are not selectable from the controls.
 - **Saved data**: saved calendars and date groups live in your browser's `localStorage`. Clearing browser data, switching devices, or private browsing will lose them; there is no export/import.
