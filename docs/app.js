@@ -257,17 +257,23 @@ function labelStack(entry) {
 // (counted from the bottom) the stacked labels would cover. One line is
 // dropped per extra label; six-row months have shorter cells, so there a
 // single label already reaches the lowest line. Capped at all three.
-function guideLineSkips(year, monthIndex, labels, rows) {
+function guideLineSkips(year, monthIndex, labels) {
   const startOffset = mondayIndex(new Date(year, monthIndex, 1));
   const days = new Date(year, monthIndex + 1, 0).getDate();
-  const extraDrop = rows === 6 ? 1 : 0;
   const skips = new Map();
   for (let day = 1; day <= days; day++) {
     const entry = labels.get(isoDate(new Date(year, monthIndex, day)));
-    const drop = Math.min(labelStack(entry).length - 1 + extraDrop, 3);
+    const drop = Math.max(0, labelStack(entry).length - 1);
     if (drop > 0) skips.set((day - 1) + startOffset, drop);
   }
   return skips;
+}
+
+// 3 guide lines in 5-row months, 2 (respaced) in 6-row months so the
+// per-line writing gap stays roughly the same. Drop counts come from
+// guideLineSkips and are applied from the bottom up.
+function baseGuideLines(rows) {
+  return rows === 6 ? 2 : 3;
 }
 
 // True if any row of (year, monthIndex) carries a teaching-week label.
@@ -399,7 +405,8 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   }
 
   if (guideLines) {
-    const skips = guideLineSkips(year, monthIndex, labels, rows);
+    const skips = guideLineSkips(year, monthIndex, labels);
+    const lines = baseGuideLines(rows);
     ctx.save();
     ctx.strokeStyle = "#bfbfbf";
     ctx.lineWidth = 0.6 * scale;
@@ -414,8 +421,8 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
         const yb = yt + rowH;
         const yStart = yt + 10 * scale;
         const yEnd = yb - 2 * scale;
-        const spacing = (yEnd - yStart) / 4;
-        for (let k = 1; k <= 3 - drop; k++) {
+        const spacing = (yEnd - yStart) / (lines + 1);
+        for (let k = 1; k <= lines - drop; k++) {
           const y = yStart + k * spacing;
           ctx.beginPath();
           ctx.moveTo(x0, y);
@@ -432,8 +439,8 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
         const yb = yt + rowH;
         const yStart = yt + 10 * scale;
         const yEnd = yb - 2 * scale;
-        const spacing = (yEnd - yStart) / 4;
-        for (let k = 1; k <= 3; k++) {
+        const spacing = (yEnd - yStart) / (lines + 1);
+        for (let k = 1; k <= lines; k++) {
           const y = yStart + k * spacing;
           ctx.beginPath();
           ctx.moveTo(x0, y);
@@ -756,7 +763,8 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   for (let i = 0; i < 7; i++) doc.text(weekdayLabels[i], gridX + i * colW + colW / 2, margin + headerH - 1.5, { align: "center" });
 
   if (guideLines) {
-    const skips = guideLineSkips(year, monthIndex, labels, rows);
+    const skips = guideLineSkips(year, monthIndex, labels);
+    const lines = baseGuideLines(rows);
     doc.setDrawColor(191, 191, 191);
     doc.setLineWidth(0.6);
     doc.setLineDashPattern([2, 3], 0);
@@ -768,8 +776,8 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
         const x1 = gridX + (col + 1) * colW - 3;
         const yt = gridY + r * rowH;
         const yb = yt + rowH;
-        const spacing = ((yb - 2) - (yt + 10)) / 4;
-        for (let k = 1; k <= 3 - drop; k++) doc.line(x0, yt + 10 + k * spacing, x1, yt + 10 + k * spacing);
+        const spacing = ((yb - 2) - (yt + 10)) / (lines + 1);
+        for (let k = 1; k <= lines - drop; k++) doc.line(x0, yt + 10 + k * spacing, x1, yt + 10 + k * spacing);
       }
     }
     if (notesArea) {
@@ -778,8 +786,8 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
         const x1 = gridX + (run.colEnd + 1) * colW - 3;
         const yt = gridY + run.row * rowH;
         const yb = yt + rowH;
-        const spacing = ((yb - 2) - (yt + 10)) / 4;
-        for (let k = 1; k <= 3; k++) doc.line(x0, yt + 10 + k * spacing, x1, yt + 10 + k * spacing);
+        const spacing = ((yb - 2) - (yt + 10)) / (lines + 1);
+        for (let k = 1; k <= lines; k++) doc.line(x0, yt + 10 + k * spacing, x1, yt + 10 + k * spacing);
       }
     }
     doc.setLineDashPattern([], 0);

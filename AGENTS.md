@@ -55,7 +55,7 @@ When changing layout code, preserve these visual decisions unless the user expli
 5. Weekday headers should be bold and black.
 6. Date numbers should be bold and black.
 7. Saturday and Sunday columns should be lightly shaded, not dark.
-8. Each day box has **3 dashed writing guide lines** by default. Drop one extra line per stacked label so the text never overwrites the dashes (two labels keep two lines, three labels keep one, four or more clear them entirely). In six-row months the lowest guide line is also dropped in any labelled cell because the cells are shorter.
+8. Each day box has **3 dashed writing guide lines** in five-row months and **2** in six-row months (the lines are respaced so the per-line gap stays roughly the same). Drop one extra line per stacked label, from the bottom up, so the text never overwrites the dashes.
 9. Holiday labels should appear in the **bottom-left corner** of the day box.
 10. Holiday labels should be **black and bold**, custom-date labels **black and bold italic**, both small enough not to dominate the box. The default calendar stays black and white.
 11. Keep the layout clean; do not add icons, decorative graphics, coloured holiday markers, or busy styling by default.
