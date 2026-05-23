@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tests &mdash; Printable Calendar Generator</title>
+  <style>
+    body { font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin: 20px; max-width: 920px; color: #111; }
+    h1 { font-size: 18px; margin: 0 0 6px; }
+    h2 { font-size: 14px; margin: 22px 0 6px; letter-spacing: .04em; text-transform: uppercase; color: #444; }
+    p { color: #555; margin: 4px 0 16px; }
+    .pass { color: #14532d; }
+    .fail { color: #991b1b; font-weight: 700; }
+    .summary { padding: 12px 16px; margin: 20px 0 4px; border-radius: 6px; font-weight: 700; }
+    .summary.ok { background: #d1fae5; color: #065f46; }
+    .summary.bad { background: #fee2e2; color: #991b1b; }
+    code { background: #f1f1ee; padding: 1px 4px; border-radius: 3px; }
+  </style>
+  <script defer src="app.js"></script>
+  <script defer src="tests.js"></script>
+</head>
+<body>
+  <h1>Tests</h1>
+  <p>Pure-function tests for the date math, holiday rules, recurrence parser and layout helpers in <code>app.js</code>. Open via a served URL (not <code>file://</code>) so the script can load.</p>
+  <div id="results"></div>
+</body>
+</html>

@@ -221,11 +221,12 @@ Before finishing any change, verify:
 Suggested local smoke test:
 
 1. Serve the `docs/` folder with a static server (a served URL, not `file://`, is needed for the service worker).
-2. Generate a full-year 2026 calendar with IE holidays and download the PDF.
-3. Generate a single month (for example June 2026) and download it.
-4. Open `today.html` and confirm the current month renders with today highlighted.
-5. Reload once, then load again with the network disabled, to confirm the service worker serves the app offline.
-6. Visually inspect each PDF against the checklist above.
+2. Open `docs/tests.html` and confirm the pure-function assertion suite passes (date math, holidays, recurrence parser, layout helpers).
+3. Generate a full-year 2026 calendar with IE holidays and download the PDF.
+4. Generate a single month (for example June 2026) and download it.
+5. Open `today.html` and confirm the current month renders with today highlighted.
+6. Reload once, then load again with the network disabled, to confirm the service worker serves the app offline.
+7. Visually inspect each PDF against the checklist above.
 
 ## Coding style
 

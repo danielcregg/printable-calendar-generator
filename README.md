@@ -110,6 +110,32 @@ common observed substitute weekdays.
 The app can be ported to Android — see `android-app-dev-guide.md` for a guide aimed at
 AI coding tools, covering both wrapping the existing PWA and a native rebuild.
 
+## Development
+
+The app is plain HTML, CSS and JS in `docs/` with no build step. To run it locally:
+
+```bash
+cd docs
+python3 -m http.server 8000
+```
+
+Then open <http://localhost:8000>. A served URL (rather than a `file://` URL) is needed
+for the service worker to register and for offline mode to work.
+
+A small browser-based test runner lives at `docs/tests.html` and exercises the pure
+helpers (date math, Ireland holidays, recurrence parser, layout helpers). Open it via
+the served URL above to run the assertions.
+
+## Known limitations
+
+- **Holidays**: only Ireland (`IE`) is currently supported.
+- **Layout**: Monday-first only; portrait orientation is not available; the page is A4 only.
+- **Year range**: the dropdown lists from the current year through 2099 — past years are not selectable from the controls.
+- **Saved data**: saved calendars and date groups live in your browser's `localStorage`. Clearing browser data, switching devices, or private browsing will lose them; there is no export/import.
+- **`.ics` import**: handles `VEVENT`, `DTSTART`, `SUMMARY` and `FREQ=YEARLY` recurrence. Time-zone-shifted, multi-day, weekly/monthly-recurring, and `EXDATE`-excluded events are not interpreted — only the start date is taken.
+- **Print orientation**: the PDF is landscape; some browsers' print dialogs default to portrait and need a one-click change to landscape.
+- **Preview fidelity**: the on-screen canvas preview uses the browser's font rendering and is approximate. The downloaded PDF is the print-quality output.
+
 ## License
 
 MIT
