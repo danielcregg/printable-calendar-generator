@@ -7,11 +7,12 @@ Guidance for AI coding tools and future contributors working on this repository.
 This project creates clean, printable A4 landscape wall calendars. The design goal is deliberately simple and practical rather than decorative:
 
 - readable from a few metres away
-- non-fussy black-and-white styling
-- large bold month title, weekday labels, and date numbers
-- lightly shaded Saturday/Sunday columns
-- three subtle dashed writing guide lines in each day box
-- holiday/custom-date labels in the bottom-left corner of the relevant day box
+- non-fussy black-and-white styling by default, with opt-in colour presets
+- large month title — month name in bold, year in regular weight
+- full weekday names by default and bold black date numbers
+- lightly shaded Saturday/Sunday columns, with optional zebra-shading of alternate weeks or day columns
+- three subtle dashed writing guide lines per day box
+- holiday and custom-date labels in the bottom-left of the relevant day box — holidays bold, custom dates bold italic
 - reliable, reproducible date placement calculated by code, not manually designed
 
 The original target use case is an Irish work/family/academic wall calendar, but the project should be general enough to support other countries and user-defined special dates.
@@ -54,7 +55,7 @@ When changing layout code, preserve these visual decisions unless the user expli
 5. Weekday headers should be bold and black.
 6. Date numbers should be bold and black.
 7. Saturday and Sunday columns should be lightly shaded, not dark.
-8. Each day box should have exactly **3 dashed writing guide lines** by default.
+8. Each day box has **3 dashed writing guide lines** by default. Drop one extra line per stacked label so the text never overwrites the dashes (two labels keep two lines, three labels keep one, four or more clear them entirely). In six-row months the lowest guide line is also dropped in any labelled cell because the cells are shorter.
 9. Holiday labels should appear in the **bottom-left corner** of the day box.
 10. Holiday labels should be **black and bold**, custom-date labels **black and bold italic**, both small enough not to dominate the box. The default calendar stays black and white.
 11. Keep the layout clean; do not add icons, decorative graphics, coloured holiday markers, or busy styling by default.
@@ -79,6 +80,9 @@ values. Positions use the top-left coordinate system of the canvas preview and j
 - Writing guide line style: light grey, dash pattern `2, 3`
 - Label font: black, about `9 pt` — holiday labels bold, custom-date labels bold italic
 - Teaching-week gutter: `13 mm` wide, with week labels (`W1`…) in `13 pt` bold
+- Adjacent-month day numbers: `22 pt` bold light grey (`#a8a8a8`), top-left of the leading/trailing cells
+- Adjacent-month abbreviation (`Jul`, `Sep`…): `14 pt` italic grey (`#999999`), top-right of the cell
+- Notes-area "Notes" tag: `10 pt` italic grey (`#999999`), top-left of the merged block
 
 If these values are changed, download a PDF and visually inspect it before committing.
 
@@ -209,6 +213,10 @@ Before finishing any change, verify:
 7. Holiday labels are black and bold, custom-date labels black and bold italic, bottom-left.
 8. Generated PDFs print safely with no clipped month title.
 9. With **Teaching weeks** enabled, week rows are numbered `W1`–`W13` and the reading-week and Easter-break rows are left blank.
+10. Default rendering fills leading and trailing cells with adjacent-month day numbers in light grey, with a 3-letter month tag (`Jul`, `Sep`, …) in the top-right corner.
+11. With **Use leading/trailing cells as a Notes area** checked, those cells merge into one writing block per row with full-width guide lines and a faint "Notes" tag in the top-left.
+12. Weekday headers default to the full names (`MONDAY`, `TUESDAY`, …); ticking **Abbreviate weekday names** switches them to the 3-letter form.
+13. Recurring custom-date lines (e.g. `2026-09-08 | Bins | every 2 weeks`) expand into every occurrence inside the rendered year, with the same styling as one-off custom dates.
 
 Suggested local smoke test:
 
