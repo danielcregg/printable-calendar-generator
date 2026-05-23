@@ -527,9 +527,12 @@ body.app.drawer-open {
 
 .stage canvas {
   max-width: 1120px;
+  box-shadow: var(--elev-2);
+  border-radius: 14px;
 }
 
-/* --- Control panels read as flat sections inside the drawer --- */
+/* --- The drawer is a slide-in modal on every viewport. The hamburger in
+   the topbar opens it; clicking the scrim or the X closes it. --- */
 .drawer .panel {
   margin: 0;
   padding: 18px 0;
@@ -590,28 +593,3 @@ body.app.drawer-open {
   border: 1px solid var(--primary);
 }
 .fab-secondary:hover { background: #f0f4ff; }
-
-/* --- Desktop: the drawer becomes a permanent sidebar --- */
-@media (min-width: 900px) {
-  .topbar-menu { display: none; }
-  .scrim { display: none; }
-  .drawer-head { display: none; }
-
-  .drawer {
-    position: sticky;
-    top: var(--topbar-h);
-    z-index: 1;
-    height: auto;
-    max-height: calc(100dvh - var(--topbar-h));
-    max-width: none;
-    transform: none;
-    visibility: visible;
-    box-shadow: none;
-    border-right: 1px solid var(--border);
-    transition: none;
-  }
-
-  .drawer-body {
-    padding-top: 16px;
-  }
-}
