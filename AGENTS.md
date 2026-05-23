@@ -18,7 +18,13 @@ violates one of them, prefer not to make it.
 
 ## Project purpose
 
-This project creates clean, printable A4 landscape wall calendars. The design goal is deliberately simple and practical rather than decorative:
+This project creates clean, printable A4 landscape wall calendars and planners, aimed
+at people with easy access to a standard A4 printer (most office and home setups) who
+want a paper sheet they can write important dates onto — birthdays, appointments,
+bank holidays, school/academic terms, work deadlines — without software to install,
+accounts to create, or design skill required.
+
+The design goal is deliberately simple and practical rather than decorative:
 
 - readable from a few metres away
 - non-fussy black-and-white styling by default, with opt-in colour presets

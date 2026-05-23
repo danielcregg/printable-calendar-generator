@@ -1,7 +1,10 @@
 # Printable Calendar Generator
 
-A clean, browser-based generator for printable A4 wall calendars. No install and no
-build step — open the page, set it up, and download a PDF.
+A clean, browser-based generator for printable A4 wall calendars and planners. Built
+for people with easy access to a standard A4 printer — most office and home setups —
+who want a paper sheet they can write important dates onto: birthdays, appointments,
+bank holidays, school terms, work deadlines. No software to install, no account to
+create, no build step: open the page, set it up, download a PDF.
 
 The default design is intentionally simple, black and white, and easy to write on:
 
