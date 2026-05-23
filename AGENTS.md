@@ -50,7 +50,7 @@ When changing layout code, preserve these visual decisions unless the user expli
 
 1. **A4 landscape** output.
 2. **Monday-first** weeks.
-3. **Large, black** month title — the month name in bold, the year in regular weight.
+3. **Large, black** month title centred; the year sits smaller, right-aligned, on the same baseline.
 4. Month title should sit slightly below the printable top edge so home printers do not clip it.
 5. Weekday headers should be bold and black.
 6. Date numbers should be bold and black.
@@ -75,7 +75,8 @@ values. Positions use the top-left coordinate system of the canvas preview and j
 - Grid: from `margin + header_h` down to `margin` above the bottom edge
 - Date font size: `22 pt`
 - Weekday font size: `20 pt` (auto-shrunk to fit the column when full weekday names are used)
-- Month title font size: `40 pt`
+- Month title font size: `40 pt`, centred at `w / 2`
+- Year stamp: `22 pt` regular, right-aligned to `w - margin`, same baseline as the month
 - Grid line width: `1.0`
 - Writing guide line style: light grey, dash pattern `2, 3`
 - Label font: black, about `9 pt` — holiday labels bold, custom-date labels bold italic

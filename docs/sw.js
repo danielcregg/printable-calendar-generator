@@ -3,7 +3,7 @@
 //
 // IMPORTANT: bump CACHE whenever any precached asset below changes, otherwise
 // returning visitors keep being served the old cached file.
-const CACHE = "printable-calendar-v38";
+const CACHE = "printable-calendar-v39";
 
 const ASSETS = [
   "./",

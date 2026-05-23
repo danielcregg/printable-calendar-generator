@@ -403,22 +403,17 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   ctx.fillRect(0, 0, w, h);
 
   // Title — "Month" in bold, " Year" regular, centred as a single line.
+  // Title — month centred and bold; year smaller and right-aligned on the
+  // same baseline (the month is the hero of the page; the year is metadata).
   ctx.fillStyle = "black";
   ctx.textBaseline = "alphabetic";
-  ctx.textAlign = "left";
-  const titleBold = `bold ${pt(40, scale)}px Arial`;
-  const titleRegular = `${pt(40, scale)}px Arial`;
-  const monthText = MONTH_NAMES[monthIndex];
-  const yearText = ` ${year}`;
-  ctx.font = titleBold;
-  const monthW = ctx.measureText(monthText).width;
-  ctx.font = titleRegular;
-  const yearW = ctx.measureText(yearText).width;
-  const titleX = w / 2 - (monthW + yearW) / 2;
-  ctx.font = titleBold;
-  ctx.fillText(monthText, titleX, margin + 8 * scale);
-  ctx.font = titleRegular;
-  ctx.fillText(yearText, titleX + monthW, margin + 8 * scale);
+  const titleY = margin + 8 * scale;
+  ctx.font = `bold ${pt(40, scale)}px Arial`;
+  ctx.textAlign = "center";
+  ctx.fillText(MONTH_NAMES[monthIndex], w / 2, titleY);
+  ctx.font = `${pt(22, scale)}px Arial`;
+  ctx.textAlign = "right";
+  ctx.fillText(String(year), w - margin, titleY);
 
   // Shading.
   if (zebraWeeks) {
@@ -667,19 +662,15 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   doc.rect(0, 0, w, h, "F");
 
   // Title — "Month" in bold, " Year" regular, centred as a single line.
+  // Title — month centred and bold; year smaller and right-aligned on the
+  // same baseline (the month is the hero of the page; the year is metadata).
   doc.setTextColor(0, 0, 0);
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(40);
-  const monthText = MONTH_NAMES[monthIndex];
-  const yearText = ` ${year}`;
-  doc.setFont("helvetica", "bold");
-  const monthW = doc.getTextWidth(monthText);
+  doc.text(MONTH_NAMES[monthIndex], w / 2, margin + 8, { align: "center" });
   doc.setFont("helvetica", "normal");
-  const yearW = doc.getTextWidth(yearText);
-  const titleX = w / 2 - (monthW + yearW) / 2;
-  doc.setFont("helvetica", "bold");
-  doc.text(monthText, titleX, margin + 8);
-  doc.setFont("helvetica", "normal");
-  doc.text(yearText, titleX + monthW, margin + 8);
+  doc.setFontSize(22);
+  doc.text(String(year), w - margin, margin + 8, { align: "right" });
 
   // Shading.
   if (zebraWeeks) {
