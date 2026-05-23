@@ -556,7 +556,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     ctx.fillStyle = "black";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `bold ${pt(13, scale)}px Arial`;
+    ctx.font = `bold ${pt(16, scale)}px Arial`;
     for (let r = 0; r < rows; r++) {
       const wLabel = teachingWeeks.get(isoDate(addDays(row0Monday, r * 7)));
       if (wLabel) ctx.fillText(wLabel, base.gridX + gutter / 2, gridY + r * rowH + rowH / 2);
@@ -875,7 +875,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     const row0Monday = addDays(monthFirst, -mondayIndex(monthFirst));
     doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
+    doc.setFontSize(16);
     for (let r = 0; r < rows; r++) {
       const wLabel = teachingWeeks.get(isoDate(addDays(row0Monday, r * 7)));
       if (wLabel) doc.text(wLabel, base.gridX + gutter / 2, gridY + r * rowH + rowH / 2, { align: "center", baseline: "middle" });
