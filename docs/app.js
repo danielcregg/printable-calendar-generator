@@ -511,7 +511,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   // Grid borders. In Notes mode the internal vertical between two empty
   // cells in the same row is skipped, merging them into one visual block.
   ctx.strokeStyle = "black";
-  ctx.lineWidth = 1.6 * scale;
+  ctx.lineWidth = 1.0 * scale;
   ctx.strokeRect(gridX, gridY, gridW, gridH);
   if (notesArea) {
     for (let r = 0; r < rows; r++) {
@@ -751,7 +751,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   // Grid borders. In Notes mode the internal vertical between two empty
   // cells in the same row is skipped, merging them into one visual block.
   doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(1.6);
+  doc.setLineWidth(1.0);
   doc.rect(gridX, gridY, gridW, gridH);
   if (notesArea) {
     for (let r = 0; r < rows; r++) {

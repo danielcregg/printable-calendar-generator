@@ -76,7 +76,7 @@ values. Positions use the top-left coordinate system of the canvas preview and j
 - Date font size: `22 pt`
 - Weekday font size: `20 pt` (auto-shrunk to fit the column when full weekday names are used)
 - Month title font size: `40 pt`
-- Grid line width: `1.6`
+- Grid line width: `1.0`
 - Writing guide line style: light grey, dash pattern `2, 3`
 - Label font: black, about `9 pt` — holiday labels bold, custom-date labels bold italic
 - Teaching-week gutter: `13 mm` wide, with week labels (`W1`…) in `13 pt` bold
