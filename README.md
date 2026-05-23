@@ -52,7 +52,7 @@ visual toggles; the **Setup** drawer holds the bulkier data-entry panels
 
 - **Year / Month / Holidays** — between the prev/next arrows. Holidays is `Irish holidays` or `No holidays`.
 - **Shade: weekends / weeks / weekdays** — three checkboxes for the gentle background shading (weekend columns, alternating week rows, alternating day columns).
-- **Add guidelines** — the dashed writing lines per cell; the calendar drops one line per stacked label so text never overwrites the dashes, and tightens further in six-row months.
+- **Guidelines** — the dashed writing lines per cell; the calendar drops one line per stacked label so text never overwrites the dashes, and tightens further in six-row months.
 - **Full day names** — switch from `MON` to `MONDAY`.
 - **Teaching weeks** — adds a `W1`–`W13` gutter and reveals an editable schedule panel for years that don't fit the standard ATU pattern.
 - **Notes area** — replaces the adjacent-month dates with a merged writing block per row, with full-width guide lines and a faint "Notes" tag in the top-left.
