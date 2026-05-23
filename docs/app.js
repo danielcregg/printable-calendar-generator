@@ -862,7 +862,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   }
 }
 
-function downloadPdf() {
+function buildPdfDoc() {
   const { jsPDF } = window.jspdf;
   const year = Number(document.getElementById("year").value);
   const monthValue = document.getElementById("month").value;
@@ -873,8 +873,23 @@ function downloadPdf() {
     if (i > 0) doc.addPage("a4", "landscape");
     drawPdfMonth(doc, year, m, labels);
   });
+  return doc;
+}
+
+function downloadPdf() {
+  const year = Number(document.getElementById("year").value);
+  const monthValue = document.getElementById("month").value;
+  const doc = buildPdfDoc();
   const name = monthValue === "all" ? `calendar_${year}.pdf` : `${MONTH_NAMES[Number(monthValue)].toLowerCase()}_${year}.pdf`;
   doc.save(name);
+}
+
+// Generates the same PDF as downloadPdf but opens it in a new tab with
+// autoPrint set, so the browser's print dialog appears immediately.
+function printCalendar() {
+  const doc = buildPdfDoc();
+  doc.autoPrint();
+  window.open(doc.output("bloburl"));
 }
 
 const STORAGE_KEY = "printableCalendars";
@@ -1226,6 +1241,7 @@ window.addEventListener("DOMContentLoaded", () => {
   if (!document.getElementById("previewBtn")) return;
   document.getElementById("previewBtn").addEventListener("click", renderPreview);
   document.getElementById("downloadBtn").addEventListener("click", downloadPdf);
+  document.getElementById("printBtn").addEventListener("click", printCalendar);
   document.getElementById("preview").addEventListener("click", handlePreviewClick);
   document.getElementById("prevMonthBtn").addEventListener("click", () => stepMonth(-1));
   document.getElementById("nextMonthBtn").addEventListener("click", () => stepMonth(1));

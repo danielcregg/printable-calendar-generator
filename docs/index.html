@@ -7,9 +7,9 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ffffff">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=2026-05-recur-helper">
+  <link rel="stylesheet" href="styles.css?v=2026-05-print-btn">
   <script defer src="vendor/jspdf.umd.min.js"></script>
-  <script defer src="app.js?v=2026-05-recur-helper"></script>
+  <script defer src="app.js?v=2026-05-print-btn"></script>
 </head>
 <body class="app">
   <header class="topbar">
@@ -209,10 +209,16 @@
     </main>
   </div>
 
-  <button class="fab" id="downloadBtn" type="button">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Download PDF
-  </button>
+  <div class="fab-group">
+    <button class="fab fab-secondary" id="printBtn" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Print
+    </button>
+    <button class="fab" id="downloadBtn" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Download PDF
+    </button>
+  </div>
 
   <script>
     if ("serviceWorker" in navigator) {

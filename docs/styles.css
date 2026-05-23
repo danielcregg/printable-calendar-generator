@@ -510,6 +510,27 @@ body.app.drawer-open {
 .fab:hover { background: var(--primary-dark); }
 .fab:active { box-shadow: var(--elev-1); }
 
+.fab-group {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 25;
+  display: flex;
+  gap: 12px;
+}
+.fab-group .fab {
+  position: static;
+  right: auto;
+  bottom: auto;
+  z-index: auto;
+}
+.fab-secondary {
+  background: #fff;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+.fab-secondary:hover { background: #f0f4ff; }
+
 /* comfortable touch targets */
 .check { min-height: 48px; }
 
