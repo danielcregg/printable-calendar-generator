@@ -399,11 +399,11 @@ function guideLineSkips(year, monthIndex, labels) {
 }
 
 // ============================================================================
-// Canvas renderer (on-screen preview and today.html)
+// Canvas renderer (on-screen preview)
 // ============================================================================
 
 function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
-  const { shadeWeekends, zebraWeeks, zebraColumns, guideLines, highlightDate, fullDayNames, teachingWeeks, notesArea } = options;
+  const { shadeWeekends, zebraWeeks, zebraColumns, guideLines, fullDayNames, teachingWeeks, notesArea } = options;
   const shade = SHADE_THEMES[options.shadeColour] || SHADE_THEMES.grey;
   const customCss = rgbCss(LABEL_COLOURS[options.customColour] || LABEL_COLOURS.black);
   const lang = options.lang || "en";
@@ -556,21 +556,6 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   for (let j = 1; j < rows; j++) {
     const y = gridY + j * rowH;
     ctx.beginPath(); ctx.moveTo(gridX, y); ctx.lineTo(gridX + gridW, y); ctx.stroke();
-  }
-
-  // Optional today-highlight (used by today.html).
-  if (highlightDate) {
-    const [hYear, hMonth, hDay] = highlightDate.split("-").map(Number);
-    if (hYear === year && hMonth - 1 === monthIndex) {
-      const offset = (hDay - 1) + mondayIndex(new Date(year, monthIndex, 1));
-      const hx = gridX + (offset % cols) * colW;
-      const hy = gridY + Math.floor(offset / cols) * rowH;
-      ctx.fillStyle = "#fff1c2";
-      ctx.fillRect(hx, hy, colW, rowH);
-      ctx.strokeStyle = "#e0a800";
-      ctx.lineWidth = 2.4 * scale;
-      ctx.strokeRect(hx, hy, colW, rowH);
-    }
   }
 
   // Day numbers + bottom-left labels.
@@ -1355,8 +1340,7 @@ function toggleDrawer() {
 }
 
 // ============================================================================
-// Init — wires the UI once the DOM is ready. Exits early on today.html (the
-// generator controls don't exist there).
+// Init — wires the UI once the DOM is ready.
 // ============================================================================
 
 // Form inputs that should trigger a re-render on every input/change event.
@@ -1370,6 +1354,8 @@ const RENDER_TRIGGER_IDS = [
 ];
 
 window.addEventListener("DOMContentLoaded", () => {
+  // Bail out when the generator controls aren't present (e.g. the tests.html
+  // page loads this script for its pure helpers and has no UI of its own).
   if (!document.getElementById("previewBtn")) return;
 
   // Populate the Year dropdown and pick sensible defaults for both year/month.

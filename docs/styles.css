@@ -259,18 +259,6 @@ button:focus-visible {
   color: var(--text);
 }
 
-.topbar-link {
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-  padding: 0 var(--space-3);
-  font-size: var(--text-sm);
-  white-space: nowrap;
-  border-radius: var(--radius-md);
-  transition: background .15s ease;
-}
-.topbar-link:hover { background: var(--primary-soft); text-decoration: none; }
-
 /* --- Icon buttons (hamburger, drawer close) ----------------------------- */
 .icon-btn {
   flex: 0 0 auto;
@@ -364,7 +352,7 @@ button:focus-visible {
 }
 .scrim.show { opacity: 1; pointer-events: auto; }
 
-/* --- Panels (inside drawer or on today.html) --------------------------- */
+/* --- Panels (inside the drawer) --------------------------------------- */
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -631,42 +619,6 @@ button:focus-visible {
 }
 .fab-secondary:hover { background: var(--primary-soft); box-shadow: var(--shadow-md); }
 
-/* --- today.html: the wrap layout (separate page) ---------------------- */
-.wrap {
-  width: min(1180px, calc(100vw - 32px));
-  margin: 0 auto;
-  padding: 32px 0 48px;
-}
-
-.hero { margin-bottom: 20px; }
-
-.eyebrow {
-  margin: 0 0 8px;
-  color: var(--text-muted);
-  font-weight: 600;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  font-size: var(--text-xs);
-}
-
-.hero p:last-child {
-  max-width: 720px;
-  color: var(--text-muted);
-  font-size: var(--text-lg);
-  line-height: 1.5;
-}
-
-.preview-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  align-items: baseline;
-}
-.preview-head p {
-  color: var(--text-muted);
-  margin: 0;
-}
-
 canvas {
   width: 100%;
   height: auto;
@@ -676,13 +628,7 @@ canvas {
 
 /* --- Responsive ------------------------------------------------------- */
 @media (max-width: 640px) {
-  .wrap { padding: 20px 0 36px; }
   .panel { padding: var(--space-4); }
-  .preview-head {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-  }
 
   .stage-controls { gap: var(--space-2); }
   .stage-controls .checks {

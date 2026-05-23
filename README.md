@@ -30,8 +30,7 @@ in a browser, or serve the folder with any static file server.
 Pick a year and a month (or a full year), toggle the holiday, shading and teaching-week
 options, add your own dates, then click **Download PDF** to save a file or **Print** to
 open the print dialog directly. You can save a named calendar
-or a reusable date group in your browser to load again later. `docs/today.html` is a
-companion page that shows the current month with today highlighted.
+or a reusable date group in your browser to load again later.
 
 Generating a PDF needs nothing online — jsPDF is bundled in `docs/vendor/`. The site is
 also a Progressive Web App: your browser can install it as a standalone app, and once

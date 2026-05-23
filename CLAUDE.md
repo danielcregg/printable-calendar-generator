@@ -20,9 +20,6 @@ to install. It runs by opening `docs/index.html`, and is deployed as-is via GitH
   week-row calculation, Monday-offset day placement, rendering, the generator UI,
   `.ics` import, saved calendars and date groups, and PDF export.
 - `index.html` / `styles.css` — the generator page.
-- `today.html` + `today.js` — a companion "this month" page. `today.html` loads `app.js`
-  and then `today.js`, which reuses `app.js`'s functions. `app.js`'s `DOMContentLoaded`
-  handler exits early when the generator controls are absent, so it is safe to load there.
 - `docs/vendor/jspdf.umd.min.js` — jsPDF, bundled locally so the app depends on nothing
   online. There is no package manager; to change the jsPDF version, replace this file.
 - `manifest.json` + `sw.js` + `icons/` — the PWA layer. `sw.js` is a cache-first service
@@ -35,7 +32,7 @@ Android; it is not part of the web app.
 
 `app.js` renders the calendar **twice**, and the two paths must agree:
 
-- `drawCalendar` draws to a `<canvas>` — the on-screen preview and the today page.
+- `drawCalendar` draws to a `<canvas>` — the on-screen preview.
 - `drawPdfMonth` draws the same layout with jsPDF — the downloaded PDF.
 
 Any layout change (positions, fonts, shading, a new option) has to land in **both**
@@ -46,7 +43,7 @@ own font rendering.
 ## When you change a cached asset
 
 `sw.js` precaches the whole app shell. After changing any precached file (`app.js`,
-`styles.css`, either HTML page, an icon, the vendored jsPDF, the manifest), **bump the
+`styles.css`, `index.html`, an icon, the vendored jsPDF, the manifest), **bump the
 `CACHE` constant in `sw.js`** — otherwise returning visitors keep the stale cached copy.
 The `?v=` query on the `<script>`/`<link>` tags does not help here: the service worker
 matches with `ignoreSearch`, so it ignores that query.
@@ -56,5 +53,4 @@ matches with `ignoreSearch`, so it ignores that query.
 Serve the `docs/` folder with any static file server and open it in a browser. (Opening
 `index.html` as a `file://` URL also works for the calendar itself, but the service
 worker only registers over http/https.) There is no automated test suite — verification
-is manual: download a PDF and walk the checklist in `AGENTS.md`, then open `today.html`
-to confirm the live month renders.
+is manual: download a PDF and walk the checklist in `AGENTS.md`.

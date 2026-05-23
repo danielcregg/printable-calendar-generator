@@ -3,15 +3,13 @@
 //
 // IMPORTANT: bump CACHE whenever any precached asset below changes, otherwise
 // returning visitors keep being served the old cached file.
-const CACHE = "printable-calendar-v42";
+const CACHE = "printable-calendar-v43";
 
 const ASSETS = [
   "./",
   "./index.html",
-  "./today.html",
   "./styles.css",
   "./app.js",
-  "./today.js",
   "./vendor/jspdf.umd.min.js",
   "./manifest.json",
   "./icons/icon-192.png",

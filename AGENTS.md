@@ -43,10 +43,8 @@ The original target use case is an Irish work/family/academic wall calendar, but
 printable-calendar-generator/
   docs/
     index.html           # Calendar generator web app (and the GitHub Pages site)
-    today.html           # Companion "this month" page with today highlighted
     styles.css
     app.js               # Calendar/holiday/teaching-week engine, rendering, UI, PDF export
-    today.js             # Renders the current month, reusing app.js
     manifest.json        # PWA manifest — installable-app metadata and icons
     sw.js                # Service worker — precaches the app shell for offline use
     vendor/
@@ -111,10 +109,10 @@ If these values are changed, download a PDF and visually inspect it before commi
 
 The calendar grid (month title, weekday headers, adjacent-month tags, and
 the Month dropdown options) can be rendered in either English (default) or
-Irish (`ga` / Gaeilge). UI controls, holiday labels and the `today.html`
-page stay in English. The translations live in `MONTH_NAMES`, `WEEKDAYS`
-and `FULL_WEEKDAYS` (now keyed by language code) and the chosen language
-is stored with saved calendars.
+Irish (`ga` / Gaeilge). UI controls and holiday labels stay in English. The
+translations live in `MONTH_NAMES`, `WEEKDAYS` and `FULL_WEEKDAYS` (now
+keyed by language code) and the chosen language is stored with saved
+calendars.
 
 ## Holiday policy
 
@@ -202,13 +200,11 @@ install.
 
 `app.js` holds everything: holiday calculations, teaching-week numbering, the layout
 maths, rendering, the UI, `.ics` import, browser-stored saved calendars and date groups,
-and PDF export. It is shared by both pages — `index.html` (the generator) and
-`today.html` (the live month view). Its `DOMContentLoaded` handler exits early when the
-generator controls are absent, so it is safe to load on `today.html`.
+and PDF export. It is loaded by `index.html` (the generator).
 
 `app.js` renders the calendar through two paths that must be kept consistent:
 
-- `drawCalendar` — draws to a `<canvas>` for the on-screen preview and the today page.
+- `drawCalendar` — draws to a `<canvas>` for the on-screen preview.
 - `drawPdfMonth` — draws the same layout with jsPDF for the downloaded PDF.
 
 Any layout change must be made in **both**, or the preview and the PDF will disagree.
@@ -219,7 +215,7 @@ is approximate because it uses the browser's own font rendering.
 
 The site is an installable Progressive Web App. `manifest.json` carries the install
 metadata and icons; `sw.js` is a service worker that precaches the whole app shell —
-both HTML pages, the CSS and JS, the vendored jsPDF, the manifest and the icons — so the
+the HTML page, the CSS and JS, the vendored jsPDF, the manifest and the icons — so the
 app loads and generates PDFs with no network connection.
 
 The service worker is cache-first. **When you change any precached asset, bump the
@@ -254,9 +250,8 @@ Suggested local smoke test:
 2. Open `docs/tests.html` and confirm the pure-function assertion suite passes (date math, holidays, recurrence parser, layout helpers).
 3. Generate a full-year 2026 calendar with IE holidays and download the PDF.
 4. Generate a single month (for example June 2026) and download it.
-5. Open `today.html` and confirm the current month renders with today highlighted.
-6. Reload once, then load again with the network disabled, to confirm the service worker serves the app offline.
-7. Visually inspect each PDF against the checklist above.
+5. Reload once, then load again with the network disabled, to confirm the service worker serves the app offline.
+6. Visually inspect each PDF against the checklist above.
 
 ## Coding style
 
