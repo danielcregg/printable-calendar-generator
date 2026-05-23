@@ -233,9 +233,7 @@ function buildLabels(year) {
     if (!labels.has(date)) labels.set(date, { holiday: null, custom: [] });
     return labels.get(date);
   };
-  const country = document.getElementById("country").value;
-  const showHolidays = document.getElementById("holidayLabels").checked;
-  if (country === "IE" && showHolidays) {
+  if (document.getElementById("country").value === "IE") {
     for (const [d, label] of irelandHolidays(year)) entryFor(d).holiday = label;
   }
   for (const [d, list] of parseCustomDates(document.getElementById("customDates").value, year)) {
@@ -1141,7 +1139,6 @@ function currentSettings() {
     zebraWeeks: document.getElementById("zebraWeeks").checked,
     zebraColumns: document.getElementById("zebraColumns").checked,
     guideLines: document.getElementById("guideLines").checked,
-    holidayLabels: document.getElementById("holidayLabels").checked,
     fullDayNames: document.getElementById("fullDayNames").checked,
     teachingWeeks: document.getElementById("teachingWeeks").checked,
     s1Start: document.getElementById("s1Start").value,
@@ -1164,7 +1161,6 @@ function applySettings(settings) {
   document.getElementById("zebraWeeks").checked = settings.zebraWeeks;
   document.getElementById("zebraColumns").checked = settings.zebraColumns;
   document.getElementById("guideLines").checked = settings.guideLines;
-  document.getElementById("holidayLabels").checked = settings.holidayLabels;
   document.getElementById("fullDayNames").checked = settings.fullDayNames;
   document.getElementById("teachingWeeks").checked = settings.teachingWeeks;
   if (settings.s1Start) {
@@ -1339,7 +1335,7 @@ function toggleDrawer() {
 const RENDER_TRIGGER_IDS = [
   "year", "month", "country",
   "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines",
-  "holidayLabels", "shadeColour", "customColour", "notesArea",
+  "shadeColour", "customColour", "notesArea",
   "fullDayNames", "teachingWeeks",
   "s1Start", "s1Break", "s2Start", "s2Break",
   "customDates",
