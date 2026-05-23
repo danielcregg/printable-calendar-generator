@@ -1255,6 +1255,7 @@ window.addEventListener("DOMContentLoaded", () => {
     yearSelect.appendChild(opt);
   }
   yearSelect.value = String(MIN_YEAR);
+  document.getElementById("month").value = String(new Date().getMonth());
   document.getElementById("previewBtn").addEventListener("click", renderPreview);
   document.getElementById("downloadBtn").addEventListener("click", downloadPdf);
   document.getElementById("printBtn").addEventListener("click", printCalendar);
