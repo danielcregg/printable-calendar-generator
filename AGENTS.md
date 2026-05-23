@@ -214,8 +214,8 @@ Before finishing any change, verify:
 8. Generated PDFs print safely with no clipped month title.
 9. With **Teaching weeks** enabled, week rows are numbered `W1`–`W13` and the reading-week and Easter-break rows are left blank.
 10. Default rendering fills leading and trailing cells with adjacent-month day numbers in light grey, with a 3-letter month tag (`Jul`, `Sep`, …) in the top-right corner.
-11. With **Use leading/trailing cells as a Notes area** checked, those cells merge into one writing block per row with full-width guide lines and a faint "Notes" tag in the top-left.
-12. Weekday headers default to the 3-letter form (`MON`, `TUE`, …); ticking **Full weekday names** switches them to `MONDAY`/`TUESDAY`/….
+11. With **Notes area** checked, those cells merge into one writing block per row with full-width guide lines and a faint "Notes" tag in the top-left.
+12. Weekday headers default to the 3-letter form (`MON`, `TUE`, …); ticking **Full day names** switches them to `MONDAY`/`TUESDAY`/….
 13. Recurring custom-date lines (e.g. `2026-09-08 | Bins | every 2 weeks`) expand into every occurrence inside the rendered year, with the same styling as one-off custom dates.
 
 Suggested local smoke test:

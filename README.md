@@ -46,16 +46,17 @@ The site is published straight from this repository:
 
 ## Layout options
 
-Each toggle in the **Setup** drawer is opt-in; the defaults give a clean black-and-white
-calendar:
+The toolbar above the calendar carries the date dropdowns and the most-used
+visual toggles; the **Setup** drawer holds the bulkier data-entry panels
+(Colours, Teaching-week schedule, Custom dates, .ics import, Saved calendars):
 
-- **Shade weekends / Zebra weeks / Zebra columns** — gentle background shading.
-- **Add 3 writing guide lines** — the dashed lines per cell; the calendar drops one extra line per stacked label so the text never overwrites the dashes, and tightens further in six-row months.
-- **Show holiday labels** — show or hide the Irish bank-holiday labels.
-- **Full weekday names** — switch from `MON` to `MONDAY`.
+- **Year / Month / Holidays** — between the prev/next arrows. Holidays is `Irish holidays` or `No holidays`.
+- **Shade: weekends / weeks / weekdays** — three checkboxes for the gentle background shading (weekend columns, alternating week rows, alternating day columns).
+- **Add guidelines** — the dashed writing lines per cell; the calendar drops one line per stacked label so text never overwrites the dashes, and tightens further in six-row months.
+- **Full day names** — switch from `MON` to `MONDAY`.
 - **Teaching weeks** — adds a `W1`–`W13` gutter and reveals an editable schedule panel for years that don't fit the standard ATU pattern.
-- **Colours** — choose an opt-in shading theme (grey / blue / green / warm) and custom-date label colour (black / blue / green).
-- **Use leading/trailing cells as a Notes area** — replaces the adjacent-month dates with a merged writing block per row, with full-width guide lines and a faint "Notes" tag in the top-left.
+- **Notes area** — replaces the adjacent-month dates with a merged writing block per row, with full-width guide lines and a faint "Notes" tag in the top-left.
+- **Colours** (drawer) — opt-in shading theme (grey / blue / green / warm) and custom-date label colour (black / blue / green).
 
 ## Custom dates
 
