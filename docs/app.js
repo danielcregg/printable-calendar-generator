@@ -589,6 +589,7 @@ function stepMonth(delta) {
   let year = Number(yearInput.value);
   if (month > 11) { month = 0; year += 1; }
   else if (month < 0) { month = 11; year -= 1; }
+  if (year < 2000 || year > 2099) return;
   monthSelect.value = String(month);
   yearInput.value = String(year);
   renderPreview();
@@ -935,7 +936,8 @@ function currentSettings() {
 }
 
 function applySettings(settings) {
-  document.getElementById("year").value = settings.year;
+  const savedYear = Number(settings.year);
+  document.getElementById("year").value = savedYear >= 2000 && savedYear <= 2099 ? String(savedYear) : "2026";
   document.getElementById("month").value = settings.month;
   document.getElementById("country").value = settings.country;
   document.getElementById("shadeWeekends").checked = settings.shadeWeekends;
@@ -1239,6 +1241,15 @@ function toggleDrawer() {
 
 window.addEventListener("DOMContentLoaded", () => {
   if (!document.getElementById("previewBtn")) return;
+  const yearSelect = document.getElementById("year");
+  for (let y = 2000; y <= 2099; y++) {
+    const opt = document.createElement("option");
+    opt.value = String(y);
+    opt.textContent = String(y);
+    yearSelect.appendChild(opt);
+  }
+  const currentYear = new Date().getFullYear();
+  yearSelect.value = currentYear >= 2000 && currentYear <= 2099 ? String(currentYear) : "2026";
   document.getElementById("previewBtn").addEventListener("click", renderPreview);
   document.getElementById("downloadBtn").addEventListener("click", downloadPdf);
   document.getElementById("printBtn").addEventListener("click", printCalendar);

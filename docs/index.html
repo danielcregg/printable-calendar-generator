@@ -7,9 +7,9 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ffffff">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=2026-05-print-btn">
+  <link rel="stylesheet" href="styles.css?v=2026-05-year-picker">
   <script defer src="vendor/jspdf.umd.min.js"></script>
-  <script defer src="app.js?v=2026-05-print-btn"></script>
+  <script defer src="app.js?v=2026-05-year-picker"></script>
 </head>
 <body class="app">
   <header class="topbar">
@@ -35,7 +35,7 @@
         <section class="panel controls">
           <label>
             Year
-            <input id="year" type="number" min="1900" max="2200" value="2026">
+            <select id="year"></select>
           </label>
 
           <label>
