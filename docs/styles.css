@@ -281,8 +281,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-bottom: 12px;
+  gap: 10px;
 }
 
 .month-nav button {
@@ -292,11 +291,54 @@ a {
   line-height: 1;
 }
 
-#monthNavLabel {
-  font-weight: 800;
-  font-size: 18px;
-  min-width: 150px;
-  text-align: center;
+/* --- Stage controls: Year/Month/Holidays + setting checkboxes ---------- */
+.stage-controls {
+  width: 100%;
+  max-width: 1120px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  justify-content: center;
+}
+
+.stage-controls select {
+  width: auto;
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+
+.stage-controls .month-nav {
+  margin: 0;
+}
+
+.stage-controls .month-nav select {
+  font-weight: 700;
+  font-size: 15px;
+  padding: 8px 10px;
+}
+
+.stage-controls .checks {
+  flex-basis: 100%;
+  justify-content: center;
+  gap: 8px 16px;
+}
+
+@media (max-width: 640px) {
+  .stage-controls { gap: 8px; }
+  .stage-controls .checks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+    width: 100%;
+  }
+  .stage-controls .check {
+    min-height: 32px;
+    font-size: 13px;
+    white-space: normal;
+    flex: initial;
+  }
 }
 
 /* ===== App shell — Material-style layout (index.html) ===== */

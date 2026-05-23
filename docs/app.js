@@ -911,14 +911,10 @@ function renderPreview() {
   updateMonthNav();
 }
 
-// Updates the preview's month-stepper label, and disables the arrows in
-// full-year mode (there is no single month to step from).
+// Disables the prev/next arrows in full-year mode (no single month to step
+// from). The Year and Month dropdowns serve as the visual label themselves.
 function updateMonthNav() {
-  const monthValue = document.getElementById("month").value;
-  const year = Number(document.getElementById("year").value);
-  const isFullYear = monthValue === "all";
-  document.getElementById("monthNavLabel").textContent =
-    isFullYear ? `Full year ${year}` : `${MONTH_NAMES[Number(monthValue)]} ${year}`;
+  const isFullYear = document.getElementById("month").value === "all";
   document.getElementById("prevMonthBtn").disabled = isFullYear;
   document.getElementById("nextMonthBtn").disabled = isFullYear;
 }
