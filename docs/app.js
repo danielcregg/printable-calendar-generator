@@ -626,6 +626,38 @@ function handlePreviewClick(event) {
   renderPreview();
 }
 
+// Builds a custom-date line (with optional recurrence) from the helper
+// inputs above the textarea and appends it to the Custom dates box.
+function addRecurringDate() {
+  const date = document.getElementById("recurDate").value;
+  const label = document.getElementById("recurLabel").value.trim();
+  const freq = document.getElementById("recurFreq").value;
+  const countRaw = document.getElementById("recurCount").value.trim();
+  if (!date || !label) {
+    window.alert("Pick a date and enter a label first.");
+    return;
+  }
+  const ruleMap = {
+    daily: "daily",
+    weekly: "weekly",
+    biweekly: "every 2 weeks",
+    monthly: "monthly",
+    yearly: "yearly",
+  };
+  let line = `${date} | ${label}`;
+  if (freq !== "once") {
+    const count = Number(countRaw);
+    const suffix = countRaw && count > 0 ? ` x ${count}` : "";
+    line += ` | ${ruleMap[freq]}${suffix}`;
+  }
+  const box = document.getElementById("customDates");
+  const current = box.value.replace(/\s+$/, "");
+  box.value = (current ? current + "\n" : "") + line;
+  document.getElementById("recurLabel").value = "";
+  document.getElementById("recurCount").value = "";
+  renderPreview();
+}
+
 function drawPdfMonth(doc, year, monthIndex, labels) {
   const teachingWeeks = document.getElementById("teachingWeeks").checked ? teachingWeekMap() : null;
   const base = layout(1);
@@ -1228,6 +1260,7 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("icsAddBtn").addEventListener("click", addIcsSelected);
   document.getElementById("icsClearBtn").addEventListener("click", clearIcs);
+  document.getElementById("recurAddBtn").addEventListener("click", addRecurringDate);
   document.getElementById("autoFillWeeksBtn").addEventListener("click", () => {
     autoFillTeachingDates();
     renderPreview();

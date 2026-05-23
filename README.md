@@ -74,6 +74,11 @@ Recurrence shortcuts: `daily`, `weekly`, `monthly`, `yearly`. The general form i
 `until YYYY-MM-DD` (end date) — either order works. Lines starting with `#` are
 ignored.
 
+A small **quick-add** form above the textarea can build the line for you: pick a date,
+type a label, choose a repeat (Once, Daily, Weekly, Every 2 weeks, Monthly, Yearly),
+optionally type a number of occurrences, and click **Add** — the correctly formatted
+entry is appended to the textarea.
+
 You can also click any day in the preview to add a date, or import an `.ics` file
 (Outlook, Google, Apple) and tick the dates to include. If a day has more than one
 custom date and/or a public holiday, the labels stack on separate lines — custom dates
