@@ -91,7 +91,7 @@ label {
   display: flex;
   gap: 8px;
   align-items: center;
-  min-height: 44px;
+  min-height: 48px;
   flex: 0 0 auto;
   white-space: nowrap;
 }
@@ -530,9 +530,6 @@ body.app.drawer-open {
   border: 1px solid var(--primary);
 }
 .fab-secondary:hover { background: #f0f4ff; }
-
-/* comfortable touch targets */
-.check { min-height: 48px; }
 
 /* --- Desktop: the drawer becomes a permanent sidebar --- */
 @media (min-width: 900px) {

@@ -1,3 +1,14 @@
+// Printable Calendar Generator — single-file engine for the static web app.
+//
+// The file is organised top-down into focused sections, each marked by a
+// section banner. The two rendering paths (canvas preview and jsPDF export)
+// duplicate work on purpose, so they always agree pixel-for-pixel; see
+// AGENTS.md for the dual-render-path rationale.
+
+// ============================================================================
+// Constants
+// ============================================================================
+
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
@@ -25,9 +36,21 @@ const LABEL_COLOURS = {
   green: [34, 113, 58],
 };
 
+// localStorage keys for the two stores below.
+const STORAGE_KEY = "printableCalendars";
+const GROUPS_KEY = "printableCustomDateGroups";
+
+// ============================================================================
+// Small utilities
+// ============================================================================
+
 function rgbCss(rgb) {
   return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
 }
+
+// ============================================================================
+// Date math (Monday-first weeks, Easter, ISO formatting)
+// ============================================================================
 
 function mondayIndex(date) {
   return (date.getDay() + 6) % 7;
@@ -45,6 +68,7 @@ function lastMonday(year, monthIndex) {
   return d;
 }
 
+// Anonymous Gregorian algorithm — returns the Date of Easter Sunday for `year`.
 function easterSunday(year) {
   const a = year % 19;
   const b = Math.floor(year / 100);
@@ -75,6 +99,10 @@ function isoDate(date) {
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
+
+// ============================================================================
+// Irish public/bank holidays
+// ============================================================================
 
 function stBrigidsDay(year) {
   const feb1 = new Date(year, 1, 1);
@@ -111,55 +139,16 @@ function irelandHolidays(year) {
   return labels;
 }
 
-// Fills the teaching-week schedule fields with the standard ATU dates
-// computed from the calendar year.
-function autoFillTeachingDates() {
-  const year = Number(document.getElementById("year").value) || new Date().getFullYear();
-  const octBreak = lastMonday(year, 9);
-  const easterBreak = addDays(easterSunday(year), -6);
-  document.getElementById("s1Start").value = isoDate(addDays(octBreak, -42));
-  document.getElementById("s1Break").value = isoDate(octBreak);
-  document.getElementById("s2Start").value = isoDate(addDays(firstMonday(year, 0), 14));
-  document.getElementById("s2Break").value = isoDate(easterBreak);
-}
-
-// Maps each teaching week's Monday (ISO date) to its label, W1..W13 per
-// semester, read from the schedule fields, skipping the break weeks.
-function teachingWeekMap() {
-  const map = new Map();
-  const toMonday = (iso) => {
-    const d = new Date(iso + "T00:00:00");
-    return isoDate(addDays(d, -mondayIndex(d)));
-  };
-  const fill = (startISO, breakISOs) => {
-    if (!startISO) return;
-    const startMonday = new Date(toMonday(startISO) + "T00:00:00");
-    const breaks = new Set(breakISOs.filter(Boolean).map(toMonday));
-    let count = 1;
-    for (let i = 0; count <= 13 && i < 30; i++) {
-      const key = isoDate(addDays(startMonday, i * 7));
-      if (breaks.has(key)) continue;
-      map.set(key, "W" + count);
-      count++;
-    }
-  };
-  const s2Break = document.getElementById("s2Break").value;
-  const s2Break2 = s2Break ? isoDate(addDays(new Date(toMonday(s2Break) + "T00:00:00"), 7)) : "";
-  fill(document.getElementById("s1Start").value, [document.getElementById("s1Break").value]);
-  fill(document.getElementById("s2Start").value, [s2Break, s2Break2]);
-  return map;
-}
-
-function updateTeachingPanel() {
-  document.getElementById("teachingPanel").hidden = !document.getElementById("teachingWeeks").checked;
-}
+// ============================================================================
+// Custom dates: parsing and recurrence expansion
+// ============================================================================
 
 // Parses a recurrence rule into { unit, n, count, until } or null if it
 // cannot be parsed. Accepts the shortcuts daily/weekly/monthly/yearly and
 // "every N <day|week|month|year>", optionally followed by "x N" (occurrence
-// count) and/or "until YYYY-MM-DD". The two suffixes may appear in either
-// order. Unparseable rules return null; the caller falls back to a one-off
-// date.
+// count) and/or "until YYYY-MM-DD" (the two suffixes may appear in either
+// order). Unparseable rules return null and the caller falls back to a
+// one-off date on the start day.
 function parseRule(text) {
   const r = text.toLowerCase().trim();
   if (!r) return null;
@@ -208,6 +197,10 @@ function* expandRule(startISO, rule, year) {
   }
 }
 
+// Parses the Custom dates textarea into a Map of ISO date -> array of labels.
+// Lines look like "YYYY-MM-DD | Label [| rule]". Recurring rules are expanded
+// into every occurrence that falls inside the rendered year (± a small
+// buffer). Lines starting with # are treated as comments.
 function parseCustomDates(text, year) {
   const labels = new Map();
   for (const raw of text.split(/\r?\n/)) {
@@ -227,6 +220,13 @@ function parseCustomDates(text, year) {
   return labels;
 }
 
+// ============================================================================
+// Day-cell labels: build per-date entries and order them for stacking
+// ============================================================================
+
+// Merges the holiday Map and custom-dates Map into a single Map of ISO date ->
+// { holiday: string|null, custom: string[] }. Each day cell consults this for
+// what to draw at the bottom of its box.
 function buildLabels(year) {
   const labels = new Map();
   const entryFor = (date) => {
@@ -245,7 +245,8 @@ function buildLabels(year) {
 }
 
 // Orders a day's labels into stacked lines, top to bottom: custom dates
-// first (blue), then the holiday (black) at the bottom.
+// first (italic, optionally coloured), then the holiday (bold, black) at the
+// bottom. Returns an array of { text, custom: boolean }.
 function labelStack(entry) {
   if (!entry) return [];
   const stack = entry.custom.map((text) => ({ text, custom: true }));
@@ -253,31 +254,51 @@ function labelStack(entry) {
   return stack;
 }
 
-// Maps each day-cell offset to how many of its three writing guide lines
-// (counted from the bottom) the stacked labels would cover. One line is
-// dropped per extra label; six-row months have shorter cells, so there a
-// single label already reaches the lowest line. Capped at all three.
-function guideLineSkips(year, monthIndex, labels) {
-  const startOffset = mondayIndex(new Date(year, monthIndex, 1));
-  const days = new Date(year, monthIndex + 1, 0).getDate();
-  const skips = new Map();
-  for (let day = 1; day <= days; day++) {
-    const entry = labels.get(isoDate(new Date(year, monthIndex, day)));
-    const drop = Math.max(0, labelStack(entry).length - 1);
-    if (drop > 0) skips.set((day - 1) + startOffset, drop);
-  }
-  return skips;
+// ============================================================================
+// Teaching weeks (W1..W13 per semester, with break weeks skipped)
+// ============================================================================
+
+// Fills the teaching-week schedule fields with the standard ATU dates
+// computed from the calendar year.
+function autoFillTeachingDates() {
+  const year = Number(document.getElementById("year").value) || new Date().getFullYear();
+  const octBreak = lastMonday(year, 9);
+  const easterBreak = addDays(easterSunday(year), -6);
+  document.getElementById("s1Start").value = isoDate(addDays(octBreak, -42));
+  document.getElementById("s1Break").value = isoDate(octBreak);
+  document.getElementById("s2Start").value = isoDate(addDays(firstMonday(year, 0), 14));
+  document.getElementById("s2Break").value = isoDate(easterBreak);
 }
 
-// 3 guide lines in 5-row months, 2 (respaced) in 6-row months so the
-// per-line writing gap stays roughly the same. Drop counts come from
-// guideLineSkips and are applied from the bottom up.
-function baseGuideLines(rows) {
-  return rows === 6 ? 2 : 3;
+// Maps each teaching week's Monday (ISO date) to its label, W1..W13 per
+// semester, read from the schedule fields, skipping the break weeks.
+function teachingWeekMap() {
+  const map = new Map();
+  const toMonday = (iso) => {
+    const d = new Date(iso + "T00:00:00");
+    return isoDate(addDays(d, -mondayIndex(d)));
+  };
+  const fill = (startISO, breakISOs) => {
+    if (!startISO) return;
+    const startMonday = new Date(toMonday(startISO) + "T00:00:00");
+    const breaks = new Set(breakISOs.filter(Boolean).map(toMonday));
+    let count = 1;
+    for (let i = 0; count <= 13 && i < 30; i++) {
+      const key = isoDate(addDays(startMonday, i * 7));
+      if (breaks.has(key)) continue;
+      map.set(key, "W" + count);
+      count++;
+    }
+  };
+  const s2Break = document.getElementById("s2Break").value;
+  const s2Break2 = s2Break ? isoDate(addDays(new Date(toMonday(s2Break) + "T00:00:00"), 7)) : "";
+  fill(document.getElementById("s1Start").value, [document.getElementById("s1Break").value]);
+  fill(document.getElementById("s2Start").value, [s2Break, s2Break2]);
+  return map;
 }
 
-// True if any row of (year, monthIndex) carries a teaching-week label.
-// Used to skip the 13 mm left gutter on months that have nothing to show.
+// True if any row of (year, monthIndex) carries a teaching-week label. Used
+// to skip the 13 mm left gutter on months that have nothing to show.
 function monthHasTeachingWeeks(teachingWeeks, year, monthIndex, rows) {
   if (!teachingWeeks) return false;
   const monthFirst = new Date(year, monthIndex, 1);
@@ -288,10 +309,41 @@ function monthHasTeachingWeeks(teachingWeeks, year, monthIndex, rows) {
   return false;
 }
 
+function updateTeachingPanel() {
+  document.getElementById("teachingPanel").hidden = !document.getElementById("teachingWeeks").checked;
+}
+
+// ============================================================================
+// Layout geometry — A4 landscape, row count, guide-line plan
+// ============================================================================
+
 function monthRows(year, monthIndex) {
   const first = new Date(year, monthIndex, 1);
   const days = new Date(year, monthIndex + 1, 0).getDate();
   return mondayIndex(first) + days <= 35 ? 5 : 6;
+}
+
+function layout(scale = 1) {
+  const w = 297 * scale;
+  const h = 210 * scale;
+  const margin = 10 * scale;
+  const headerH = 22 * scale;
+  const gridX = margin;
+  const gridY = margin + headerH;
+  const gridW = w - 2 * margin;
+  const gridH = h - 2 * margin - headerH;
+  return { w, h, margin, headerH, gridX, gridY, gridW, gridH };
+}
+
+// Canvas uses px, while PDF fonts use points. Convert pt -> mm -> scaled px.
+function pt(points, scale = 1) {
+  return points * (25.4 / 72) * scale;
+}
+
+// 3 guide lines in 5-row months, 2 (respaced) in 6-row months so the
+// per-line writing gap stays roughly the same.
+function baseGuideLines(rows) {
+  return rows === 6 ? 2 : 3;
 }
 
 // Row-by-row runs of empty day cells: at most one leading run on row 0 and
@@ -308,26 +360,28 @@ function computeEmptyRuns(leadingCount, trailingStart, rows) {
   return runs;
 }
 
-function layout(scale = 1) {
-  const w = 297 * scale;
-  const h = 210 * scale;
-  const margin = 10 * scale;
-  const headerH = 22 * scale;
-  const gridX = margin;
-  const gridY = margin + headerH;
-  const gridW = w - 2 * margin;
-  const gridH = h - 2 * margin - headerH;
-  return { w, h, margin, headerH, gridX, gridY, gridW, gridH };
+// Maps each day-cell offset to how many guide lines (from the bottom) the
+// stacked labels would cover. One line is dropped per extra label, applied
+// from the bottom up. Cells with at most one label are omitted from the map.
+function guideLineSkips(year, monthIndex, labels) {
+  const startOffset = mondayIndex(new Date(year, monthIndex, 1));
+  const days = new Date(year, monthIndex + 1, 0).getDate();
+  const skips = new Map();
+  for (let day = 1; day <= days; day++) {
+    const entry = labels.get(isoDate(new Date(year, monthIndex, day)));
+    const drop = Math.max(0, labelStack(entry).length - 1);
+    if (drop > 0) skips.set((day - 1) + startOffset, drop);
+  }
+  return skips;
 }
 
-function pt(points, scale = 1) {
-  // Canvas uses px, while PDF fonts use points. Convert pt -> mm -> scaled px.
-  return points * (25.4 / 72) * scale;
-}
+// ============================================================================
+// Canvas renderer (on-screen preview and today.html)
+// ============================================================================
 
 function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   const { shadeWeekends, zebraWeeks, zebraColumns, guideLines, highlightDate, shortDayNames, teachingWeeks, notesArea } = options;
-  const shade = SHADE_THEMES[options.shadeTheme] || SHADE_THEMES.grey;
+  const shade = SHADE_THEMES[options.shadeColour] || SHADE_THEMES.grey;
   const customCss = rgbCss(LABEL_COLOURS[options.customColour] || LABEL_COLOURS.black);
   const base = layout(scale);
   const { w, h, margin, headerH, gridY, gridH } = base;
@@ -345,10 +399,12 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   const emptyCells = new Set();
   for (const run of emptyRuns) for (let c = run.colStart; c <= run.colEnd; c++) emptyCells.add(run.row * cols + c);
 
+  // Background.
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = "white";
   ctx.fillRect(0, 0, w, h);
 
+  // Title — "Month" in bold, " Year" regular, centred as a single line.
   ctx.fillStyle = "black";
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
@@ -366,21 +422,21 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   ctx.font = titleRegular;
   ctx.fillText(yearText, titleX + monthW, margin + 8 * scale);
 
+  // Shading.
   if (zebraWeeks) {
     ctx.fillStyle = rgbCss(shade.zebra);
     for (let r = 1; r < rows; r += 2) ctx.fillRect(gridX, gridY + r * rowH, gridW, rowH);
   }
-
   if (zebraColumns) {
     ctx.fillStyle = rgbCss(shade.zebra);
     for (let c = 1; c < cols; c += 2) ctx.fillRect(gridX + c * colW, gridY, colW, gridH);
   }
-
   if (shadeWeekends) {
     ctx.fillStyle = rgbCss(shade.weekend);
     for (const col of [5, 6]) ctx.fillRect(gridX + col * colW, gridY, colW, gridH);
   }
-
+  // In Notes-area mode, paint the merged blocks white so any shading
+  // underneath does not bleed into the writing area.
   if (notesArea) {
     ctx.fillStyle = "white";
     for (const run of emptyRuns) {
@@ -388,6 +444,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     }
   }
 
+  // Weekday header (auto-shrinks if the full names don't fit).
   ctx.fillStyle = "black";
   ctx.textAlign = "center";
   const weekdayLabels = shortDayNames ? WEEKDAYS : FULL_WEEKDAYS;
@@ -404,6 +461,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     ctx.fillText(weekdayLabels[i], gridX + i * colW + colW / 2, margin + headerH - 1.5 * scale);
   }
 
+  // Writing guide lines (per-cell, plus full-width per-run in Notes mode).
   if (guideLines) {
     const skips = guideLineSkips(year, monthIndex, labels);
     const lines = baseGuideLines(rows);
@@ -452,6 +510,8 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     ctx.restore();
   }
 
+  // Grid borders. In Notes mode the internal vertical between two empty
+  // cells in the same row is skipped, merging them into one visual block.
   ctx.strokeStyle = "black";
   ctx.lineWidth = 1.6 * scale;
   ctx.strokeRect(gridX, gridY, gridW, gridH);
@@ -476,6 +536,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     ctx.beginPath(); ctx.moveTo(gridX, y); ctx.lineTo(gridX + gridW, y); ctx.stroke();
   }
 
+  // Optional today-highlight (used by today.html).
   if (highlightDate) {
     const [hYear, hMonth, hDay] = highlightDate.split("-").map(Number);
     if (hYear === year && hMonth - 1 === monthIndex) {
@@ -490,6 +551,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     }
   }
 
+  // Day numbers + bottom-left labels.
   const first = new Date(year, monthIndex, 1);
   const days = new Date(year, monthIndex + 1, 0).getDate();
   ctx.textAlign = "left";
@@ -516,6 +578,8 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     }
   }
 
+  // Leading/trailing cells: either a "Notes" tag (Notes-area mode) or the
+  // adjacent month's day numbers with a faint Jul/Sep abbreviation.
   if (notesArea && emptyRuns.length) {
     ctx.fillStyle = "#999999";
     ctx.font = `italic ${pt(10, scale)}px Arial`;
@@ -526,7 +590,6 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
       ctx.fillText("Notes", cx, cy);
     }
   }
-
   if (!notesArea && emptyRuns.length) {
     const prev = new Date(year, monthIndex, 0);
     const prevLastDay = prev.getDate();
@@ -557,6 +620,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     }
   }
 
+  // Teaching-week gutter labels.
   if (hasWeeksHere) {
     const monthFirst = new Date(year, monthIndex, 1);
     const row0Monday = addDays(monthFirst, -mondayIndex(monthFirst));
@@ -571,119 +635,9 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   }
 }
 
-function renderPreview() {
-  const canvas = document.getElementById("preview");
-  const ctx = canvas.getContext("2d");
-  const scale = canvas.width / 297;
-  const year = Number(document.getElementById("year").value);
-  const monthValue = document.getElementById("month").value;
-  const month = monthValue === "all" ? 0 : Number(monthValue);
-  const labels = buildLabels(year);
-  drawCalendar(ctx, year, month, labels, scale, {
-    shadeWeekends: document.getElementById("shadeWeekends").checked,
-    zebraWeeks: document.getElementById("zebraWeeks").checked,
-    zebraColumns: document.getElementById("zebraColumns").checked,
-    guideLines: document.getElementById("guideLines").checked,
-    shortDayNames: document.getElementById("shortDayNames").checked,
-    teachingWeeks: document.getElementById("teachingWeeks").checked ? teachingWeekMap() : null,
-    shadeTheme: document.getElementById("shadeColour").value,
-    customColour: document.getElementById("customColour").value,
-    notesArea: document.getElementById("notesArea").checked,
-  });
-  updateMonthNav();
-}
-
-// Updates the preview's month-stepper label, and disables the arrows in
-// full-year mode (there is no single month to step from).
-function updateMonthNav() {
-  const monthValue = document.getElementById("month").value;
-  const year = Number(document.getElementById("year").value);
-  const isFullYear = monthValue === "all";
-  document.getElementById("monthNavLabel").textContent =
-    isFullYear ? `Full year ${year}` : `${MONTH_NAMES[Number(monthValue)]} ${year}`;
-  document.getElementById("prevMonthBtn").disabled = isFullYear;
-  document.getElementById("nextMonthBtn").disabled = isFullYear;
-}
-
-// Steps the Month selector by delta months, rolling the Year over at the
-// December/January boundary, then re-renders.
-function stepMonth(delta) {
-  const monthSelect = document.getElementById("month");
-  if (monthSelect.value === "all") return;
-  const yearInput = document.getElementById("year");
-  let month = Number(monthSelect.value) + delta;
-  let year = Number(yearInput.value);
-  if (month > 11) { month = 0; year += 1; }
-  else if (month < 0) { month = 11; year -= 1; }
-  if (year < MIN_YEAR || year > MAX_YEAR) return;
-  monthSelect.value = String(month);
-  yearInput.value = String(year);
-  renderPreview();
-}
-
-function handlePreviewClick(event) {
-  const canvas = document.getElementById("preview");
-  const rect = canvas.getBoundingClientRect();
-  const scale = canvas.width / 297;
-  const cx = (event.clientX - rect.left) * (canvas.width / rect.width);
-  const cy = (event.clientY - rect.top) * (canvas.height / rect.height);
-  const { gridX, gridY, gridW, gridH } = layout(scale);
-  if (cx < gridX || cx > gridX + gridW || cy < gridY || cy > gridY + gridH) return;
-
-  const year = Number(document.getElementById("year").value);
-  const monthValue = document.getElementById("month").value;
-  const monthIndex = monthValue === "all" ? 0 : Number(monthValue);
-  const rows = monthRows(year, monthIndex);
-  const col = Math.floor((cx - gridX) / (gridW / 7));
-  const row = Math.floor((cy - gridY) / (gridH / rows));
-  if (col < 0 || col > 6 || row < 0 || row >= rows) return;
-
-  const first = new Date(year, monthIndex, 1);
-  const days = new Date(year, monthIndex + 1, 0).getDate();
-  const day = row * 7 + col - mondayIndex(first) + 1;
-  if (day < 1 || day > days) return;
-
-  const date = isoDate(new Date(year, monthIndex, day));
-  const label = (window.prompt(`Add a custom date for ${date}:`) || "").trim();
-  if (!label) return;
-
-  const box = document.getElementById("customDates");
-  const current = box.value.replace(/\s+$/, "");
-  box.value = (current ? current + "\n" : "") + `${date} | ${label}`;
-  renderPreview();
-}
-
-// Builds a custom-date line (with optional recurrence) from the helper
-// inputs above the textarea and appends it to the Custom dates box.
-function addRecurringDate() {
-  const date = document.getElementById("recurDate").value;
-  const label = document.getElementById("recurLabel").value.trim();
-  const freq = document.getElementById("recurFreq").value;
-  const countRaw = document.getElementById("recurCount").value.trim();
-  if (!date || !label) {
-    window.alert("Pick a date and enter a label first.");
-    return;
-  }
-  const ruleMap = {
-    daily: "daily",
-    weekly: "weekly",
-    biweekly: "every 2 weeks",
-    monthly: "monthly",
-    yearly: "yearly",
-  };
-  let line = `${date} | ${label}`;
-  if (freq !== "once") {
-    const count = Number(countRaw);
-    const suffix = countRaw && count > 0 ? ` x ${count}` : "";
-    line += ` | ${ruleMap[freq]}${suffix}`;
-  }
-  const box = document.getElementById("customDates");
-  const current = box.value.replace(/\s+$/, "");
-  box.value = (current ? current + "\n" : "") + line;
-  document.getElementById("recurLabel").value = "";
-  document.getElementById("recurCount").value = "";
-  renderPreview();
-}
+// ============================================================================
+// PDF renderer (downloadable A4 landscape PDF, via jsPDF)
+// ============================================================================
 
 function drawPdfMonth(doc, year, monthIndex, labels) {
   const teachingWeeks = document.getElementById("teachingWeeks").checked ? teachingWeekMap() : null;
@@ -710,8 +664,11 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   const shade = SHADE_THEMES[document.getElementById("shadeColour").value] || SHADE_THEMES.grey;
   const customRgb = LABEL_COLOURS[document.getElementById("customColour").value] || LABEL_COLOURS.black;
 
+  // Background.
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, w, h, "F");
+
+  // Title — "Month" in bold, " Year" regular, centred as a single line.
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(40);
   const monthText = MONTH_NAMES[monthIndex];
@@ -726,21 +683,19 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   doc.setFont("helvetica", "normal");
   doc.text(yearText, titleX + monthW, margin + 8);
 
+  // Shading.
   if (zebraWeeks) {
     doc.setFillColor(...shade.zebra);
     for (let r = 1; r < rows; r += 2) doc.rect(gridX, gridY + r * rowH, gridW, rowH, "F");
   }
-
   if (zebraColumns) {
     doc.setFillColor(...shade.zebra);
     for (let c = 1; c < 7; c += 2) doc.rect(gridX + c * colW, gridY, colW, gridH, "F");
   }
-
   if (shadeWeekends) {
     doc.setFillColor(...shade.weekend);
     for (const col of [5, 6]) doc.rect(gridX + col * colW, gridY, colW, gridH, "F");
   }
-
   if (notesArea) {
     doc.setFillColor(255, 255, 255);
     for (const run of emptyRuns) {
@@ -748,6 +703,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     }
   }
 
+  // Weekday header (auto-shrinks if the full names don't fit).
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
   const weekdayLabels = shortDayNames ? WEEKDAYS : FULL_WEEKDAYS;
@@ -762,6 +718,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   }
   for (let i = 0; i < 7; i++) doc.text(weekdayLabels[i], gridX + i * colW + colW / 2, margin + headerH - 1.5, { align: "center" });
 
+  // Writing guide lines (per-cell, plus full-width per-run in Notes mode).
   if (guideLines) {
     const skips = guideLineSkips(year, monthIndex, labels);
     const lines = baseGuideLines(rows);
@@ -793,6 +750,8 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     doc.setLineDashPattern([], 0);
   }
 
+  // Grid borders. In Notes mode the internal vertical between two empty
+  // cells in the same row is skipped, merging them into one visual block.
   doc.setDrawColor(0, 0, 0);
   doc.setLineWidth(1.6);
   doc.rect(gridX, gridY, gridW, gridH);
@@ -810,6 +769,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   }
   for (let j = 1; j < rows; j++) doc.line(gridX, gridY + j * rowH, gridX + gridW, gridY + j * rowH);
 
+  // Day numbers + bottom-left labels.
   const first = new Date(year, monthIndex, 1);
   const days = new Date(year, monthIndex + 1, 0).getDate();
   for (let day = 1; day <= days; day++) {
@@ -837,6 +797,8 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     }
   }
 
+  // Leading/trailing cells: either a "Notes" tag (Notes-area mode) or the
+  // adjacent month's day numbers with a faint Jul/Sep abbreviation.
   if (notesArea && emptyRuns.length) {
     doc.setTextColor(153, 153, 153);
     doc.setFont("helvetica", "italic");
@@ -847,7 +809,6 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
       doc.text("Notes", cx, cy);
     }
   }
-
   if (!notesArea && emptyRuns.length) {
     const prev = new Date(year, monthIndex, 0);
     const prevLastDay = prev.getDate();
@@ -878,6 +839,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     }
   }
 
+  // Teaching-week gutter labels.
   if (hasWeeksHere) {
     const monthFirst = new Date(year, monthIndex, 1);
     const row0Monday = addDays(monthFirst, -mondayIndex(monthFirst));
@@ -891,6 +853,8 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   }
 }
 
+// Builds the multi-page jsPDF document for the current selection — used by
+// both Download (saves a file) and Print (opens in a new tab with autoPrint).
 function buildPdfDoc() {
   const { jsPDF } = window.jspdf;
   const year = Number(document.getElementById("year").value);
@@ -921,221 +885,132 @@ function printCalendar() {
   window.open(doc.output("bloburl"));
 }
 
-const STORAGE_KEY = "printableCalendars";
+// ============================================================================
+// Preview UI: month navigation, click-to-add, recurring-date helper form
+// ============================================================================
 
-function readSavedCalendars() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-  } catch {
-    return {};
-  }
-}
-
-function writeSavedCalendars(all) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function currentSettings() {
-  return {
-    year: document.getElementById("year").value,
-    month: document.getElementById("month").value,
-    country: document.getElementById("country").value,
+function renderPreview() {
+  const canvas = document.getElementById("preview");
+  const ctx = canvas.getContext("2d");
+  const scale = canvas.width / 297;
+  const year = Number(document.getElementById("year").value);
+  const monthValue = document.getElementById("month").value;
+  const month = monthValue === "all" ? 0 : Number(monthValue);
+  const labels = buildLabels(year);
+  drawCalendar(ctx, year, month, labels, scale, {
     shadeWeekends: document.getElementById("shadeWeekends").checked,
     zebraWeeks: document.getElementById("zebraWeeks").checked,
     zebraColumns: document.getElementById("zebraColumns").checked,
     guideLines: document.getElementById("guideLines").checked,
-    holidayLabels: document.getElementById("holidayLabels").checked,
     shortDayNames: document.getElementById("shortDayNames").checked,
-    teachingWeeks: document.getElementById("teachingWeeks").checked,
-    s1Start: document.getElementById("s1Start").value,
-    s1Break: document.getElementById("s1Break").value,
-    s2Start: document.getElementById("s2Start").value,
-    s2Break: document.getElementById("s2Break").value,
+    teachingWeeks: document.getElementById("teachingWeeks").checked ? teachingWeekMap() : null,
     shadeColour: document.getElementById("shadeColour").value,
     customColour: document.getElementById("customColour").value,
     notesArea: document.getElementById("notesArea").checked,
-    customDates: document.getElementById("customDates").value,
-  };
+  });
+  updateMonthNav();
 }
 
-function applySettings(settings) {
-  const savedYear = Number(settings.year);
-  document.getElementById("year").value = savedYear >= MIN_YEAR && savedYear <= MAX_YEAR ? String(savedYear) : String(MIN_YEAR);
-  document.getElementById("month").value = settings.month;
-  document.getElementById("country").value = settings.country;
-  document.getElementById("shadeWeekends").checked = settings.shadeWeekends;
-  document.getElementById("zebraWeeks").checked = settings.zebraWeeks;
-  document.getElementById("zebraColumns").checked = settings.zebraColumns;
-  document.getElementById("guideLines").checked = settings.guideLines;
-  document.getElementById("holidayLabels").checked = settings.holidayLabels;
-  document.getElementById("shortDayNames").checked = settings.shortDayNames;
-  document.getElementById("teachingWeeks").checked = settings.teachingWeeks;
-  if (settings.s1Start) {
-    document.getElementById("s1Start").value = settings.s1Start;
-    document.getElementById("s1Break").value = settings.s1Break;
-    document.getElementById("s2Start").value = settings.s2Start;
-    document.getElementById("s2Break").value = settings.s2Break;
-  } else {
-    autoFillTeachingDates();
-  }
-  document.getElementById("shadeColour").value = settings.shadeColour || "grey";
-  document.getElementById("customColour").value = settings.customColour || "black";
-  document.getElementById("notesArea").checked = !!settings.notesArea;
-  document.getElementById("customDates").value = settings.customDates;
-  updateTeachingPanel();
+// Updates the preview's month-stepper label, and disables the arrows in
+// full-year mode (there is no single month to step from).
+function updateMonthNav() {
+  const monthValue = document.getElementById("month").value;
+  const year = Number(document.getElementById("year").value);
+  const isFullYear = monthValue === "all";
+  document.getElementById("monthNavLabel").textContent =
+    isFullYear ? `Full year ${year}` : `${MONTH_NAMES[Number(monthValue)]} ${year}`;
+  document.getElementById("prevMonthBtn").disabled = isFullYear;
+  document.getElementById("nextMonthBtn").disabled = isFullYear;
+}
+
+// Steps the Month selector by delta months, rolling the Year over at the
+// December/January boundary. Clamps at the bounds of the year dropdown.
+function stepMonth(delta) {
+  const monthSelect = document.getElementById("month");
+  if (monthSelect.value === "all") return;
+  const yearInput = document.getElementById("year");
+  let month = Number(monthSelect.value) + delta;
+  let year = Number(yearInput.value);
+  if (month > 11) { month = 0; year += 1; }
+  else if (month < 0) { month = 11; year -= 1; }
+  if (year < MIN_YEAR || year > MAX_YEAR) return;
+  monthSelect.value = String(month);
+  yearInput.value = String(year);
   renderPreview();
 }
 
-function refreshSavedList(selectedName) {
-  const select = document.getElementById("savedCalendars");
-  const names = Object.keys(readSavedCalendars()).sort((a, b) => a.localeCompare(b));
-  select.innerHTML = "";
-  for (const name of names) {
-    const option = document.createElement("option");
-    option.value = name;
-    option.textContent = name;
-    select.appendChild(option);
-  }
-  if (names.length === 0) {
-    const option = document.createElement("option");
-    option.value = "";
-    option.textContent = "No saved calendars yet";
-    select.appendChild(option);
-  }
-  if (selectedName && names.includes(selectedName)) select.value = selectedName;
-  const empty = names.length === 0;
-  select.disabled = empty;
-  document.getElementById("loadBtn").disabled = empty;
-  document.getElementById("deleteBtn").disabled = empty;
+// Click on a day in the preview canvas -> prompt for a label, append a
+// "YYYY-MM-DD | Label" line to the Custom dates textarea.
+function handlePreviewClick(event) {
+  const canvas = document.getElementById("preview");
+  const rect = canvas.getBoundingClientRect();
+  const scale = canvas.width / 297;
+  const cx = (event.clientX - rect.left) * (canvas.width / rect.width);
+  const cy = (event.clientY - rect.top) * (canvas.height / rect.height);
+  const { gridX, gridY, gridW, gridH } = layout(scale);
+  if (cx < gridX || cx > gridX + gridW || cy < gridY || cy > gridY + gridH) return;
+
+  const year = Number(document.getElementById("year").value);
+  const monthValue = document.getElementById("month").value;
+  const monthIndex = monthValue === "all" ? 0 : Number(monthValue);
+  const rows = monthRows(year, monthIndex);
+  const col = Math.floor((cx - gridX) / (gridW / 7));
+  const row = Math.floor((cy - gridY) / (gridH / rows));
+  if (col < 0 || col > 6 || row < 0 || row >= rows) return;
+
+  const first = new Date(year, monthIndex, 1);
+  const days = new Date(year, monthIndex + 1, 0).getDate();
+  const day = row * 7 + col - mondayIndex(first) + 1;
+  if (day < 1 || day > days) return;
+
+  const date = isoDate(new Date(year, monthIndex, day));
+  const label = (window.prompt(`Add a custom date for ${date}:`) || "").trim();
+  if (!label) return;
+
+  appendCustomDateLine(`${date} | ${label}`);
 }
 
-function saveCalendar() {
-  const nameInput = document.getElementById("calendarName");
-  const name = nameInput.value.trim();
-  if (!name) {
-    window.alert("Enter a name for this calendar.");
-    nameInput.focus();
+// Builds a custom-date line (with optional recurrence) from the quick-add
+// inputs above the textarea and appends it to the Custom dates box.
+function addRecurringDate() {
+  const date = document.getElementById("recurDate").value;
+  const label = document.getElementById("recurLabel").value.trim();
+  const freq = document.getElementById("recurFreq").value;
+  const countRaw = document.getElementById("recurCount").value.trim();
+  if (!date || !label) {
+    window.alert("Pick a date and enter a label first.");
     return;
   }
-  const all = readSavedCalendars();
-  if (all[name] && !window.confirm(`Replace the saved calendar "${name}"?`)) return;
-  all[name] = currentSettings();
-  if (!writeSavedCalendars(all)) {
-    window.alert("Could not save — this browser's storage is full or unavailable.");
-    return;
+  const ruleMap = {
+    daily: "daily",
+    weekly: "weekly",
+    biweekly: "every 2 weeks",
+    monthly: "monthly",
+    yearly: "yearly",
+  };
+  let line = `${date} | ${label}`;
+  if (freq !== "once") {
+    const count = Number(countRaw);
+    const suffix = countRaw && count > 0 ? ` x ${count}` : "";
+    line += ` | ${ruleMap[freq]}${suffix}`;
   }
-  refreshSavedList(name);
+  appendCustomDateLine(line);
+  document.getElementById("recurLabel").value = "";
+  document.getElementById("recurCount").value = "";
 }
 
-function loadCalendar() {
-  const name = document.getElementById("savedCalendars").value;
-  if (!name) return;
-  const settings = readSavedCalendars()[name];
-  if (!settings) return;
-  applySettings(settings);
-  document.getElementById("calendarName").value = name;
-}
-
-function deleteCalendar() {
-  const name = document.getElementById("savedCalendars").value;
-  if (!name) return;
-  if (!window.confirm(`Delete the saved calendar "${name}"?`)) return;
-  const all = readSavedCalendars();
-  delete all[name];
-  writeSavedCalendars(all);
-  refreshSavedList();
-}
-
-const GROUPS_KEY = "printableCustomDateGroups";
-
-function readGroups() {
-  try {
-    return JSON.parse(localStorage.getItem(GROUPS_KEY)) || {};
-  } catch {
-    return {};
-  }
-}
-
-function writeGroups(all) {
-  try {
-    localStorage.setItem(GROUPS_KEY, JSON.stringify(all));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function refreshGroupList(selectedName) {
-  const select = document.getElementById("customGroups");
-  const names = Object.keys(readGroups()).sort((a, b) => a.localeCompare(b));
-  select.innerHTML = "";
-  for (const name of names) {
-    const option = document.createElement("option");
-    option.value = name;
-    option.textContent = name;
-    select.appendChild(option);
-  }
-  if (names.length === 0) {
-    const option = document.createElement("option");
-    option.value = "";
-    option.textContent = "No saved groups yet";
-    select.appendChild(option);
-  }
-  if (selectedName && names.includes(selectedName)) select.value = selectedName;
-  const empty = names.length === 0;
-  select.disabled = empty;
-  document.getElementById("addGroupBtn").disabled = empty;
-  document.getElementById("deleteGroupBtn").disabled = empty;
-}
-
-function saveGroup() {
-  const nameInput = document.getElementById("groupName");
-  const name = nameInput.value.trim();
-  if (!name) {
-    window.alert("Enter a name for this date group.");
-    nameInput.focus();
-    return;
-  }
-  const text = document.getElementById("customDates").value.trim();
-  if (!text) {
-    window.alert("There are no custom dates to save as a group.");
-    return;
-  }
-  const all = readGroups();
-  if (all[name] && !window.confirm(`Replace the date group "${name}"?`)) return;
-  all[name] = text;
-  if (!writeGroups(all)) {
-    window.alert("Could not save — this browser's storage is full or unavailable.");
-    return;
-  }
-  refreshGroupList(name);
-}
-
-function addGroup() {
-  const name = document.getElementById("customGroups").value;
-  if (!name) return;
-  const text = readGroups()[name];
-  if (!text) return;
+// Shared helper: append one or more lines to the Custom dates textarea and
+// re-render the preview.
+function appendCustomDateLine(text) {
   const box = document.getElementById("customDates");
   const current = box.value.replace(/\s+$/, "");
   box.value = (current ? current + "\n" : "") + text;
   renderPreview();
 }
 
-function deleteGroup() {
-  const name = document.getElementById("customGroups").value;
-  if (!name) return;
-  if (!window.confirm(`Delete the date group "${name}"?`)) return;
-  const all = readGroups();
-  delete all[name];
-  writeGroups(all);
-  refreshGroupList();
-}
+// ============================================================================
+// .ics import (Outlook/Google/Apple)
+// ============================================================================
 
 let icsEvents = [];
 
@@ -1230,10 +1105,7 @@ function addIcsSelected() {
     window.alert("Tick at least one date to add.");
     return;
   }
-  const box = document.getElementById("customDates");
-  const current = box.value.replace(/\s+$/, "");
-  box.value = (current ? current + "\n" : "") + lines.join("\n");
-  renderPreview();
+  appendCustomDateLine(lines.join("\n"));
   clearIcs();
 }
 
@@ -1246,7 +1118,202 @@ function clearIcs() {
   document.getElementById("icsFile").value = "";
 }
 
-// --- Setup drawer (the mobile slide-in menu) ---
+// ============================================================================
+// Persistence: saved calendars and reusable date groups (localStorage)
+// ============================================================================
+
+// Generic JSON-object localStorage helpers; the two stores below differ
+// only in their key and the shape of values stored.
+function readStore(key) {
+  try { return JSON.parse(localStorage.getItem(key)) || {}; } catch { return {}; }
+}
+function writeStore(key, data) {
+  try { localStorage.setItem(key, JSON.stringify(data)); return true; } catch { return false; }
+}
+
+const readSavedCalendars = () => readStore(STORAGE_KEY);
+const writeSavedCalendars = (data) => writeStore(STORAGE_KEY, data);
+const readGroups = () => readStore(GROUPS_KEY);
+const writeGroups = (data) => writeStore(GROUPS_KEY, data);
+
+function currentSettings() {
+  return {
+    year: document.getElementById("year").value,
+    month: document.getElementById("month").value,
+    country: document.getElementById("country").value,
+    shadeWeekends: document.getElementById("shadeWeekends").checked,
+    zebraWeeks: document.getElementById("zebraWeeks").checked,
+    zebraColumns: document.getElementById("zebraColumns").checked,
+    guideLines: document.getElementById("guideLines").checked,
+    holidayLabels: document.getElementById("holidayLabels").checked,
+    shortDayNames: document.getElementById("shortDayNames").checked,
+    teachingWeeks: document.getElementById("teachingWeeks").checked,
+    s1Start: document.getElementById("s1Start").value,
+    s1Break: document.getElementById("s1Break").value,
+    s2Start: document.getElementById("s2Start").value,
+    s2Break: document.getElementById("s2Break").value,
+    shadeColour: document.getElementById("shadeColour").value,
+    customColour: document.getElementById("customColour").value,
+    notesArea: document.getElementById("notesArea").checked,
+    customDates: document.getElementById("customDates").value,
+  };
+}
+
+function applySettings(settings) {
+  const savedYear = Number(settings.year);
+  document.getElementById("year").value = savedYear >= MIN_YEAR && savedYear <= MAX_YEAR ? String(savedYear) : String(MIN_YEAR);
+  document.getElementById("month").value = settings.month;
+  document.getElementById("country").value = settings.country;
+  document.getElementById("shadeWeekends").checked = settings.shadeWeekends;
+  document.getElementById("zebraWeeks").checked = settings.zebraWeeks;
+  document.getElementById("zebraColumns").checked = settings.zebraColumns;
+  document.getElementById("guideLines").checked = settings.guideLines;
+  document.getElementById("holidayLabels").checked = settings.holidayLabels;
+  document.getElementById("shortDayNames").checked = settings.shortDayNames;
+  document.getElementById("teachingWeeks").checked = settings.teachingWeeks;
+  if (settings.s1Start) {
+    document.getElementById("s1Start").value = settings.s1Start;
+    document.getElementById("s1Break").value = settings.s1Break;
+    document.getElementById("s2Start").value = settings.s2Start;
+    document.getElementById("s2Break").value = settings.s2Break;
+  } else {
+    autoFillTeachingDates();
+  }
+  document.getElementById("shadeColour").value = settings.shadeColour || "grey";
+  document.getElementById("customColour").value = settings.customColour || "black";
+  document.getElementById("notesArea").checked = !!settings.notesArea;
+  document.getElementById("customDates").value = settings.customDates;
+  updateTeachingPanel();
+  renderPreview();
+}
+
+// Refreshes a named-items dropdown (saved calendars or date groups). The
+// dropdown is disabled along with its dependent buttons when the store is
+// empty, and shows a placeholder "no X yet" line.
+function refreshNamedList({ selectId, names, emptyText, selectedName, disabledIds }) {
+  const select = document.getElementById(selectId);
+  select.innerHTML = "";
+  const sorted = [...names].sort((a, b) => a.localeCompare(b));
+  for (const name of sorted) {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    select.appendChild(option);
+  }
+  if (sorted.length === 0) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = emptyText;
+    select.appendChild(option);
+  }
+  if (selectedName && sorted.includes(selectedName)) select.value = selectedName;
+  const empty = sorted.length === 0;
+  select.disabled = empty;
+  for (const id of disabledIds) document.getElementById(id).disabled = empty;
+}
+
+function refreshSavedList(selectedName) {
+  refreshNamedList({
+    selectId: "savedCalendars",
+    names: Object.keys(readSavedCalendars()),
+    emptyText: "No saved calendars yet",
+    selectedName,
+    disabledIds: ["loadBtn", "deleteBtn"],
+  });
+}
+
+function refreshGroupList(selectedName) {
+  refreshNamedList({
+    selectId: "customGroups",
+    names: Object.keys(readGroups()),
+    emptyText: "No saved groups yet",
+    selectedName,
+    disabledIds: ["addGroupBtn", "deleteGroupBtn"],
+  });
+}
+
+function saveCalendar() {
+  const nameInput = document.getElementById("calendarName");
+  const name = nameInput.value.trim();
+  if (!name) {
+    window.alert("Enter a name for this calendar.");
+    nameInput.focus();
+    return;
+  }
+  const all = readSavedCalendars();
+  if (all[name] && !window.confirm(`Replace the saved calendar "${name}"?`)) return;
+  all[name] = currentSettings();
+  if (!writeSavedCalendars(all)) {
+    window.alert("Could not save — this browser's storage is full or unavailable.");
+    return;
+  }
+  refreshSavedList(name);
+}
+
+function loadCalendar() {
+  const name = document.getElementById("savedCalendars").value;
+  if (!name) return;
+  const settings = readSavedCalendars()[name];
+  if (!settings) return;
+  applySettings(settings);
+  document.getElementById("calendarName").value = name;
+}
+
+function deleteCalendar() {
+  const name = document.getElementById("savedCalendars").value;
+  if (!name) return;
+  if (!window.confirm(`Delete the saved calendar "${name}"?`)) return;
+  const all = readSavedCalendars();
+  delete all[name];
+  writeSavedCalendars(all);
+  refreshSavedList();
+}
+
+function saveGroup() {
+  const nameInput = document.getElementById("groupName");
+  const name = nameInput.value.trim();
+  if (!name) {
+    window.alert("Enter a name for this date group.");
+    nameInput.focus();
+    return;
+  }
+  const text = document.getElementById("customDates").value.trim();
+  if (!text) {
+    window.alert("There are no custom dates to save as a group.");
+    return;
+  }
+  const all = readGroups();
+  if (all[name] && !window.confirm(`Replace the date group "${name}"?`)) return;
+  all[name] = text;
+  if (!writeGroups(all)) {
+    window.alert("Could not save — this browser's storage is full or unavailable.");
+    return;
+  }
+  refreshGroupList(name);
+}
+
+function addGroup() {
+  const name = document.getElementById("customGroups").value;
+  if (!name) return;
+  const text = readGroups()[name];
+  if (!text) return;
+  appendCustomDateLine(text);
+}
+
+function deleteGroup() {
+  const name = document.getElementById("customGroups").value;
+  if (!name) return;
+  if (!window.confirm(`Delete the date group "${name}"?`)) return;
+  const all = readGroups();
+  delete all[name];
+  writeGroups(all);
+  refreshGroupList();
+}
+
+// ============================================================================
+// Setup drawer (the mobile slide-in menu)
+// ============================================================================
+
 function openDrawer() {
   document.getElementById("drawer").classList.add("open");
   document.getElementById("scrim").classList.add("show");
@@ -1267,8 +1334,25 @@ function toggleDrawer() {
   else openDrawer();
 }
 
+// ============================================================================
+// Init — wires the UI once the DOM is ready. Exits early on today.html (the
+// generator controls don't exist there).
+// ============================================================================
+
+// Form inputs that should trigger a re-render on every input/change event.
+const RENDER_TRIGGER_IDS = [
+  "year", "month", "country",
+  "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines",
+  "holidayLabels", "shadeColour", "customColour", "notesArea",
+  "shortDayNames", "teachingWeeks",
+  "s1Start", "s1Break", "s2Start", "s2Break",
+  "customDates",
+];
+
 window.addEventListener("DOMContentLoaded", () => {
   if (!document.getElementById("previewBtn")) return;
+
+  // Populate the Year dropdown and pick sensible defaults for both year/month.
   const yearSelect = document.getElementById("year");
   for (let y = MIN_YEAR; y <= MAX_YEAR; y++) {
     const opt = document.createElement("option");
@@ -1278,12 +1362,16 @@ window.addEventListener("DOMContentLoaded", () => {
   }
   yearSelect.value = String(MIN_YEAR);
   document.getElementById("month").value = String(new Date().getMonth());
+
+  // Preview controls.
   document.getElementById("previewBtn").addEventListener("click", renderPreview);
   document.getElementById("downloadBtn").addEventListener("click", downloadPdf);
   document.getElementById("printBtn").addEventListener("click", printCalendar);
   document.getElementById("preview").addEventListener("click", handlePreviewClick);
   document.getElementById("prevMonthBtn").addEventListener("click", () => stepMonth(-1));
   document.getElementById("nextMonthBtn").addEventListener("click", () => stepMonth(1));
+
+  // Drawer (hamburger menu) controls.
   document.getElementById("menuBtn").addEventListener("click", toggleDrawer);
   document.getElementById("drawerCloseBtn").addEventListener("click", () => {
     closeDrawer();
@@ -1293,12 +1381,16 @@ window.addEventListener("DOMContentLoaded", () => {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeDrawer();
   });
+
+  // Saved-calendar and date-group controls.
   document.getElementById("saveBtn").addEventListener("click", saveCalendar);
   document.getElementById("loadBtn").addEventListener("click", loadCalendar);
   document.getElementById("deleteBtn").addEventListener("click", deleteCalendar);
   document.getElementById("saveGroupBtn").addEventListener("click", saveGroup);
   document.getElementById("addGroupBtn").addEventListener("click", addGroup);
   document.getElementById("deleteGroupBtn").addEventListener("click", deleteGroup);
+
+  // .ics import (drag-and-drop and file picker).
   const icsDrop = document.getElementById("icsDrop");
   icsDrop.addEventListener("dragover", (event) => {
     event.preventDefault();
@@ -1315,17 +1407,24 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("icsAddBtn").addEventListener("click", addIcsSelected);
   document.getElementById("icsClearBtn").addEventListener("click", clearIcs);
+
+  // Custom-date quick-add form.
   document.getElementById("recurAddBtn").addEventListener("click", addRecurringDate);
+
+  // Teaching-week schedule panel + auto-fill on year change.
   document.getElementById("autoFillWeeksBtn").addEventListener("click", () => {
     autoFillTeachingDates();
     renderPreview();
   });
   document.getElementById("teachingWeeks").addEventListener("change", updateTeachingPanel);
   document.getElementById("year").addEventListener("change", autoFillTeachingDates);
-  for (const id of ["year", "month", "country", "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines", "holidayLabels", "shadeColour", "customColour", "notesArea", "shortDayNames", "teachingWeeks", "s1Start", "s1Break", "s2Start", "s2Break", "customDates"]) {
+
+  // Re-render on any setting change.
+  for (const id of RENDER_TRIGGER_IDS) {
     document.getElementById(id).addEventListener("input", renderPreview);
     document.getElementById(id).addEventListener("change", renderPreview);
   }
+
   refreshSavedList();
   refreshGroupList();
   autoFillTeachingDates();
