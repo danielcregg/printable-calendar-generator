@@ -270,6 +270,18 @@ function guideLineSkips(year, monthIndex, labels, rows) {
   return skips;
 }
 
+// True if any row of (year, monthIndex) carries a teaching-week label.
+// Used to skip the 13 mm left gutter on months that have nothing to show.
+function monthHasTeachingWeeks(teachingWeeks, year, monthIndex, rows) {
+  if (!teachingWeeks) return false;
+  const monthFirst = new Date(year, monthIndex, 1);
+  const row0Monday = addDays(monthFirst, -mondayIndex(monthFirst));
+  for (let r = 0; r < rows; r++) {
+    if (teachingWeeks.get(isoDate(addDays(row0Monday, r * 7)))) return true;
+  }
+  return false;
+}
+
 function monthRows(year, monthIndex) {
   const first = new Date(year, monthIndex, 1);
   const days = new Date(year, monthIndex + 1, 0).getDate();
@@ -313,10 +325,11 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   const customCss = rgbCss(LABEL_COLOURS[options.customColour] || LABEL_COLOURS.black);
   const base = layout(scale);
   const { w, h, margin, headerH, gridY, gridH } = base;
-  const gutter = teachingWeeks ? 13 * scale : 0;
+  const rows = monthRows(year, monthIndex);
+  const hasWeeksHere = monthHasTeachingWeeks(teachingWeeks, year, monthIndex, rows);
+  const gutter = hasWeeksHere ? 13 * scale : 0;
   const gridX = base.gridX + gutter;
   const gridW = base.gridW - gutter;
-  const rows = monthRows(year, monthIndex);
   const cols = 7;
   const colW = gridW / cols;
   const rowH = gridH / rows;
@@ -537,7 +550,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     }
   }
 
-  if (teachingWeeks) {
+  if (hasWeeksHere) {
     const monthFirst = new Date(year, monthIndex, 1);
     const row0Monday = addDays(monthFirst, -mondayIndex(monthFirst));
     ctx.fillStyle = "black";
@@ -669,10 +682,11 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   const teachingWeeks = document.getElementById("teachingWeeks").checked ? teachingWeekMap() : null;
   const base = layout(1);
   const { w, h, margin, headerH, gridY, gridH } = base;
-  const gutter = teachingWeeks ? 13 : 0;
+  const rows = monthRows(year, monthIndex);
+  const hasWeeksHere = monthHasTeachingWeeks(teachingWeeks, year, monthIndex, rows);
+  const gutter = hasWeeksHere ? 13 : 0;
   const gridX = base.gridX + gutter;
   const gridW = base.gridW - gutter;
-  const rows = monthRows(year, monthIndex);
   const colW = gridW / 7;
   const rowH = gridH / rows;
   const leadingCount = mondayIndex(new Date(year, monthIndex, 1));
@@ -856,7 +870,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     }
   }
 
-  if (teachingWeeks) {
+  if (hasWeeksHere) {
     const monthFirst = new Date(year, monthIndex, 1);
     const row0Monday = addDays(monthFirst, -mondayIndex(monthFirst));
     doc.setTextColor(0, 0, 0);
