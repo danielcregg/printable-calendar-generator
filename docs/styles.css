@@ -339,6 +339,12 @@ a {
     white-space: normal;
     flex: initial;
   }
+  /* Keep the three shading checkboxes visually grouped: the 3rd spans
+     the full row so the next (non-shading) checkbox doesn't pair with it. */
+  .stage-controls .checks .check:nth-child(3) {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
 }
 
 /* ===== App shell — Material-style layout (index.html) ===== */
