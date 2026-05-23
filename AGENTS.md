@@ -2,6 +2,20 @@
 
 Guidance for AI coding tools and future contributors working on this repository.
 
+## Design philosophy
+
+These principles inform every decision in the codebase. If a proposed change
+violates one of them, prefer not to make it.
+
+1. **The calendar is the hero.** Every layout decision starts with "does this serve the calendar?" The hero element gets centred space, generous size, and clean borders; everything else gets out of the way.
+2. **Black and white by default.** The starting state is print-friendly. Colour, shading themes, the Notes area — all opt-in. A user who never touches a toggle still gets a calendar they'd be happy to pin to a wall.
+3. **Readable from a few metres, writable up close.** This is a wall calendar, not a screen calendar. Type sizes, grid weights and guide lines are tuned for distance reading and pen-in-hand use, not pixel-perfect screen mockups.
+4. **Tuned for A4 landscape — every inch of the page has a purpose.** The output target is a 297 × 210 mm A4 sheet, and the layout is sized to use all of it: margins are minimal, cells fill the grid, the title sits as close to the top edge as a home printer will allow without clipping. We don't design for a generic page; we design for *this* page.
+5. **Configuration is one tap away, not in your face.** Setup (custom dates, saved calendars, .ics import, colours, teaching schedule) lives behind the drawer. Every control that crowds the toolbar has to earn its place; rare ones go in the drawer, very rare ones in the README only.
+6. **No accounts. No server. Works offline.** Everything is a static `docs/` folder; saved calendars and date groups live in `localStorage`. The PWA precaches the app shell so the calendar is generated entirely in the browser, online or not. Nothing about a user's dates ever leaves their device.
+7. **The PDF is the deliverable; the canvas is the editor.** The on-screen preview is the instant-feedback editing surface; the downloaded PDF is what gets pinned to the wall. We optimise both for their own job.
+8. **Resist abstractions that risk visual drift.** The dual canvas/PDF render path duplicates work on purpose. We pay the maintenance cost so the preview and the printout always agree pixel-for-pixel.
+
 ## Project purpose
 
 This project creates clean, printable A4 landscape wall calendars. The design goal is deliberately simple and practical rather than decorative:
