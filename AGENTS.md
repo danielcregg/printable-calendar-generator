@@ -73,8 +73,8 @@ When changing layout code, preserve these visual decisions unless the user expli
 5. Weekday headers should be bold and black.
 6. Date numbers should be bold and black.
 7. Saturday and Sunday columns should be lightly shaded, not dark.
-8. Each day box has **3 dashed writing guide lines** in five-row months and **2** in six-row months (the lines are respaced so the per-line gap stays roughly the same). Drop one extra line per stacked label, from the bottom up, so the text never overwrites the dashes.
-9. Holiday labels should appear in the **bottom-left corner** of the day box.
+8. Each day box has **3 dashed writing guide lines** in five-row months and **2** in six-row months, equispaced between the day-number baseline and the bottom cell gridline. The dashes plus those two implicit "rules" create `lines + 1` natural slots — **4** in five-row months, **3** in six-row months. Holiday and custom-date labels drop into the slots from the bottom up, one per slot; the dashes always stay in place. Labels beyond the cap are silently truncated, keeping the holiday (which is always the last label in the stack).
+9. Holiday labels should appear in the **bottom slot** of the day box (so the holiday is the most visually prominent label on a day with several entries).
 10. Holiday labels should be **black and bold**, custom-date labels **black and bold italic**, both small enough not to dominate the box. The default calendar stays black and white.
 11. Keep the layout clean; do not add icons, decorative graphics, coloured holiday markers, or busy styling by default.
 12. Grid boxes may be slightly rectangular; maximizing writing space is more important than perfect square cells.
@@ -258,6 +258,7 @@ Before finishing any change, verify:
 12. Weekday headers default to the 3-letter form (`MON`, `TUE`, …); ticking **Full day names** switches them to `MONDAY`/`TUESDAY`/….
 13. Recurring custom-date lines (e.g. `2026-09-08 | Bins | every 2 weeks`) expand into every occurrence inside the rendered year, with the same styling as one-off custom dates.
 14. **Copy share link** copies a `#cal=`-style URL; opening it in a fresh tab restores every setting, then strips the hash from the address bar. **Download as file** + **Load a file** round-trip the same payload via a `.json` file.
+15. Stacking labels on the same day fills slots from the bottom up: 1 label sits in the bottom slot, 2 labels in the bottom two, etc., with the dashes always drawn between them. Beyond the cap (4 in five-row months, 3 in six-row months) excess labels are silently truncated and the holiday is preserved.
 
 Suggested local smoke test:
 

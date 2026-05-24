@@ -383,21 +383,6 @@ function computeEmptyRuns(leadingCount, trailingStart, rows) {
   return runs;
 }
 
-// Maps each day-cell offset to how many guide lines (from the bottom) the
-// stacked labels would cover. One line is dropped per extra label, applied
-// from the bottom up. Cells with at most one label are omitted from the map.
-function guideLineSkips(year, monthIndex, labels) {
-  const startOffset = mondayIndex(new Date(year, monthIndex, 1));
-  const days = new Date(year, monthIndex + 1, 0).getDate();
-  const skips = new Map();
-  for (let day = 1; day <= days; day++) {
-    const entry = labels.get(isoDate(new Date(year, monthIndex, day)));
-    const drop = Math.max(0, labelStack(entry).length - 1);
-    if (drop > 0) skips.set((day - 1) + startOffset, drop);
-  }
-  return skips;
-}
-
 // ============================================================================
 // Canvas renderer (on-screen preview)
 // ============================================================================
@@ -484,8 +469,10 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   }
 
   // Writing guide lines (per-cell, plus full-width per-run in Notes mode).
+  // The dashes are equispaced between the day-number baseline (yt + 9) and
+  // the bottom cell gridline, creating `lines + 1` natural slots that
+  // labels drop into without ever displacing a dash.
   if (guideLines) {
-    const skips = guideLineSkips(year, monthIndex, labels);
     const lines = baseGuideLines(rows);
     ctx.save();
     ctx.strokeStyle = "#bfbfbf";
@@ -494,19 +481,13 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     for (let r = 0; r < rows; r++) {
       for (let col = 0; col < cols; col++) {
         if (notesArea && emptyCells.has(r * cols + col)) continue;
-        const drop = skips.get(r * cols + col) || 0;
         const x0 = gridX + col * colW + 3 * scale;
         const x1 = gridX + (col + 1) * colW - 3 * scale;
         const yt = gridY + r * rowH;
         const yb = yt + rowH;
-        // Equispace the dashes between the day-number baseline (yt + 9) and
-        // the bottom cell gridline, treating those two as the implicit
-        // outer "rules". Gives uniform rhythm and matches across 5- and
-        // 6-row months.
         const yStart = yt + 9 * scale;
-        const yEnd = yb;
-        const spacing = (yEnd - yStart) / (lines + 1);
-        for (let k = 1; k <= lines - drop; k++) {
+        const spacing = (yb - yStart) / (lines + 1);
+        for (let k = 1; k <= lines; k++) {
           const y = yStart + k * spacing;
           ctx.beginPath();
           ctx.moveTo(x0, y);
@@ -577,14 +558,21 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     ctx.font = `bold ${pt(22, scale)}px Arial`;
     ctx.fillText(String(day), x + 3.5 * scale, y + 9 * scale);
 
+    // Labels drop into the natural cell slots created by the equispaced
+    // guide lines (lines + 1 slots), stacking from the bottom up. Dashes
+    // are never removed; if there are more labels than slots, the excess
+    // is silently truncated keeping the holiday (always the last item).
     const stack = labelStack(labels.get(isoDate(d)));
     if (stack.length) {
-      const bottomY = y + rowH - 3.5 * scale;
-      stack.forEach((item, i) => {
+      const slots = baseGuideLines(rows) + 1;
+      const visible = stack.slice(-slots);
+      const slotSpacing = (rowH - 9 * scale) / slots;
+      visible.forEach((item, i) => {
         ctx.font = `${item.custom ? "italic " : ""}bold ${pt(9, scale)}px Arial`;
         ctx.fillStyle = item.custom ? customCss : "black";
-        const lineY = bottomY - (stack.length - 1 - i) * 4 * scale;
-        ctx.fillText(item.text.slice(0, 32), x + 3 * scale, lineY);
+        const slotIndex = slots - (visible.length - 1 - i);  // 1..slots from top
+        const slotCenter = y + 9 * scale + (slotIndex - 0.5) * slotSpacing;
+        ctx.fillText(item.text.slice(0, 32), x + 3 * scale, slotCenter + 1.2 * scale);
       });
     }
   }
@@ -729,9 +717,8 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   }
   for (let i = 0; i < 7; i++) doc.text(weekdayLabels[i], gridX + i * colW + colW / 2, margin + headerH - 1.5, { align: "center" });
 
-  // Writing guide lines (per-cell, plus full-width per-run in Notes mode).
+  // Writing guide lines — see drawCalendar for the slot model.
   if (guideLines) {
-    const skips = guideLineSkips(year, monthIndex, labels);
     const lines = baseGuideLines(rows);
     doc.setDrawColor(191, 191, 191);
     doc.setLineWidth(0.6);
@@ -739,15 +726,12 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     for (let r = 0; r < rows; r++) {
       for (let col = 0; col < 7; col++) {
         if (notesArea && emptyCells.has(r * 7 + col)) continue;
-        const drop = skips.get(r * 7 + col) || 0;
         const x0 = gridX + col * colW + 3;
         const x1 = gridX + (col + 1) * colW - 3;
         const yt = gridY + r * rowH;
         const yb = yt + rowH;
-        // Equispace between the day-number baseline (yt + 9) and the bottom
-        // cell gridline; keep in sync with the canvas renderer above.
         const spacing = (yb - (yt + 9)) / (lines + 1);
-        for (let k = 1; k <= lines - drop; k++) doc.line(x0, yt + 9 + k * spacing, x1, yt + 9 + k * spacing);
+        for (let k = 1; k <= lines; k++) doc.line(x0, yt + 9 + k * spacing, x1, yt + 9 + k * spacing);
       }
     }
     if (notesArea) {
@@ -797,15 +781,20 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     doc.setFontSize(22);
     doc.text(String(day), x + 3.5, y + 9);
 
+    // Slot the labels into the equispaced cell slots — see drawCalendar.
     const stack = labelStack(labels.get(isoDate(d)));
     if (stack.length) {
       doc.setFontSize(9);
-      const bottomY = y + rowH - 3.5;
-      stack.forEach((item, i) => {
+      const slots = baseGuideLines(rows) + 1;
+      const visible = stack.slice(-slots);
+      const slotSpacing = (rowH - 9) / slots;
+      visible.forEach((item, i) => {
         doc.setFont("helvetica", item.custom ? "bolditalic" : "bold");
         if (item.custom) doc.setTextColor(...customRgb);
         else doc.setTextColor(0, 0, 0);
-        doc.text(item.text.slice(0, 32), x + 3, bottomY - (stack.length - 1 - i) * 4);
+        const slotIndex = slots - (visible.length - 1 - i);
+        const slotCenter = y + 9 + (slotIndex - 0.5) * slotSpacing;
+        doc.text(item.text.slice(0, 32), x + 3, slotCenter + 1.2);
       });
     }
   }
