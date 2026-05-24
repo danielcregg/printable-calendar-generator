@@ -562,17 +562,30 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     // guide lines (lines + 1 slots), stacking from the bottom up. Dashes
     // are never removed; if there are more labels than slots, the excess
     // is silently truncated keeping the holiday (always the last item).
+    // Each label is uniformly sized (11 pt by default) and its baseline
+    // sits just above the slot's bottom line so the text reads as
+    // "written on the line". Any label too wide for the column is shrunk
+    // to fit, mirroring the weekday-headers pattern.
     const stack = labelStack(labels.get(isoDate(d)));
     if (stack.length) {
       const slots = baseGuideLines(rows) + 1;
       const visible = stack.slice(-slots);
       const slotSpacing = (rowH - 9 * scale) / slots;
+      const labelMaxW = colW - 6 * scale;
       visible.forEach((item, i) => {
-        ctx.font = `${item.custom ? "italic " : ""}bold ${pt(9, scale)}px Arial`;
+        const text = item.text.slice(0, 32);
+        const weight = item.custom ? "italic bold" : "bold";
+        let labelPt = 11;
+        ctx.font = `${weight} ${pt(labelPt, scale)}px Arial`;
+        const textW = ctx.measureText(text).width;
+        if (textW > labelMaxW) {
+          labelPt *= labelMaxW / textW;
+          ctx.font = `${weight} ${pt(labelPt, scale)}px Arial`;
+        }
         ctx.fillStyle = item.custom ? customCss : "black";
         const slotIndex = slots - (visible.length - 1 - i);  // 1..slots from top
-        const slotCenter = y + 9 * scale + (slotIndex - 0.5) * slotSpacing;
-        ctx.fillText(item.text.slice(0, 32), x + 3 * scale, slotCenter + 1.2 * scale);
+        const slotBottom = y + 9 * scale + slotIndex * slotSpacing;
+        ctx.fillText(text, x + 3 * scale, slotBottom - 1 * scale);
       });
     }
   }
@@ -784,17 +797,25 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     // Slot the labels into the equispaced cell slots — see drawCalendar.
     const stack = labelStack(labels.get(isoDate(d)));
     if (stack.length) {
-      doc.setFontSize(9);
       const slots = baseGuideLines(rows) + 1;
       const visible = stack.slice(-slots);
       const slotSpacing = (rowH - 9) / slots;
+      const labelMaxW = colW - 6;
       visible.forEach((item, i) => {
+        const text = item.text.slice(0, 32);
         doc.setFont("helvetica", item.custom ? "bolditalic" : "bold");
         if (item.custom) doc.setTextColor(...customRgb);
         else doc.setTextColor(0, 0, 0);
+        let fontSize = 11;
+        doc.setFontSize(fontSize);
+        const textW = doc.getTextWidth(text);
+        if (textW > labelMaxW) {
+          fontSize *= labelMaxW / textW;
+          doc.setFontSize(fontSize);
+        }
         const slotIndex = slots - (visible.length - 1 - i);
-        const slotCenter = y + 9 + (slotIndex - 0.5) * slotSpacing;
-        doc.text(item.text.slice(0, 32), x + 3, slotCenter + 1.2);
+        const slotBottom = y + 9 + slotIndex * slotSpacing;
+        doc.text(text, x + 3, slotBottom - 1);
       });
     }
   }
