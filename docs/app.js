@@ -499,8 +499,12 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
         const x1 = gridX + (col + 1) * colW - 3 * scale;
         const yt = gridY + r * rowH;
         const yb = yt + rowH;
-        const yStart = yt + 10 * scale;
-        const yEnd = yb - 2 * scale;
+        // Equispace the dashes between the day-number baseline (yt + 9) and
+        // the bottom cell gridline, treating those two as the implicit
+        // outer "rules". Gives uniform rhythm and matches across 5- and
+        // 6-row months.
+        const yStart = yt + 9 * scale;
+        const yEnd = yb;
         const spacing = (yEnd - yStart) / (lines + 1);
         for (let k = 1; k <= lines - drop; k++) {
           const y = yStart + k * spacing;
@@ -517,8 +521,8 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
         const x1 = gridX + (run.colEnd + 1) * colW - 3 * scale;
         const yt = gridY + run.row * rowH;
         const yb = yt + rowH;
-        const yStart = yt + 10 * scale;
-        const yEnd = yb - 2 * scale;
+        const yStart = yt + 9 * scale;
+        const yEnd = yb;
         const spacing = (yEnd - yStart) / (lines + 1);
         for (let k = 1; k <= lines; k++) {
           const y = yStart + k * spacing;
@@ -740,8 +744,10 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
         const x1 = gridX + (col + 1) * colW - 3;
         const yt = gridY + r * rowH;
         const yb = yt + rowH;
-        const spacing = ((yb - 2) - (yt + 10)) / (lines + 1);
-        for (let k = 1; k <= lines - drop; k++) doc.line(x0, yt + 10 + k * spacing, x1, yt + 10 + k * spacing);
+        // Equispace between the day-number baseline (yt + 9) and the bottom
+        // cell gridline; keep in sync with the canvas renderer above.
+        const spacing = (yb - (yt + 9)) / (lines + 1);
+        for (let k = 1; k <= lines - drop; k++) doc.line(x0, yt + 9 + k * spacing, x1, yt + 9 + k * spacing);
       }
     }
     if (notesArea) {
@@ -750,8 +756,8 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
         const x1 = gridX + (run.colEnd + 1) * colW - 3;
         const yt = gridY + run.row * rowH;
         const yb = yt + rowH;
-        const spacing = ((yb - 2) - (yt + 10)) / (lines + 1);
-        for (let k = 1; k <= lines; k++) doc.line(x0, yt + 10 + k * spacing, x1, yt + 10 + k * spacing);
+        const spacing = (yb - (yt + 9)) / (lines + 1);
+        for (let k = 1; k <= lines; k++) doc.line(x0, yt + 9 + k * spacing, x1, yt + 9 + k * spacing);
       }
     }
     doc.setLineDashPattern([], 0);
