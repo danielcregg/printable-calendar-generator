@@ -626,6 +626,104 @@ canvas {
   background: white;
 }
 
+/* --- Day editor (modal opened by clicking a day) ----------------------- */
+.day-dialog {
+  width: min(540px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: 0;
+}
+.day-dialog::backdrop { background: rgba(15, 23, 42, .48); }
+.day-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+.day-dialog-head h2 { margin: 0; font-size: var(--text-lg); }
+.day-dialog-body { padding: var(--space-5); }
+.day-dialog-hint {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin: var(--space-3) 0 0;
+  text-align: center;
+}
+
+.enlarged-cell {
+  background: white;
+  border: 1px solid var(--text);
+  border-radius: 4px;
+  margin: 0 auto;
+  width: 100%;
+  aspect-ratio: var(--cell-aspect, 39.6 / 33.6);
+  display: grid;
+  grid-template-rows: var(--day-number-h, 27%) 1fr;
+}
+.enlarged-cell-number {
+  display: flex;
+  align-items: flex-end;
+  padding: 0 0 0 12px;
+  font-weight: 800;
+  font-size: clamp(28px, 7vw, 44px);
+  line-height: 1;
+}
+.enlarged-cell-slots {
+  display: grid;
+  grid-template-rows: repeat(var(--slot-count, 4), 1fr);
+}
+.enlarged-slot {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-family: inherit;
+  font-size: clamp(13px, 1.6vw, 15px);
+  font-weight: 700;
+  text-align: left;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-top: 1px dashed #bfbfbf;
+  cursor: pointer;
+  color: var(--text);
+}
+.enlarged-slot:first-child { border-top: none; }
+.enlarged-slot.empty {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.enlarged-slot.custom { font-style: italic; }
+.enlarged-slot.readonly { cursor: default; }
+/* The global button:hover paints a dark background by default. Reset it
+   so readonly slots stay clean and only editable slots get the soft tint. */
+.enlarged-slot:hover,
+.enlarged-slot:focus-visible { background: transparent; box-shadow: none; outline: none; }
+.enlarged-slot:not(.readonly):hover,
+.enlarged-slot:not(.readonly):focus-visible { background: var(--primary-soft); }
+.enlarged-slot-editor {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  border-top: 1px dashed #bfbfbf;
+}
+.enlarged-slot-editor:first-child { border-top: none; }
+.enlarged-slot-editor input {
+  flex: 1;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  font-family: inherit;
+  font-size: clamp(13px, 1.6vw, 15px);
+  font-weight: 700;
+  background: white;
+  color: var(--text);
+}
+
 /* --- Responsive ------------------------------------------------------- */
 @media (max-width: 640px) {
   .panel { padding: var(--space-4); }

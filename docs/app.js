@@ -983,11 +983,187 @@ function handlePreviewClick(event) {
   const day = row * 7 + col - mondayIndex(first) + 1;
   if (day < 1 || day > days) return;
 
-  const date = isoDate(new Date(year, monthIndex, day));
-  const label = (window.prompt(`Add a custom date for ${date}:`) || "").trim();
-  if (!label) return;
+  openDayDialog(isoDate(new Date(year, monthIndex, day)));
+}
 
-  appendCustomDateLine(`${date} | ${label}`);
+// ============================================================================
+// Day editor — modal that mirrors a day cell and lets you click slots to
+// add, edit or delete custom-date labels for that day.
+// ============================================================================
+
+// Parses a single Custom dates textarea line. Returns { date, label, rule }
+// or null for blanks, comments, or anything that doesn't match the format.
+function parseCustomDateLine(line) {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith("#")) return null;
+  const parts = trimmed.split("|").map((s) => s.trim());
+  if (parts.length < 2) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(parts[0]) || !parts[1]) return null;
+  return { date: parts[0], label: parts[1], rule: parts.slice(2).join("|") || null };
+}
+
+// Index of the textarea line that defines a one-off entry for (date, label),
+// or -1 if no such line exists (the label comes from a recurrence expansion
+// or a holiday and shouldn't be edited in place here).
+function findOneOffLineIndex(date, label) {
+  const lines = document.getElementById("customDates").value.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const parsed = parseCustomDateLine(lines[i]);
+    if (parsed && parsed.date === date && parsed.label === label && !parsed.rule) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+// Replaces (or removes, if `newLine` is empty) one line in the Custom dates
+// textarea, then re-renders the preview. Keeps the rest of the textarea
+// content — including comments and recurrence rules — exactly as it was.
+function replaceCustomDateLine(index, newLine) {
+  const box = document.getElementById("customDates");
+  const lines = box.value.split("\n");
+  if (newLine === "") lines.splice(index, 1);
+  else lines[index] = newLine;
+  box.value = lines.join("\n").replace(/\n+$/, "");
+  renderPreview();
+}
+
+function openDayDialog(date) {
+  const dialog = document.getElementById("dayDialog");
+  dialog.dataset.date = date;
+  renderDayDialogCell();
+  if (!dialog.open) dialog.showModal();
+}
+
+function closeDayDialog() {
+  const dialog = document.getElementById("dayDialog");
+  if (dialog.open) dialog.close();
+  delete dialog.dataset.date;
+}
+
+function renderDayDialogCell() {
+  const dialog = document.getElementById("dayDialog");
+  const date = dialog.dataset.date;
+  if (!date) return;
+  const [yStr, mStr, dStr] = date.split("-");
+  const year = Number(yStr);
+  const monthIndex = Number(mStr) - 1;
+  const day = Number(dStr);
+  const rows = monthRows(year, monthIndex);
+  const lines = baseGuideLines(rows);
+  const slots = lines + 1;
+
+  const lang = document.getElementById("language").value || "en";
+  const locale = lang === "ga" ? "ga-IE" : "en-IE";
+  document.getElementById("dayDialogTitle").textContent =
+    new Date(year, monthIndex, day).toLocaleDateString(locale, {
+      weekday: "long", day: "numeric", month: "long", year: "numeric",
+    });
+
+  const cellH = rows === 6 ? 28 : 33.6;
+  const cellEl = document.getElementById("dayDialogCell");
+  cellEl.style.setProperty("--cell-aspect", `39.6 / ${cellH}`);
+  cellEl.style.setProperty("--day-number-h", `${(9 / cellH * 100).toFixed(2)}%`);
+  cellEl.style.setProperty("--slot-count", String(slots));
+  cellEl.innerHTML = "";
+
+  const numEl = document.createElement("div");
+  numEl.className = "enlarged-cell-number";
+  numEl.textContent = String(day);
+  cellEl.appendChild(numEl);
+
+  const entry = buildLabels(year).get(date) || { holiday: null, custom: [] };
+  const stack = labelStack(entry);
+  const visible = stack.slice(-slots);
+  const firstVisibleSlot = slots - visible.length + 1;
+
+  const slotsEl = document.createElement("div");
+  slotsEl.className = "enlarged-cell-slots";
+  cellEl.appendChild(slotsEl);
+
+  for (let slotIndex = 1; slotIndex <= slots; slotIndex++) {
+    const indexInVisible = slotIndex - firstVisibleSlot;
+    const item = (indexInVisible >= 0 && indexInVisible < visible.length) ? visible[indexInVisible] : null;
+    slotsEl.appendChild(buildSlotButton(date, slotIndex, item));
+  }
+}
+
+function buildSlotButton(date, slotIndex, item) {
+  const slot = document.createElement("button");
+  slot.type = "button";
+  slot.className = "enlarged-slot";
+
+  if (!item) {
+    slot.classList.add("empty");
+    slot.textContent = "+ Add a label";
+    slot.addEventListener("click", () => beginSlotEdit(slot, "", -1));
+    return slot;
+  }
+
+  slot.textContent = item.text;
+  if (!item.custom) {
+    slot.classList.add("holiday", "readonly");
+    slot.title = "Public holiday";
+    return slot;
+  }
+
+  slot.classList.add("custom");
+  const sourceIndex = findOneOffLineIndex(date, item.text);
+  if (sourceIndex < 0) {
+    slot.classList.add("readonly");
+    slot.title = "Comes from a recurring rule — edit in the Custom dates box";
+  } else {
+    slot.addEventListener("click", () => beginSlotEdit(slot, item.text, sourceIndex));
+  }
+  return slot;
+}
+
+// Replaces a slot button with an inline text input. Enter saves, Escape
+// reverts, blur commits whatever's in the input.
+function beginSlotEdit(slotButton, currentValue, sourceIndex) {
+  const editor = document.createElement("div");
+  editor.className = "enlarged-slot-editor";
+  if (slotButton.classList.contains("custom")) editor.style.fontStyle = "italic";
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = currentValue;
+  input.placeholder = "Label";
+  input.spellcheck = false;
+  input.maxLength = 64;
+  editor.appendChild(input);
+
+  let committed = false;
+  const date = document.getElementById("dayDialog").dataset.date;
+  const commit = () => {
+    if (committed) return;
+    committed = true;
+    const next = input.value.trim();
+    if (sourceIndex >= 0) {
+      if (next === "" || next === currentValue) {
+        if (next === "") replaceCustomDateLine(sourceIndex, "");
+      } else {
+        replaceCustomDateLine(sourceIndex, `${date} | ${next}`);
+      }
+    } else if (next !== "") {
+      appendCustomDateLine(`${date} | ${next}`);
+    }
+    renderDayDialogCell();
+  };
+  const cancel = () => {
+    if (committed) return;
+    committed = true;
+    renderDayDialogCell();
+  };
+
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") { event.preventDefault(); commit(); }
+    else if (event.key === "Escape") { event.preventDefault(); cancel(); }
+  });
+  input.addEventListener("blur", commit);
+
+  slotButton.replaceWith(editor);
+  setTimeout(() => { input.focus(); input.select(); }, 0);
 }
 
 // Builds a custom-date line (with optional recurrence) from the quick-add
@@ -1497,6 +1673,11 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("downloadBtn").addEventListener("click", downloadPdf);
   document.getElementById("printBtn").addEventListener("click", printCalendar);
   document.getElementById("preview").addEventListener("click", handlePreviewClick);
+  document.getElementById("dayDialogClose").addEventListener("click", closeDayDialog);
+  // Click on the backdrop (outside the dialog box) closes the dialog.
+  document.getElementById("dayDialog").addEventListener("click", (event) => {
+    if (event.target.id === "dayDialog") closeDayDialog();
+  });
   document.getElementById("prevMonthBtn").addEventListener("click", () => stepMonth(-1));
   document.getElementById("nextMonthBtn").addEventListener("click", () => stepMonth(1));
 
