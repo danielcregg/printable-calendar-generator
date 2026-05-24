@@ -223,6 +223,20 @@ The service worker is cache-first. **When you change any precached asset, bump t
 the service worker keeps serving the old cached file to returning visitors, even when
 the `?v=` query on the script tags changes — it matches requests with `ignoreSearch`.
 
+## Sharing
+
+A configured calendar can be sent to someone else as a copy-pasteable URL or as a
+`.json` file. The payload is `{ v, name, settings }` (the same `settings` shape that
+`saveCalendar` persists); for the link form it is URL-safe-base64 encoded and placed in
+`location.hash` as `#cal=...`. Nothing is uploaded — the payload travels entirely with
+the link or the file. On page load `loadFromHashIfPresent` decodes a `#cal=` hash,
+applies the settings, and strips the hash so the URL doesn't carry the data around
+afterwards. The file form is plain pretty-printed JSON so it's diff-friendly.
+
+URL shorteners are deliberately not used: every free shortener stores the long URL on
+its own server, which would leak personal dates and break the offline-first model. Long
+URLs that get truncated by a chat app are handled by falling back to the file export.
+
 ## Testing checklist
 
 Before finishing any change, verify:
@@ -243,6 +257,7 @@ Before finishing any change, verify:
 11. With **Notes area** checked, those cells merge into one writing block per row with full-width guide lines and a faint "Notes" tag in the top-left.
 12. Weekday headers default to the 3-letter form (`MON`, `TUE`, …); ticking **Full day names** switches them to `MONDAY`/`TUESDAY`/….
 13. Recurring custom-date lines (e.g. `2026-09-08 | Bins | every 2 weeks`) expand into every occurrence inside the rendered year, with the same styling as one-off custom dates.
+14. **Copy share link** copies a `#cal=`-style URL; opening it in a fresh tab restores every setting, then strips the hash from the address bar. **Download as file** + **Load a file** round-trip the same payload via a `.json` file.
 
 Suggested local smoke test:
 

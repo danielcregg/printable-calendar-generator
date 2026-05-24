@@ -32,6 +32,12 @@ options, add your own dates, then click **Download PDF** to save a file or **Pri
 open the print dialog directly. You can save a named calendar
 or a reusable date group in your browser to load again later.
 
+To send a calendar to someone else, open the **Saved calendars** panel and choose
+**Copy share link** (the recipient pastes the URL and the calendar opens with all your
+settings restored) or **Download as file** (a `.json` file the recipient can drop in via
+**Load a file**). Both options carry the whole setup in the link or the file itself, so
+nothing is uploaded to any server.
+
 Generating a PDF needs nothing online — jsPDF is bundled in `docs/vendor/`. The site is
 also a Progressive Web App: your browser can install it as a standalone app, and once
 visited it keeps working with no internet connection.
@@ -134,7 +140,7 @@ the served URL above to run the assertions.
 - **Holidays**: only Ireland (`IE`) is currently supported. Holiday labels are always in English (the Language option only switches the month and weekday names on the calendar grid).
 - **Layout**: Monday-first only; portrait orientation is not available; the page is A4 only.
 - **Year range**: the dropdown lists from the current year through 2099 — past years are not selectable from the controls.
-- **Saved data**: saved calendars and date groups live in your browser's `localStorage`. Clearing browser data, switching devices, or private browsing will lose them; there is no export/import.
+- **Saved data**: saved calendars and date groups live in your browser's `localStorage`. Clearing browser data, switching devices, or private browsing will lose them. A single calendar can be moved across browsers via the share link or the `.json` export; date groups have no export.
 - **`.ics` import**: handles `VEVENT`, `DTSTART`, `SUMMARY` and `FREQ=YEARLY` recurrence. Time-zone-shifted, multi-day, weekly/monthly-recurring, and `EXDATE`-excluded events are not interpreted — only the start date is taken.
 - **Print orientation**: the PDF is landscape; some browsers' print dialogs default to portrait and need a one-click change to landscape.
 - **Preview fidelity**: the on-screen canvas preview uses the browser's font rendering and is approximate. The downloaded PDF is the print-quality output.

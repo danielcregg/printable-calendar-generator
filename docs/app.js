@@ -1353,6 +1353,113 @@ const RENDER_TRIGGER_IDS = [
   "customDates",
 ];
 
+// ============================================================================
+// Sharing: copy-a-URL link + .json file export/import
+// ----------------------------------------------------------------------------
+// A share payload is just `{ v, name, settings }` (the same `settings` shape
+// that saveCalendar persists). It is delivered either as URL-safe base64 in
+// `location.hash` or as a downloaded .json file. No third-party service is
+// involved — the entire payload travels with the link or the file, keeping
+// the user's dates off any server.
+// ============================================================================
+
+const SHARE_KEY = "cal";
+const SHARE_VERSION = 1;
+
+// URL-safe base64 with full Unicode support (no `+`, `/` or `=` padding).
+function shareEncode(str) {
+  const bytes = new TextEncoder().encode(str);
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+function shareDecode(str) {
+  const pad = (4 - (str.length % 4)) % 4;
+  const base = (str + "=".repeat(pad)).replaceAll("-", "+").replaceAll("_", "/");
+  const binary = atob(base);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+function buildSharePayload() {
+  return {
+    v: SHARE_VERSION,
+    name: document.getElementById("calendarName").value.trim(),
+    settings: currentSettings(),
+  };
+}
+
+function applySharePayload(payload) {
+  if (!payload || payload.v !== SHARE_VERSION || !payload.settings) return false;
+  applySettings(payload.settings);
+  if (payload.name) document.getElementById("calendarName").value = payload.name;
+  return true;
+}
+
+function flashButton(id, message, ms = 1600) {
+  const btn = document.getElementById(id);
+  const original = btn.textContent;
+  btn.textContent = message;
+  btn.disabled = true;
+  setTimeout(() => { btn.textContent = original; btn.disabled = false; }, ms);
+}
+
+function copyShareLink() {
+  const encoded = shareEncode(JSON.stringify(buildSharePayload()));
+  const url = `${location.origin}${location.pathname}#${SHARE_KEY}=${encoded}`;
+  const fallback = () => window.prompt("Copy this link to share the calendar:", url);
+  if (!navigator.clipboard?.writeText) { fallback(); return; }
+  navigator.clipboard.writeText(url)
+    .then(() => flashButton("shareLinkBtn", "Link copied"))
+    .catch(fallback);
+}
+
+function exportCalendarFile() {
+  const payload = buildSharePayload();
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const safeName = (payload.name || "calendar").replaceAll(/[^a-z0-9_-]+/gi, "-") || "calendar";
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${safeName}.calendar.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importCalendarFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const payload = JSON.parse(reader.result);
+      if (!applySharePayload(payload)) throw new Error("not a shareable calendar file");
+    } catch (e) {
+      window.alert(`Could not read that file — ${e.message}.`);
+    }
+  };
+  reader.onerror = () => window.alert("Could not read that file.");
+  reader.readAsText(file);
+}
+
+// Returns true if a `#cal=...` payload was found and applied. Always strips
+// the hash so the URL doesn't carry the payload around after the first load.
+function loadFromHashIfPresent() {
+  const hash = location.hash.replace(/^#/, "");
+  if (!hash.startsWith(`${SHARE_KEY}=`)) return false;
+  const encoded = hash.slice(SHARE_KEY.length + 1);
+  let applied = false;
+  try {
+    applied = applySharePayload(JSON.parse(shareDecode(encoded)));
+  } catch {
+    // Malformed share data — leave the defaults in place rather than crash.
+  }
+  history.replaceState(null, "", location.pathname + location.search);
+  return applied;
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   // Bail out when the generator controls aren't present (e.g. the tests.html
   // page loads this script for its pure helpers and has no UI of its own).
@@ -1395,6 +1502,16 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("saveGroupBtn").addEventListener("click", saveGroup);
   document.getElementById("addGroupBtn").addEventListener("click", addGroup);
   document.getElementById("deleteGroupBtn").addEventListener("click", deleteGroup);
+
+  // Sharing: copy link, download/import file.
+  document.getElementById("shareLinkBtn").addEventListener("click", copyShareLink);
+  document.getElementById("exportBtn").addEventListener("click", exportCalendarFile);
+  document.getElementById("importBtn").addEventListener("click", () => document.getElementById("importFile").click());
+  document.getElementById("importFile").addEventListener("change", (event) => {
+    const file = event.target.files?.[0];
+    if (file) importCalendarFile(file);
+    event.target.value = "";  // allow re-importing the same file
+  });
 
   // .ics import (drag-and-drop and file picker).
   const icsDrop = document.getElementById("icsDrop");
@@ -1440,5 +1557,7 @@ window.addEventListener("DOMContentLoaded", () => {
   autoFillTeachingDates();
   updateTeachingPanel();
   applyLanguage();
-  renderPreview();
+  // applySettings already calls renderPreview, so only render explicitly when
+  // no shared payload was applied — avoids a visible flash of the defaults.
+  if (!loadFromHashIfPresent()) renderPreview();
 });
