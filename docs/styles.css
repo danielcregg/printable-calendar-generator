@@ -740,10 +740,23 @@ canvas {
     white-space: normal;
   }
   /* Shade group spans the full grid row so the next checkbox doesn't
-     pair with one of the shading ones. */
+     pair with one of the shading ones. Tighten the inner padding/gap
+     so all three checkboxes plus the "Shade:" label fit on one line
+     down to ~340 px viewports. */
   .stage-controls .checks .shade-group {
     grid-column: 1 / -1;
     justify-content: center;
+    flex-wrap: nowrap;
+    gap: 2px;
+    padding: 3px 6px;
+  }
+  .stage-controls .checks .shade-group .check {
+    padding: 3px 6px;
+    gap: 5px;
+  }
+  .stage-controls .checks .shade-group .shade-label {
+    margin-right: 2px;
+    font-size: var(--text-xs);
   }
 }
 
