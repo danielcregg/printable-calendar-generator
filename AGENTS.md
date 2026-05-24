@@ -95,8 +95,8 @@ values. Positions use the top-left coordinate system of the canvas preview and j
 - Weekday font size: `20 pt` (auto-shrunk to fit the column when full weekday names are used)
 - Month title font size: `40 pt`, centred at `w / 2`
 - Year stamp: `22 pt` regular, right-aligned to `w - margin`, same baseline as the month
-- Grid line width: `1.0`
-- Writing guide line style: light grey, dash pattern `2, 3`
+- Grid line width: `0.7` mm, near-black (`#222`) rather than full black so the cell contents read first
+- Writing guide line style: `#cccccc` (a touch lighter than the grid line), dash pattern `2, 3`
 - Label font: black, about `12 pt` — holiday labels bold, custom-date labels bold italic; shrunk proportionally if a label is too wide for the column (same pattern as full weekday names). Each label's baseline sits ~2 mm above its slot's bottom line so descenders (g, p, y, …) clear the line below cleanly.
 - Teaching-week gutter: `13 mm` wide, with week labels (`W1`…) in `13 pt` bold
 - Adjacent-month day numbers: `22 pt` bold light grey (`#a8a8a8`), top-left of the leading/trailing cells

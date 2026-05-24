@@ -37,10 +37,10 @@ const MAX_YEAR = 2099;
 // Opt-in colour presets. The defaults (grey shading, black labels) keep the
 // printed calendar black and white.
 const SHADE_THEMES = {
-  grey:  { weekend: [235, 235, 235], zebra: [244, 244, 244] },
-  blue:  { weekend: [219, 229, 242], zebra: [237, 242, 249] },
-  green: { weekend: [222, 233, 222], zebra: [239, 244, 239] },
-  warm:  { weekend: [244, 232, 218], zebra: [250, 244, 234] },
+  grey:  { weekend: [241, 241, 241], zebra: [247, 247, 247] },
+  blue:  { weekend: [229, 238, 248], zebra: [241, 245, 251] },
+  green: { weekend: [232, 241, 232], zebra: [243, 247, 243] },
+  warm:  { weekend: [249, 240, 228], zebra: [251, 246, 238] },
 };
 const LABEL_COLOURS = {
   black: [0, 0, 0],
@@ -475,7 +475,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   if (guideLines) {
     const lines = baseGuideLines(rows);
     ctx.save();
-    ctx.strokeStyle = "#bfbfbf";
+    ctx.strokeStyle = "#cccccc";
     ctx.lineWidth = 0.6 * scale;
     ctx.setLineDash([2 * scale, 3 * scale]);
     for (let r = 0; r < rows; r++) {
@@ -519,8 +519,8 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
 
   // Grid borders. In Notes mode the internal vertical between two empty
   // cells in the same row is skipped, merging them into one visual block.
-  ctx.strokeStyle = "black";
-  ctx.lineWidth = 1.0 * scale;
+  ctx.strokeStyle = "#222222";
+  ctx.lineWidth = 0.7 * scale;
   ctx.strokeRect(gridX, gridY, gridW, gridH);
   if (notesArea) {
     for (let r = 0; r < rows; r++) {
@@ -556,7 +556,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
     const x = gridX + col * colW;
     ctx.fillStyle = "black";
     ctx.font = `bold ${pt(22, scale)}px Arial`;
-    ctx.fillText(String(day), x + 3.5 * scale, y + 9 * scale);
+    ctx.fillText(String(day), x + 3 * scale, y + 9 * scale);
 
     // Labels drop into the natural cell slots created by the equispaced
     // guide lines (lines + 1 slots), stacking from the bottom up. Dashes
@@ -618,7 +618,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
         const day = run.type === "leading"
           ? prevLastDay - leadingCount + 1 + offset
           : offset - trailingStart + 1;
-        ctx.fillText(String(day), gridX + c * colW + 3.5 * scale, gridY + run.row * rowH + 9 * scale);
+        ctx.fillText(String(day), gridX + c * colW + 3 * scale, gridY + run.row * rowH + 9 * scale);
       }
     }
     ctx.fillStyle = "#999999";
@@ -735,7 +735,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   // Writing guide lines — see drawCalendar for the slot model.
   if (guideLines) {
     const lines = baseGuideLines(rows);
-    doc.setDrawColor(191, 191, 191);
+    doc.setDrawColor(204, 204, 204);
     doc.setLineWidth(0.6);
     doc.setLineDashPattern([2, 3], 0);
     for (let r = 0; r < rows; r++) {
@@ -764,8 +764,8 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
 
   // Grid borders. In Notes mode the internal vertical between two empty
   // cells in the same row is skipped, merging them into one visual block.
-  doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(1.0);
+  doc.setDrawColor(34, 34, 34);
+  doc.setLineWidth(0.7);
   doc.rect(gridX, gridY, gridW, gridH);
   if (notesArea) {
     for (let r = 0; r < rows; r++) {
@@ -794,7 +794,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
     doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
-    doc.text(String(day), x + 3.5, y + 9);
+    doc.text(String(day), x + 3, y + 9);
 
     // Slot the labels into the equispaced cell slots — see drawCalendar.
     const stack = labelStack(labels.get(isoDate(d)));
@@ -848,7 +848,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
         const day = run.type === "leading"
           ? prevLastDay - leadingCount + 1 + offset
           : offset - trailingStart + 1;
-        doc.text(String(day), gridX + c * colW + 3.5, gridY + run.row * rowH + 9);
+        doc.text(String(day), gridX + c * colW + 3, gridY + run.row * rowH + 9);
       }
     }
     doc.setTextColor(153, 153, 153);
