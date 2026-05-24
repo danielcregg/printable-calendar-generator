@@ -97,7 +97,7 @@ values. Positions use the top-left coordinate system of the canvas preview and j
 - Year stamp: `22 pt` regular, right-aligned to `w - margin`, same baseline as the month
 - Grid line width: `1.0`
 - Writing guide line style: light grey, dash pattern `2, 3`
-- Label font: black, about `11 pt` — holiday labels bold, custom-date labels bold italic; shrunk proportionally if a label is too wide for the column (same pattern as full weekday names). Each label's baseline sits ~1 mm above its slot's bottom line so the text reads as written on the line.
+- Label font: black, about `12 pt` — holiday labels bold, custom-date labels bold italic; shrunk proportionally if a label is too wide for the column (same pattern as full weekday names). Each label's baseline sits ~2 mm above its slot's bottom line so descenders (g, p, y, …) clear the line below cleanly.
 - Teaching-week gutter: `13 mm` wide, with week labels (`W1`…) in `13 pt` bold
 - Adjacent-month day numbers: `22 pt` bold light grey (`#a8a8a8`), top-left of the leading/trailing cells
 - Adjacent-month abbreviation (`Jul`, `Sep`…): `14 pt` italic grey (`#999999`), top-right of the cell

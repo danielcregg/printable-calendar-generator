@@ -575,7 +575,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
       visible.forEach((item, i) => {
         const text = item.text.slice(0, 32);
         const weight = item.custom ? "italic bold" : "bold";
-        let labelPt = 11;
+        let labelPt = 12;
         ctx.font = `${weight} ${pt(labelPt, scale)}px Arial`;
         const textW = ctx.measureText(text).width;
         if (textW > labelMaxW) {
@@ -585,7 +585,9 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
         ctx.fillStyle = item.custom ? customCss : "black";
         const slotIndex = slots - (visible.length - 1 - i);  // 1..slots from top
         const slotBottom = y + 9 * scale + slotIndex * slotSpacing;
-        ctx.fillText(text, x + 3 * scale, slotBottom - 1 * scale);
+        // Baseline sits 2 mm above the slot's bottom line so descenders
+        // (g, p, y, …) keep a visible gap above the line below.
+        ctx.fillText(text, x + 3 * scale, slotBottom - 2 * scale);
       });
     }
   }
@@ -806,7 +808,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
         doc.setFont("helvetica", item.custom ? "bolditalic" : "bold");
         if (item.custom) doc.setTextColor(...customRgb);
         else doc.setTextColor(0, 0, 0);
-        let fontSize = 11;
+        let fontSize = 12;
         doc.setFontSize(fontSize);
         const textW = doc.getTextWidth(text);
         if (textW > labelMaxW) {
@@ -815,7 +817,7 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
         }
         const slotIndex = slots - (visible.length - 1 - i);
         const slotBottom = y + 9 + slotIndex * slotSpacing;
-        doc.text(text, x + 3, slotBottom - 1);
+        doc.text(text, x + 3, slotBottom - 2);
       });
     }
   }
