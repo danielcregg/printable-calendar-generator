@@ -1231,31 +1231,47 @@ function beginSlotEdit(slotButton, currentValue, sourceIndex) {
 
 // Builds a custom-date line (with optional recurrence) from the quick-add
 // inputs above the textarea and appends it to the Custom dates box.
+// Reads the quick-add form (date / label / repeats / ends) and appends one
+// `YYYY-MM-DD | Label | rule` line to the custom-dates textarea. The Repeats
+// dropdown's option values ARE the rule strings (e.g. "every 2 weeks",
+// "first tuesday of month") so the form maps one-to-one onto parseRule's
+// grammar — no per-option translation table needed.
 function addRecurringDate() {
   const date = document.getElementById("recurDate").value;
   const label = document.getElementById("recurLabel").value.trim();
   const freq = document.getElementById("recurFreq").value;
+  const endMode = document.getElementById("recurEnd").value;
   const countRaw = document.getElementById("recurCount").value.trim();
+  const untilDate = document.getElementById("recurUntil").value;
   if (!date || !label) {
     window.alert("Pick a date and enter a label first.");
     return;
   }
-  const ruleMap = {
-    daily: "daily",
-    weekly: "weekly",
-    biweekly: "every 2 weeks",
-    monthly: "monthly",
-    yearly: "yearly",
-  };
   let line = `${date} | ${label}`;
-  if (freq !== "once") {
-    const count = Number(countRaw);
-    const suffix = countRaw && count > 0 ? ` x ${count}` : "";
-    line += ` | ${ruleMap[freq]}${suffix}`;
+  if (freq) {
+    let rule = freq;
+    if (endMode === "count" && Number(countRaw) > 0) rule += ` x ${Number(countRaw)}`;
+    else if (endMode === "until" && untilDate) rule += ` until ${untilDate}`;
+    line += ` | ${rule}`;
   }
   appendCustomDateLine(line);
   document.getElementById("recurLabel").value = "";
   document.getElementById("recurCount").value = "";
+  document.getElementById("recurUntil").value = "";
+}
+
+// Show/hide the contextual sub-controls in the quick-add form:
+//   Repeats=Just once  → no Ends row at all
+//   Repeats=anything else  → Ends row visible
+//     Ends=Forever       → no further input
+//     Ends=Stops after…  → number input visible
+//     Ends=Stops on date → date input visible
+function updateQuickAddVisibility() {
+  const freq = document.getElementById("recurFreq").value;
+  const endMode = document.getElementById("recurEnd").value;
+  document.getElementById("recurEndRow").hidden = !freq;
+  document.getElementById("recurCount").hidden = !freq || endMode !== "count";
+  document.getElementById("recurUntil").hidden = !freq || endMode !== "until";
 }
 
 // Shared helper: append one or more lines to the Custom dates textarea and
@@ -1793,6 +1809,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // Custom-date quick-add form.
   document.getElementById("recurAddBtn").addEventListener("click", addRecurringDate);
+  document.getElementById("recurFreq").addEventListener("change", updateQuickAddVisibility);
+  document.getElementById("recurEnd").addEventListener("change", updateQuickAddVisibility);
+  updateQuickAddVisibility();
 
   // Teaching-week schedule panel + auto-fill on year change.
   document.getElementById("autoFillWeeksBtn").addEventListener("click", () => {

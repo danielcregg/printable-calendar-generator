@@ -7,9 +7,9 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ffffff">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=2026-05-shade-oneline">
+  <link rel="stylesheet" href="styles.css?v=2026-05-quick-add">
   <script defer src="vendor/jspdf.umd.min.js"></script>
-  <script defer src="app.js?v=2026-05-shade-oneline"></script>
+  <script defer src="app.js?v=2026-05-quick-add"></script>
 </head>
 <body class="app">
   <header class="topbar">
@@ -77,24 +77,57 @@
 
         <section class="panel">
           <h2>Custom dates</h2>
-          <p class="hint">One per line: <code>YYYY-MM-DD | Label | rule</code>. The rule is optional &mdash; try <code>yearly</code>, <code>every 2 weeks</code>, <code>first tuesday of month</code>, <code>last friday of every month</code>, <code>every week x 10</code>, or <code>every 2 weeks until 2026-12-31</code>.</p>
 
-          <div class="save-row">
-            <input id="recurDate" type="date" aria-label="Date">
-            <input id="recurLabel" type="text" placeholder="Label" spellcheck="false" aria-label="Label">
+          <div class="quick-add">
+            <div class="save-row">
+              <input id="recurDate" type="date" aria-label="Date">
+              <input id="recurLabel" type="text" placeholder="Label" spellcheck="false" aria-label="Label">
+            </div>
+            <div class="save-row">
+              <label class="quick-add-label" for="recurFreq">Repeats</label>
+              <select id="recurFreq" aria-label="Repeats">
+                <option value="" selected>Just once</option>
+                <optgroup label="Every…">
+                  <option value="every day">Every day</option>
+                  <option value="every week">Every week</option>
+                  <option value="every 2 weeks">Every 2 weeks</option>
+                  <option value="every 3 weeks">Every 3 weeks</option>
+                  <option value="every 4 weeks">Every 4 weeks</option>
+                  <option value="every month">Every month</option>
+                  <option value="every 2 months">Every 2 months</option>
+                  <option value="every 3 months">Every 3 months</option>
+                  <option value="every year">Every year</option>
+                </optgroup>
+                <optgroup label="On a specific day each month">
+                  <option value="first monday of month">First Monday of month</option>
+                  <option value="first tuesday of month">First Tuesday of month</option>
+                  <option value="first wednesday of month">First Wednesday of month</option>
+                  <option value="first thursday of month">First Thursday of month</option>
+                  <option value="first friday of month">First Friday of month</option>
+                  <option value="last monday of month">Last Monday of month</option>
+                  <option value="last tuesday of month">Last Tuesday of month</option>
+                  <option value="last wednesday of month">Last Wednesday of month</option>
+                  <option value="last thursday of month">Last Thursday of month</option>
+                  <option value="last friday of month">Last Friday of month</option>
+                </optgroup>
+              </select>
+            </div>
+            <div class="save-row" id="recurEndRow" hidden>
+              <label class="quick-add-label" for="recurEnd">Ends</label>
+              <select id="recurEnd" aria-label="Ends">
+                <option value="forever" selected>Keeps repeating</option>
+                <option value="count">Stops after…</option>
+                <option value="until">Stops on date</option>
+              </select>
+              <input id="recurCount" type="number" min="1" placeholder="times" hidden aria-label="Number of times">
+              <input id="recurUntil" type="date" hidden aria-label="End date">
+            </div>
+            <div class="save-row">
+              <button id="recurAddBtn" type="button">Add to list</button>
+            </div>
           </div>
-          <div class="save-row">
-            <select id="recurFreq" aria-label="Repeats">
-              <option value="once" selected>Once</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="biweekly">Every 2 weeks</option>
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-            </select>
-            <input id="recurCount" type="number" min="1" placeholder="Times (blank = forever)" aria-label="Number of occurrences">
-            <button id="recurAddBtn" type="button">Add</button>
-          </div>
+
+          <p class="hint">All entries live in the box below. Click any line to edit; advanced users can type rules directly using the syntax <code>YYYY-MM-DD | Label | rule</code>.</p>
 
           <textarea id="customDates" rows="6" spellcheck="false">2026-01-01 | Pay Day | every 2 weeks
 2026-01-05 | Bins | every 2 weeks
