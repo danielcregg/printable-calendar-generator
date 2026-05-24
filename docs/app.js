@@ -410,7 +410,7 @@ function monthRows(year, monthIndex) {
 function layout(scale = 1) {
   const w = 297 * scale;
   const h = 210 * scale;
-  const margin = 10 * scale;
+  const margin = 7 * scale;
   const headerH = 22 * scale;
   const gridX = margin;
   const gridY = margin + headerH;

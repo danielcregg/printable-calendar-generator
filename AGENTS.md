@@ -86,7 +86,7 @@ values. Positions use the top-left coordinate system of the canvas preview and j
 (origin at the top-left of the page, y increasing downward).
 
 - Page: A4 landscape (297 mm wide, 210 mm tall)
-- Margin: `10 mm`
+- Margin: `7 mm` (tightened from a more conservative 10 mm to recover ~7% of grid area; still inside every home printer's printable region)
 - Header height: `22 mm`
 - Month title baseline: `margin + 8 mm` from the top edge
 - Weekday baseline: `margin + header_h - 1.5 mm`
