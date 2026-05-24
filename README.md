@@ -80,9 +80,12 @@ with an optional third pipe-separated field for a recurrence rule:
 ```
 
 Recurrence shortcuts: `daily`, `weekly`, `monthly`, `yearly`. The general form is
-`every N <day(s)|week(s)|month(s)|year(s)>` with optional `x N` (occurrence count) or
-`until YYYY-MM-DD` (end date) — either order works. Lines starting with `#` are
-ignored.
+`every N <day(s)|week(s)|month(s)|year(s)>`. There's also an "Nth weekday of the
+month" pattern — `first tuesday of month`, `last friday of every month`,
+`2nd monday of every 3 months` — useful for things like "Child Benefit is paid on
+the first Tuesday of every month". All forms accept the optional `x N` (occurrence
+count) or `until YYYY-MM-DD` (end date) suffixes, in either order. Lines starting
+with `#` are ignored.
 
 A small **quick-add** form above the textarea can build the line for you: pick a date,
 type a label, choose a repeat (Once, Daily, Weekly, Every 2 weeks, Monthly, Yearly),

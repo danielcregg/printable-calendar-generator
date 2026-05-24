@@ -149,9 +149,14 @@ rule:
 ```
 
 Recurrence shortcuts are `daily`, `weekly`, `monthly`, `yearly`. The general form is
-`every N <day(s)|week(s)|month(s)|year(s)>` with optional `x N` (occurrence count) or
-`until YYYY-MM-DD` suffixes (either order). Unparseable rules fall back to a one-off
-date on the start day.
+`every N <day(s)|week(s)|month(s)|year(s)>`. An "Nth weekday of the month" pattern
+is also supported: `first tuesday of month`, `last friday of every month`, `2nd
+monday of every 3 months` (ordinals `first`/`1st` … `fourth`/`4th` and `last`;
+weekday names may be three-letter or full). For the "Nth weekday" form the literal
+start date is not yielded — every occurrence is the computed Nth weekday, starting
+in the start date's month. All rule forms accept optional `x N` (occurrence count)
+or `until YYYY-MM-DD` suffixes in either order. Unparseable rules fall back to a
+one-off date on the start day.
 
 Lines beginning with `#` are treated as comments. Dates can also be added by clicking a
 day in the preview, or by importing an `.ics` file. If multiple labels fall on the same

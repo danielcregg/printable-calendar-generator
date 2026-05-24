@@ -133,6 +133,18 @@
   test("parseRule: case-insensitive shortcut", () =>
     assertDeep(parseRule("MONTHLY"), { unit: "month", n: 1, count: null, until: null }));
   test("parseRule: nonsense returns null", () => assertEq(parseRule("once a fortnight"), null));
+  test("parseRule: first tuesday of month", () =>
+    assertDeep(parseRule("first tuesday of month"),
+      { unit: "nthWeekdayOfMonth", ordinal: 1, weekday: 1, n: 1, count: null, until: null }));
+  test("parseRule: last friday of every month", () =>
+    assertDeep(parseRule("last friday of every month"),
+      { unit: "nthWeekdayOfMonth", ordinal: -1, weekday: 4, n: 1, count: null, until: null }));
+  test("parseRule: 2nd monday of every 3 months with x N", () =>
+    assertDeep(parseRule("2nd monday of every 3 months x 4"),
+      { unit: "nthWeekdayOfMonth", ordinal: 2, weekday: 0, n: 3, count: 4, until: null }));
+  test("parseRule: nth weekday accepts short weekday name", () =>
+    assertDeep(parseRule("first tue of month"),
+      { unit: "nthWeekdayOfMonth", ordinal: 1, weekday: 1, n: 1, count: null, until: null }));
 
   // -- Recurrence expansion ----------------------------------------------
   group("Recurrence expansion");
@@ -163,6 +175,32 @@
       [...expandRule("2026-11-15", { unit: "month", n: 1, count: 3, until: null }, 2026)],
       ["2026-11-15", "2026-12-15", "2027-01-15"]
     ));
+  test("expandRule: first tuesday of month x 12 (Child Benefit through 2026)", () =>
+    assertDeep(
+      [...expandRule("2026-01-01", { unit: "nthWeekdayOfMonth", ordinal: 1, weekday: 1, n: 1, count: 12, until: null }, 2026)],
+      [
+        "2026-01-06", "2026-02-03", "2026-03-03", "2026-04-07",
+        "2026-05-05", "2026-06-02", "2026-07-07", "2026-08-04",
+        "2026-09-01", "2026-10-06", "2026-11-03", "2026-12-01",
+      ]
+    ));
+  test("expandRule: last friday of every month x 3", () =>
+    assertDeep(
+      [...expandRule("2026-01-15", { unit: "nthWeekdayOfMonth", ordinal: -1, weekday: 4, n: 1, count: 3, until: null }, 2026)],
+      ["2026-01-30", "2026-02-27", "2026-03-27"]
+    ));
+  test("expandRule: nth weekday ignores a non-matching literal start", () =>
+    // Start date is Jan 15 (Thursday) — the rule yields the first Tuesday of
+    // each month from January, NOT the literal start date.
+    assertDeep(
+      [...expandRule("2026-01-15", { unit: "nthWeekdayOfMonth", ordinal: 1, weekday: 1, n: 1, count: 2, until: null }, 2026)],
+      ["2026-01-06", "2026-02-03"]
+    ));
+  test("nthWeekdayOfMonth: returns null when 5th occurrence doesn't exist", () =>
+    // May 2026: 5 Tuesdays? May 5, 12, 19, 26 — only 4. A "5th tuesday" would
+    // be null. We don't parse ordinal 5 from text, but the helper supports
+    // arbitrary ordinals and should report when there isn't one.
+    assertEq(nthWeekdayOfMonth(2026, 4, 5, 1), null));
 
   // -- Custom-dates text parsing -----------------------------------------
   group("parseCustomDates");

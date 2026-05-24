@@ -157,10 +157,25 @@ function irelandHolidays(year) {
 
 // Parses a recurrence rule into { unit, n, count, until } or null if it
 // cannot be parsed. Accepts the shortcuts daily/weekly/monthly/yearly and
-// "every N <day|week|month|year>", optionally followed by "x N" (occurrence
-// count) and/or "until YYYY-MM-DD" (the two suffixes may appear in either
-// order). Unparseable rules return null and the caller falls back to a
-// one-off date on the start day.
+// Maps used by the "nth weekday of month" parser. Weekday indices match
+// mondayIndex: Mon=0 … Sun=6.
+const RULE_ORDINALS = {
+  first: 1, "1st": 1, second: 2, "2nd": 2, third: 3, "3rd": 3, fourth: 4, "4th": 4, last: -1,
+};
+const RULE_WEEKDAYS = {
+  mon: 0, monday: 0,
+  tue: 1, tues: 1, tuesday: 1,
+  wed: 2, wednesday: 2,
+  thu: 3, thur: 3, thurs: 3, thursday: 3,
+  fri: 4, friday: 4,
+  sat: 5, saturday: 5,
+  sun: 6, sunday: 6,
+};
+
+// "every N <day|week|month|year>" or "<first|2nd|last> <weekday> of [every [N]]
+// month[s]", optionally followed by "x N" (occurrence count) and/or
+// "until YYYY-MM-DD" (the two suffixes may appear in either order).
+// Unparseable rules return null and the caller falls back to a one-off date.
 function parseRule(text) {
   const r = text.toLowerCase().trim();
   if (!r) return null;
@@ -176,13 +191,40 @@ function parseRule(text) {
   body = body.trim();
   const aliases = { daily: "day", weekly: "week", monthly: "month", yearly: "year" };
   if (aliases[body]) return { unit: aliases[body], n: 1, count, until };
-  const m = body.match(/^every\s+(?:(\d+)\s+)?(day|days|week|weeks|month|months|year|years)$/);
-  if (m) {
-    const n = m[1] ? Number(m[1]) : 1;
-    const unit = m[2].replace(/s$/, "");
+  const interval = body.match(/^every\s+(?:(\d+)\s+)?(day|days|week|weeks|month|months|year|years)$/);
+  if (interval) {
+    const n = interval[1] ? Number(interval[1]) : 1;
+    const unit = interval[2].replace(/s$/, "");
     return { unit, n, count, until };
   }
+  // "first tuesday of month", "last friday of every month", "2nd monday of every 3 months"
+  const nth = body.match(/^(\S+)\s+(\S+)\s+of\s+(?:every\s+)?(?:(\d+)\s+)?months?$/);
+  if (nth) {
+    const ordinal = RULE_ORDINALS[nth[1]];
+    const weekday = RULE_WEEKDAYS[nth[2]];
+    if (ordinal !== undefined && weekday !== undefined) {
+      const n = nth[3] ? Number(nth[3]) : 1;
+      return { unit: "nthWeekdayOfMonth", ordinal, weekday, n, count, until };
+    }
+  }
   return null;
+}
+
+// Returns the Date for the ordinal-th occurrence of `targetWeekday` (0=Mon
+// … 6=Sun) in the given month, or null when no such date exists (e.g. a
+// fifth Tuesday in a month that doesn't have one). `ordinal` is 1..4 for
+// first/second/third/fourth, or -1 for the last occurrence.
+function nthWeekdayOfMonth(year, monthIndex, ordinal, targetWeekday) {
+  if (ordinal === -1) {
+    const last = new Date(year, monthIndex + 1, 0);
+    const diff = (mondayIndex(last) - targetWeekday + 7) % 7;
+    return new Date(year, monthIndex, last.getDate() - diff);
+  }
+  const first = new Date(year, monthIndex, 1);
+  const dayOfFirstMatch = ((targetWeekday - mondayIndex(first) + 7) % 7) + 1;
+  const day = dayOfFirstMatch + (ordinal - 1) * 7;
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  return day > daysInMonth ? null : new Date(year, monthIndex, day);
 }
 
 // Yields ISO dates of a recurrence starting at startISO. Bounded by the
@@ -195,6 +237,25 @@ function* expandRule(startISO, rule, year) {
   const untilDate = rule.until ? new Date(rule.until + "T00:00:00") : null;
   const stopAt = new Date(year + 2, 0, 1);
   const maxCount = Math.min(rule.count != null ? rule.count : Infinity, 5000);
+
+  // "Nth weekday of month" rules ignore the literal start date and yield
+  // the computed Nth weekday of each month from the start's month onward.
+  if (rule.unit === "nthWeekdayOfMonth") {
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    let i = 0;
+    while (i < maxCount) {
+      if (cursor >= stopAt) break;
+      const target = nthWeekdayOfMonth(cursor.getFullYear(), cursor.getMonth(), rule.ordinal, rule.weekday);
+      if (target) {
+        if (untilDate && target > untilDate) break;
+        yield isoDate(target);
+        i++;
+      }
+      cursor.setMonth(cursor.getMonth() + rule.n);
+    }
+    return;
+  }
+
   const current = new Date(start);
   let i = 0;
   while (i < maxCount) {
