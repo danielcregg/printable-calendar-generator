@@ -1931,14 +1931,23 @@ function loadFromHashIfPresent() {
 // two devices can keep the same calendar in sync. The Worker URL is read
 // from a <meta name="cal-share-worker"> tag — when empty (default), the
 // live-share UI stays hidden and this code is a no-op.
+//
+// Three modes:
+//   "live"    — bidirectional (both pull AND push). ?live=<id>.
+//   "publish" — owner only pushes; never pulls. ?publish=<writeId>.
+//   "view"    — recipient only pulls; never pushes. ?view=<readId>.
+//
+// The publish/view pair use a deterministic readId = sha256("view:"+writeId)
+// so the worker can refuse writes against the viewer URL — viewers really
+// can't edit even if they tamper with the URL.
 // ============================================================================
 
-const LIVE_PARAM = "live";
 const LIVE_POLL_MS = 5_000;
 const LIVE_PUSH_DEBOUNCE_MS = 1_500;
 const LIVE_ID_BYTES = 12;  // ≈ 16 chars in url-safe base64 → ~95 bits of entropy
 
 const liveState = {
+  mode: "off",  // "off" | "live" | "publish" | "view"
   id: null,
   workerUrl: "",
   lastServerTs: 0,
@@ -1948,6 +1957,17 @@ const liveState = {
   applyingRemote: false,
   lastSyncAt: 0,
 };
+
+// Matches the worker's deriveReadId so the owner can derive a viewer URL
+// client-side without round-tripping the worker.
+async function deriveReadId(writeId) {
+  const bytes = new TextEncoder().encode("view:" + writeId);
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  const view = new Uint8Array(hash, 0, 12);
+  let binary = "";
+  for (const b of view) binary += String.fromCharCode(b);
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
 
 function liveShareWorkerUrl() {
   const meta = document.querySelector('meta[name="cal-share-worker"]');
@@ -1963,20 +1983,29 @@ function randomLiveId() {
   return btoa(bin).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 }
 
-function liveShareEndpoint(id) {
+function liveShareWriteEndpoint(id) {
   return `${liveState.workerUrl}/${id}`;
+}
+function liveShareViewEndpoint(readId) {
+  return `${liveState.workerUrl}/view/${readId}`;
 }
 
 async function liveSharePull() {
-  if (!liveState.id || liveState.pushTimer) return;  // skip while local push pending
+  if (!liveState.id) return;
+  if (liveState.mode === "publish") return;        // publisher is the source of truth
+  if (liveState.mode === "live" && liveState.pushTimer) return;  // skip while local push pending
   if (liveState.inFlightPull) return;
   liveState.inFlightPull = true;
   try {
-    const res = await fetch(liveShareEndpoint(liveState.id), { cache: "no-store" });
+    const endpoint = liveState.mode === "view"
+      ? liveShareViewEndpoint(liveState.id)
+      : liveShareWriteEndpoint(liveState.id);
+    const res = await fetch(endpoint, { cache: "no-store" });
     if (res.status === 404) {
-      // First time anyone's opened this id — push our current state so the
-      // recipient sees what we have right now.
-      await liveSharePush();
+      // For live mode, push our current state so the recipient sees
+      // something. For view mode, the publisher hasn't shared anything yet.
+      if (liveState.mode === "live") await liveSharePush();
+      else setLiveStatus("Waiting for publisher", true);
       return;
     }
     if (!res.ok) { setLiveStatus("Error", true); return; }
@@ -2002,10 +2031,11 @@ async function liveSharePull() {
 
 async function liveSharePush() {
   if (!liveState.id) return;
+  if (liveState.mode === "view") return;  // viewers never write
   const ts = Date.now();
   const body = JSON.stringify({ ts, payload: buildSharePayload() });
   try {
-    const res = await fetch(liveShareEndpoint(liveState.id), {
+    const res = await fetch(liveShareWriteEndpoint(liveState.id), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body,
@@ -2020,9 +2050,11 @@ async function liveSharePush() {
 }
 
 // Debounced from renderPreview: any user-driven change waits 1.5 s for
-// keystrokes to settle and then pushes the whole payload.
+// keystrokes to settle and then pushes the whole payload. Viewer mode is
+// a no-op — recipients' local edits never reach the server.
 function liveShareSchedulePush() {
   if (!liveState.id || liveState.applyingRemote) return;
+  if (liveState.mode === "view") return;
   clearTimeout(liveState.pushTimer);
   liveState.pushTimer = setTimeout(() => {
     liveState.pushTimer = null;
@@ -2040,65 +2072,139 @@ function liveSyncedRecency() {
 
 function setLiveStatus(text, isError = false) {
   const status = document.getElementById("liveShareStatus");
-  if (!status) return;
-  document.getElementById("liveShareTs").textContent = text;
-  status.classList.toggle("live-share-error", !!isError);
+  if (status) {
+    document.getElementById("liveShareTs").textContent = text;
+    status.classList.toggle("live-share-error", !!isError);
+  }
+  const pub = document.getElementById("publishStatus");
+  if (pub && liveState.mode === "publish") {
+    document.getElementById("publishTs").textContent = text;
+    pub.classList.toggle("live-share-error", !!isError);
+  }
+  const view = document.getElementById("viewBannerTs");
+  if (view && liveState.mode === "view") view.textContent = text;
+}
+
+function setLiveModeUi(mode) {
+  document.getElementById("liveShareStartRow").hidden = mode !== "off";
+  document.getElementById("liveShareActiveRow").hidden = mode !== "live";
+  document.getElementById("publishActiveRow").hidden = mode !== "publish";
+  document.getElementById("viewBanner").hidden = mode !== "view";
+  document.body.classList.toggle("is-viewing", mode === "view");
 }
 
 function liveShareStart(id, { pushInitial }) {
+  liveState.mode = "live";
   liveState.id = id;
   liveState.lastServerTs = 0;
   liveState.lastSyncAt = 0;
-  document.getElementById("liveShareStartRow").hidden = true;
-  document.getElementById("liveShareActiveRow").hidden = false;
+  setLiveModeUi("live");
   setLiveStatus("Connecting…");
-  // Reflect the live id in the URL so refreshing or sharing the URL works.
-  const u = new URL(location.href);
-  u.searchParams.set(LIVE_PARAM, id);
-  history.replaceState(null, "", u.toString());
+  setLiveUrlParams({ live: id });
   if (pushInitial) liveSharePush();
   else liveSharePull();
+  liveState.pullTimer = setInterval(liveSharePull, LIVE_POLL_MS);
+}
+
+function publishStart(writeId) {
+  liveState.mode = "publish";
+  liveState.id = writeId;
+  liveState.lastServerTs = 0;
+  liveState.lastSyncAt = 0;
+  setLiveModeUi("publish");
+  setLiveStatus("Publishing…");
+  setLiveUrlParams({ publish: writeId });
+  liveSharePush();  // initial push so a viewer URL works immediately
+}
+
+function viewStart(readId) {
+  liveState.mode = "view";
+  liveState.id = readId;
+  liveState.lastServerTs = 0;
+  liveState.lastSyncAt = 0;
+  setLiveModeUi("view");
+  setLiveStatus("Loading…");
+  setLiveUrlParams({ view: readId });
+  liveSharePull();
   liveState.pullTimer = setInterval(liveSharePull, LIVE_POLL_MS);
 }
 
 function liveShareStop() {
   clearInterval(liveState.pullTimer);
   clearTimeout(liveState.pushTimer);
+  liveState.mode = "off";
   liveState.id = null;
   liveState.pullTimer = null;
   liveState.pushTimer = null;
-  document.getElementById("liveShareStartRow").hidden = false;
-  document.getElementById("liveShareActiveRow").hidden = true;
+  setLiveModeUi("off");
+  setLiveUrlParams({});
+}
+
+// Replaces the current URL's live-mode query params with the given ones
+// (others are stripped). Uses history.replaceState so navigation isn't
+// affected; the URL is the user-visible record of which mode is active.
+function setLiveUrlParams(params) {
   const u = new URL(location.href);
-  u.searchParams.delete(LIVE_PARAM);
+  for (const key of ["live", "publish", "view"]) u.searchParams.delete(key);
+  for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
   history.replaceState(null, "", u.toString());
+}
+
+async function copyLiveLinkToClipboard(url, successMessage) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(url);
+      setLiveStatus(successMessage);
+      return;
+    } catch { /* fall through to prompt */ }
+  }
+  window.prompt("Copy this link:", url);
 }
 
 function wireLiveShare() {
   liveState.workerUrl = liveShareWorkerUrl();
   if (!liveState.workerUrl) return;  // feature disabled when no Worker configured
-  const block = document.getElementById("liveShareBlock");
-  block.hidden = false;
+  document.getElementById("liveShareBlock").hidden = false;
 
   document.getElementById("liveShareStartBtn").addEventListener("click", () => {
     liveShareStart(randomLiveId(), { pushInitial: true });
   });
+  document.getElementById("publishStartBtn").addEventListener("click", () => {
+    publishStart(randomLiveId());
+  });
   document.getElementById("liveShareStopBtn").addEventListener("click", liveShareStop);
+  document.getElementById("publishStopBtn").addEventListener("click", liveShareStop);
+
   document.getElementById("liveShareCopyBtn").addEventListener("click", () => {
     if (!liveState.id) return;
     const u = new URL(location.href);
-    u.searchParams.set(LIVE_PARAM, liveState.id);
-    navigator.clipboard?.writeText(u.toString())
-      .then(() => setLiveStatus("Link copied"))
-      .catch(() => window.prompt("Copy this live-share link:", u.toString()));
+    u.searchParams.set("live", liveState.id);
+    for (const key of ["publish", "view"]) u.searchParams.delete(key);
+    copyLiveLinkToClipboard(u.toString(), "Link copied");
+  });
+  document.getElementById("publishCopyBtn").addEventListener("click", async () => {
+    if (!liveState.id) return;
+    const readId = await deriveReadId(liveState.id);
+    const u = new URL(location.href);
+    u.searchParams.set("view", readId);
+    for (const key of ["live", "publish"]) u.searchParams.delete(key);
+    copyLiveLinkToClipboard(u.toString(), "Viewer link copied");
+  });
+  document.getElementById("viewForkBtn").addEventListener("click", () => {
+    // Drop view mode but keep the pulled settings — the user now has a
+    // local working copy of the publisher's latest version.
+    liveShareStop();
   });
 
-  // If the URL already carries ?live=<id>, jump straight into a session
-  // and let the pull populate our local state.
-  const incomingId = new URL(location.href).searchParams.get(LIVE_PARAM);
-  if (incomingId && /^[A-Za-z0-9_-]{16,40}$/.test(incomingId)) {
-    liveShareStart(incomingId, { pushInitial: false });
-  }
+  // Pick up an incoming shared-session URL on load.
+  const url = new URL(location.href);
+  const liveId = url.searchParams.get("live");
+  const publishId = url.searchParams.get("publish");
+  const viewId = url.searchParams.get("view");
+  const valid = (s) => s && /^[A-Za-z0-9_-]{16,40}$/.test(s);
+  if (valid(liveId))         liveShareStart(liveId, { pushInitial: false });
+  else if (valid(publishId)) publishStart(publishId);
+  else if (valid(viewId))    viewStart(viewId);
 }
 
 window.addEventListener("DOMContentLoaded", () => {

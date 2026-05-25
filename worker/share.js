@@ -1,17 +1,23 @@
 // Cloudflare Worker for live calendar sharing.
 //
 // Stores opaque calendar IDs in a Workers KV namespace as JSON blobs.
-// Two people open the same `?live=<id>` URL on the static site and the
-// app reads/writes this Worker to keep their calendars in sync. The id
-// acts as a bearer secret — anyone with it can read and write, anyone
-// without it cannot enumerate.
+// Used by two distinct sharing modes in the static app:
+//
+//   Live (bidirectional): two devices open ?live=<id> and both can edit.
+//     PUT /<id>  → store cal:<id>
+//     GET /<id>  → fetch cal:<id>
+//
+//   Publish (one-way): owner opens ?publish=<writeId> and pushes; viewers
+//   open ?view=<readId> and only pull. readId is sha256("view:"+writeId)
+//   so the viewer URL can't be used to write. The mapping is kept in KV
+//   under view:<readId> = writeId, written automatically on every PUT.
+//     PUT /<writeId>        → store cal:<writeId>, refresh view:<readId>
+//     GET /view/<readId>    → resolve view:<readId>, return cal:<writeId>
 //
 // Free-tier capacity (more than enough for personal use):
 //   - 100,000 reads/day
 //   - 1,000 writes/day
 //   - 1 GB total storage
-// At a poll every 5s, two devices = ~35,000 reads/day per shared cal.
-// Writes happen on change (debounced) so they're typically dozens/day.
 //
 // Deploy: see ./README.md.
 
@@ -33,6 +39,18 @@ function jsonResponse(body, status = 200) {
   });
 }
 
+// Derives a publishable "viewer" id from the owner's writeId. The same
+// function lives on the client; both sides compute it identically so the
+// worker never has to trust client-supplied readIds.
+async function deriveReadId(writeId) {
+  const bytes = new TextEncoder().encode("view:" + writeId);
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  const view = new Uint8Array(hash, 0, 12);
+  let binary = "";
+  for (const b of view) binary += String.fromCharCode(b);
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
@@ -40,11 +58,27 @@ export default {
     }
 
     const url = new URL(request.url);
-    const id = url.pathname.replace(/^\/+|\/+$/g, "");
+    const path = url.pathname.replace(/^\/+|\/+$/g, "");
+
+    // GET /view/<readId> — read-only pointer resolution for published calendars.
+    if (path.startsWith("view/") && request.method === "GET") {
+      const readId = path.slice("view/".length);
+      if (!ID_PATTERN.test(readId)) return jsonResponse({ error: "Invalid viewer id" }, 400);
+      const writeId = await env.CAL_KV.get("view:" + readId);
+      if (writeId === null) return jsonResponse({ error: "Not found" }, 404);
+      const data = await env.CAL_KV.get("cal:" + writeId);
+      if (data === null) return jsonResponse({ error: "Not found" }, 404);
+      return new Response(data, {
+        status: 200,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      });
+    }
+
+    const id = path;
     if (!ID_PATTERN.test(id)) return jsonResponse({ error: "Invalid calendar ID" }, 400);
 
     if (request.method === "GET") {
-      const data = await env.CAL_KV.get(id);
+      const data = await env.CAL_KV.get("cal:" + id);
       if (data === null) return jsonResponse({ error: "Not found" }, 404);
       return new Response(data, {
         status: 200,
@@ -61,7 +95,12 @@ export default {
       } catch (e) {
         return jsonResponse({ error: `Body must be JSON: ${e.message}` }, 400);
       }
-      await env.CAL_KV.put(id, body, { expirationTtl: TTL_SECONDS });
+      // Store the calendar AND refresh the view pointer so a derived
+      // viewer URL keeps working (publish mode) and a freshly-derived
+      // read URL works for live-mode sessions too.
+      await env.CAL_KV.put("cal:" + id, body, { expirationTtl: TTL_SECONDS });
+      const readId = await deriveReadId(id);
+      await env.CAL_KV.put("view:" + readId, id, { expirationTtl: TTL_SECONDS });
       return jsonResponse({ ok: true, ts: Date.now() });
     }
 

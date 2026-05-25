@@ -63,15 +63,21 @@ sharing** section in the Setup drawer will be enabled.
 
 ## API
 
-The Worker exposes two methods on `/:calendarId` where `calendarId` is
-a 16–40 character `[A-Za-z0-9_-]` string:
+`calendarId` is a 16–40 character `[A-Za-z0-9_-]` string.
 
-- `GET /:id` — returns the stored JSON (200) or 404 if not found.
-- `PUT /:id` — writes a JSON body (≤ 200 KB) and refreshes the 180-day TTL.
+- `GET /:id` — returns the stored calendar JSON (200) or 404 if not found.
+- `PUT /:id` — writes a JSON body (≤ 200 KB), refreshes the 180-day TTL, and
+  refreshes the `view` pointer used by the read-only viewer URL.
+- `GET /view/:readId` — read-only resolution. `readId` is `sha256("view:"+id)`
+  truncated to 12 bytes and url-safe-base64-encoded. The handler looks the
+  readId up in KV and returns the underlying calendar, or 404 if there's no
+  pointer.
 
 CORS is open (`Access-Control-Allow-Origin: *`) so the static site can
-call it from any origin. The id acts as a bearer secret — anyone who
-knows the id can read or write.
+call it from any origin. The owner's id acts as a bearer secret — anyone
+who knows it can read or write. The derived readId can only read; even a
+PUT against the readId would land at `cal:<readId>` (irrelevant garbage)
+without affecting the publisher's `cal:<writeId>`.
 
 ## Security
 

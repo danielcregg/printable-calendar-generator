@@ -662,7 +662,7 @@ canvas {
   background: white;
 }
 
-/* --- Live sharing status pill ------------------------------------------ */
+/* --- Live sharing status pills + viewer banner ------------------------- */
 .live-share { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border); }
 .live-share-status {
   flex: 1 1 auto;
@@ -685,11 +685,40 @@ canvas {
   background: #15803d;  /* green dot */
   animation: live-pulse 1.6s ease-in-out infinite;
 }
+.live-share-status.live-share-status-publish::before { background: #ca8a04; }  /* amber for read-only publishing */
 .live-share-status.live-share-error::before { background: #b91c1c; animation: none; }
 .live-share-ts { font-weight: 400; color: var(--text-muted); }
 @keyframes live-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: .35; }
+}
+
+.view-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  background: var(--primary-soft);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-sm);
+  color: var(--primary-dark);
+  flex-wrap: wrap;
+}
+.view-banner[hidden] { display: none; }
+.view-banner-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex: 0 0 auto;
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+.view-banner-text { flex: 1 1 auto; min-width: 0; }
+.view-banner-text > span { color: var(--text-muted); font-weight: 400; }
+.view-banner button {
+  flex: 0 0 auto;
+  padding: 4px 12px;
+  font-size: var(--text-sm);
 }
 
 /* --- Day editor (modal opened by clicking a day) ----------------------- */

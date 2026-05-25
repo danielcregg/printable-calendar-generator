@@ -246,25 +246,39 @@ URL shorteners are deliberately not used: every free shortener stores the long U
 its own server, which would leak personal dates and break the offline-first model. Long
 URLs that get truncated by a chat app are handled by falling back to the file export.
 
-### Live sharing (optional, opt-in)
+### Shared sessions (optional, opt-in)
 
-For households who want two devices editing the same calendar in near-real-time, the
-`worker/` directory ships a tiny Cloudflare Worker that exposes `GET/PUT /:calendarId`
-backed by Workers KV. The static app reads `<meta name="cal-share-worker">` for the
-Worker URL — when blank, the **Live sharing** UI in the Saved calendars panel stays
-hidden and no network calls are made. When a URL is configured:
+For households who want two devices editing the same calendar in near-real-time —
+or an owner who wants to publish one read-only link to many recipients — the
+`worker/` directory ships a tiny Cloudflare Worker backed by Workers KV. The
+static app reads `<meta name="cal-share-worker">` for the Worker URL; when blank,
+the entire shared-session UI stays hidden and no network calls are made.
 
-- Starting a session generates a ~16-char URL-safe-base64 id (~95 bits of entropy)
-  and reflects it in the address bar as `?live=<id>`.
-- The app pulls every 5 s and pushes 1.5 s after the last local change. Conflicts use
-  last-write-wins by server timestamp — fine for a household calendar where two
-  people rarely edit the same second; would need CRDTs if usage patterns ever grew.
-- The id is the bearer secret; anyone who knows it can read and write. The Worker
-  has no enumeration endpoint.
+Three modes, each driven by a URL query param:
 
-Live sharing is deliberately opt-in because it sends user data to a third party
-(Cloudflare). The default-off behaviour preserves the "nothing leaves your device"
-guarantee for users who don't want it.
+- `?live=<writeId>` — **live**: both pull and push. Use when two or three people
+  edit one calendar together.
+- `?publish=<writeId>` — **publish (owner)**: only pushes; never pulls. The owner
+  edits and updates whenever they like.
+- `?view=<readId>` — **view (recipient)**: only pulls; never pushes. Recipients see
+  the owner's latest version and a "Make my own copy" button to fork into a
+  local-only working copy.
+
+The publish/view pair uses a deterministic `readId = base64url(sha256("view:" +
+writeId)[0:12])` computed identically on the client and on the Worker. Each PUT
+to `/<writeId>` also refreshes a pointer at `view:<readId> → <writeId>`, so the
+Worker can resolve viewer reads through the pointer (`GET /view/<readId>`) and
+reject any writes against the readId at the URL routing layer. Viewers truly
+cannot edit, even if they tamper with the URL.
+
+- Polling cadence: every 5 s.
+- Push debounce: 1.5 s after the last local change.
+- Conflict policy: last-write-wins by server timestamp. Fine for households where
+  two people rarely edit the same second; would need CRDTs if usage grew.
+
+Shared sessions are deliberately opt-in because they send user data to a third
+party (Cloudflare). The default-off behaviour preserves the "nothing leaves your
+device" guarantee for users who don't want it.
 
 ## Testing checklist
 
