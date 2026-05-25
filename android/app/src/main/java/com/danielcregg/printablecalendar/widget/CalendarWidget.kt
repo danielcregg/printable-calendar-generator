@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -121,11 +122,12 @@ class CalendarWidget(
 // `res/values-night/colors.xml`. Keep them aligned when changing either set.
 // ============================================================================
 
-// ARGB literals — alpha byte first, then RGB. Glance reads the low 32 bits.
-private val WidgetForeground = ColorProvider(day = 0xFF111111L, night = 0xFFF5F5F5L)
-private val WidgetOnPrimary = ColorProvider(day = 0xFFFFFFFFL, night = 0xFFFFFFFFL)
-private val WidgetAdjacent = ColorProvider(day = 0xFFA8A8A8L, night = 0xFF5C5C5CL)
-private val WidgetLabelMuted = ColorProvider(day = 0xFF64748BL, night = 0xFF94A3B8L)
+// ARGB literals wrapped in Compose Color() — Glance's ColorProvider(day, night)
+// factory takes Compose Colors, not raw Longs.
+private val WidgetForeground = ColorProvider(day = Color(0xFF111111), night = Color(0xFFF5F5F5))
+private val WidgetOnPrimary = ColorProvider(day = Color(0xFFFFFFFF), night = Color(0xFFFFFFFF))
+private val WidgetAdjacent = ColorProvider(day = Color(0xFFA8A8A8), night = Color(0xFF5C5C5C))
+private val WidgetLabelMuted = ColorProvider(day = Color(0xFF64748B), night = Color(0xFF94A3B8))
 
 /** Base URL of the deployed PWA. `?d=YYYY-MM-DD` is appended per cell. */
 private const val DEEP_LINK_BASE =
