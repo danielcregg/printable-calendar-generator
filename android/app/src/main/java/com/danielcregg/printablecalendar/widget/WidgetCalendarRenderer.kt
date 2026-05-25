@@ -235,8 +235,8 @@ object WidgetCalendarRenderer {
 
             // Labels stacked in the cell's "slots" — same as docs/app.js. There are
             // `guideLines + 1` natural slots between the day-number baseline and the
-            // cell bottom; labels fill from the bottom up.
-            val date = month.atDay(day)
+            // cell bottom; labels fill from the bottom up. `date` is already in scope
+            // from the today-highlight block above.
             val dayLabels = labels[date].orEmpty()
             if (dayLabels.isNotEmpty()) {
                 val slots = guideLines + 1
