@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App brand colours — taken from the PWA manifest.json. -->
+    <color name="brand_background">#f6f4ef</color>
+    <color name="brand_surface">#ffffff</color>
+    <color name="brand_foreground">#111111</color>
+
+    <!-- TWA host activity. -->
+    <color name="twa_status_bar">#ffffff</color>
+    <color name="twa_nav_bar">#ffffff</color>
+    <color name="twa_splash_background">#f6f4ef</color>
+
+    <!-- Widget colours (light). -->
+    <color name="widget_background">#f6f4ef</color>
+    <color name="widget_foreground">#111111</color>
+    <color name="widget_today">#111111</color>
+    <color name="widget_today_text">#ffffff</color>
+</resources>

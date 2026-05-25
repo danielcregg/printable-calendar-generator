@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark-mode override: same theme, but on a dark device-default parent. -->
+    <style name="Theme.PrintableCalendar" parent="android:Theme.DeviceDefault.NoActionBar">
+        <item name="android:statusBarColor">@color/twa_status_bar</item>
+        <item name="android:navigationBarColor">@color/twa_nav_bar</item>
+        <item name="android:windowBackground">@color/brand_background</item>
+    </style>
+
+    <style name="Theme.PrintableCalendar.Splash">
+        <item name="android:windowBackground">@drawable/splash</item>
+    </style>
+</resources>

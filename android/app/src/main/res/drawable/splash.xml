@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    TWA splash drawable shown while Chrome warms up. Replace with a real PNG/vector
+    (the PWA's 512px icon centred on the brand background) before publishing.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/twa_splash_background" />
+    <item
+        android:gravity="center"
+        android:width="120dp"
+        android:height="120dp">
+        <bitmap android:src="@mipmap/ic_launcher" />
+    </item>
+</layer-list>

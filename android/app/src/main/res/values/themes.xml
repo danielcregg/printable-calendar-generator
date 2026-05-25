@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!--
+        Base theme used by the (currently absent) Compose host activity and the TWA
+        LauncherActivity. The TWA needs a Material theme so its splash background
+        attribute resolves; the values match the PWA manifest.
+    -->
+    <!--
+        Use the device-default no-action-bar theme as the base. The TWA helper styles
+        the host activity itself (status bar / nav bar / splash via the meta-data tags
+        in AndroidManifest.xml), so we deliberately avoid pulling in AppCompat or
+        Material-as-a-View-System just to provide a parent theme.
+    -->
+    <style name="Theme.PrintableCalendar" parent="android:Theme.DeviceDefault.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/twa_status_bar</item>
+        <item name="android:navigationBarColor">@color/twa_nav_bar</item>
+        <item name="android:windowBackground">@color/brand_background</item>
+    </style>
+
+    <!-- Variant used while Chrome warms up; same theme, no extras. -->
+    <style name="Theme.PrintableCalendar.Splash">
+        <item name="android:windowBackground">@drawable/splash</item>
+    </style>
+</resources>

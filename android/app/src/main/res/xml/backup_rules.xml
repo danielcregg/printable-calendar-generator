@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Android <12 cloud-backup rules. The app has no user-visible state of its own yet
+    (the PWA owns localStorage), so we let Android back up everything by default.
+-->
+<full-backup-content>
+</full-backup-content>

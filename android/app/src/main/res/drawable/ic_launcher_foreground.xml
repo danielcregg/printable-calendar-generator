@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Placeholder adaptive-icon foreground. Android Studio's Image Asset wizard will
+    overwrite this with a properly-sized version of icons/icon-512.png from the PWA
+    bundle. Until then this draws a simple "calendar" glyph so the install icon is
+    not the system default.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#111111"
+        android:pathData="M30,32 L78,32 L78,80 L30,80 Z M30,32 L30,40 L78,40 L78,32 Z" />
+    <path
+        android:fillColor="#111111"
+        android:pathData="M40,28 L40,36 M68,28 L68,36"
+        android:strokeColor="#111111"
+        android:strokeWidth="3" />
+</vector>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark-mode counterparts to res/values/colors.xml -->
+    <color name="brand_background">#111111</color>
+    <color name="brand_surface">#1a1a1a</color>
+    <color name="brand_foreground">#ffffff</color>
+
+    <color name="twa_status_bar">#111111</color>
+    <color name="twa_nav_bar">#111111</color>
+    <color name="twa_splash_background">#111111</color>
+
+    <color name="widget_background">#1a1a1a</color>
+    <color name="widget_foreground">#f5f5f5</color>
+    <color name="widget_today">#f5f5f5</color>
+    <color name="widget_today_text">#111111</color>
+</resources>

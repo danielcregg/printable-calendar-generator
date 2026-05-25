@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Single resizable widget covering the 2×2 → 4×3 range so the user can choose the size
+  on the launcher and the layout adapts (compact-vs-full) via Glance's SizeMode.Exact.
+
+  Sizes are given in dp (post-Android-12 sizing) with a fallback minimum cell count for
+  older launchers. Min/target widths roughly correspond to:
+    2×2 cell  ≈ 110 dp ×  110 dp
+    4×2 cell  ≈ 250 dp ×  110 dp
+    4×3 cell  ≈ 250 dp ×  180 dp
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:initialLayout="@layout/widget_loading"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="110dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:maxResizeWidth="320dp"
+    android:maxResizeHeight="280dp"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_description"
+    android:previewLayout="@layout/widget_loading"
+    android:updatePeriodMillis="86400000" />
