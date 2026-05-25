@@ -159,6 +159,11 @@ select {
 
 /* --- Buttons (default) -------------------------------------------------- */
 button {
+  /* iOS Safari treats <button> as a native push-button by default, which
+     can squash explicit width/height (e.g. the 32 px circular month-nav
+     arrows render as horizontal ovals). Resetting appearance kills that. */
+  appearance: none;
+  -webkit-appearance: none;
   border: 0;
   border-radius: var(--radius-md);
   padding: 8px 14px;
@@ -581,6 +586,10 @@ button:focus-visible {
   padding: 0;
   width: 36px;
   height: 36px;
+  /* Lock the size so Safari doesn't shrink it when other flex items grow
+     (e.g. a long month name). flex-shrink: 0 is what keeps the circle a
+     circle on iPhones with September / February in the picker. */
+  flex: 0 0 36px;
   border-radius: 50%;
   border: 1px solid var(--border-strong);
   font-size: 16px;
@@ -887,7 +896,7 @@ canvas {
   /* Compact the month picker on phones — same content, less chrome. */
   .month-nav { gap: var(--space-1); }
   .month-nav select { font-size: var(--text-xs); padding: 5px 22px 5px 8px; }
-  .month-nav button { width: 32px; height: 32px; }
+  .month-nav button { width: 32px; height: 32px; flex: 0 0 32px; }
 }
 
 @media (max-width: 460px) {
