@@ -61,17 +61,19 @@ object WidgetCalendarRenderer {
         // White paper background.
         canvas.drawColor(WHITE)
 
-        // Layout: small margin + header (title + weekday row) + grid filling the rest.
-        // Margins scale with width so small widgets don't lose grid area to chrome.
-        val margin = w * 0.025f
-        val titleH = h * 0.06f       // month name band
-        val weekdayH = h * 0.04f     // weekday letters band
+        // Layout: no inner margin — the grid runs edge to edge so the widget
+        // fills its launcher slot. A small top band carries the month title +
+        // weekday header. The print layout uses 7 mm paper margins, but on a
+        // launcher widget the launcher already imposes its own ~8 dp padding,
+        // so adding more here makes the calendar look squished inside the slot.
+        val titleH = h * 0.07f       // month name band
+        val weekdayH = h * 0.045f    // weekday letters band
         val headerH = titleH + weekdayH
 
-        val gridX = margin
-        val gridY = margin + headerH
-        val gridW = w - 2 * margin
-        val gridH = h - 2 * margin - headerH
+        val gridX = 0f
+        val gridY = headerH
+        val gridW = w
+        val gridH = h - headerH
 
         val rows = monthRows(month)
         val cellW = gridW / 7f
@@ -82,7 +84,7 @@ object WidgetCalendarRenderer {
         val title = month.format(titleFormatter).uppercase(Locale.getDefault()) +
             " " + month.year
         // Centred horizontally; baseline placed near the bottom of the title band.
-        val titleBaseline = margin + titleH * 0.85f
+        val titleBaseline = titleH * 0.85f
         titlePaint.textAlign = Paint.Align.CENTER
         canvas.drawText(title, w / 2f, titleBaseline, titlePaint)
 
@@ -94,7 +96,7 @@ object WidgetCalendarRenderer {
         val widest = mondayFirstDays.maxOf { weekdayPaint.measureText(it) }
         val labels3 = widest <= cellW - 4f
         val weekdayLabels = if (labels3) mondayFirstDays else mondayFirstShort
-        val weekdayBaseline = margin + titleH + weekdayH * 0.75f
+        val weekdayBaseline = titleH + weekdayH * 0.75f
         for (i in 0 until 7) {
             canvas.drawText(
                 weekdayLabels[i],

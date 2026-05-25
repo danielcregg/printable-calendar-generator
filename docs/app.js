@@ -2211,6 +2211,15 @@ function wireLiveShare() {
 // ignored. After applying, both params are stripped from the address bar
 // (other params are preserved).
 // ============================================================================
+// Set to true when the page was opened via ?d=YYYY-MM-DD (i.e. a widget tap or
+// other deep link that immediately opens the day editor). When the day editor
+// later closes, we navigate history.back() so the TWA host activity finishes
+// and the user lands back on their home screen — otherwise they'd be left
+// staring at the calendar behind the dismissed dialog, having to back out
+// manually. Reset to false on first use so subsequent in-app dialog opens
+// behave normally.
+let openedViaDeepLink = false;
+
 function loadFromQueryIfPresent() {
   const url = new URL(location.href);
   const rawMonth = url.searchParams.get("m");
@@ -2264,7 +2273,10 @@ function loadFromQueryIfPresent() {
       changed = true;
     }
     if (changed) renderPreview();
-    if (openDayIso) openDayDialog(openDayIso);
+    if (openDayIso) {
+      openedViaDeepLink = true;
+      openDayDialog(openDayIso);
+    }
   }
 
   // Strip ?m and ?d from the URL but keep everything else (?live, ?view, …).
@@ -2331,6 +2343,15 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("printBtn").addEventListener("click", printCalendar);
   document.getElementById("preview").addEventListener("click", handlePreviewClick);
   document.getElementById("dayDialogClose").addEventListener("click", closeDayDialog);
+  // When the day editor closes — by X button, backdrop click, ESC key, or
+  // programmatic close — and we got here via a widget deep link, navigate
+  // history back so the TWA finishes and the user returns to the launcher.
+  document.getElementById("dayDialog").addEventListener("close", () => {
+    if (openedViaDeepLink) {
+      openedViaDeepLink = false;
+      history.back();
+    }
+  });
   // Click on the backdrop (outside the dialog box) closes the dialog.
   document.getElementById("dayDialog").addEventListener("click", (event) => {
     if (event.target.id === "dayDialog") closeDayDialog();

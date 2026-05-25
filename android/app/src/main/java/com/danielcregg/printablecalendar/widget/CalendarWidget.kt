@@ -126,7 +126,12 @@ private fun WidgetContent(
             provider = ImageProvider(bitmap),
             contentDescription = null,
             modifier = GlanceModifier.fillMaxSize(),
-            contentScale = ContentScale.Fit,
+            // FillBounds (not Fit) — the bitmap is rendered at the widget's
+            // exact aspect ratio, so this stretches with zero distortion and
+            // never letterboxes. Fit was leaving a hairline white frame on
+            // some launchers where the widget content area's effective ratio
+            // didn't exactly match what we sampled from LocalSize.
+            contentScale = ContentScale.FillBounds,
         )
         // Invisible 7 × rows grid of clickable Boxes, laid on top of the image
         // so every cell still has its own tap target → PWA day editor.
@@ -147,11 +152,11 @@ private fun TapGrid(month: YearMonth) {
     val leading = (firstOfMonth.dayOfWeek.value + 6) % 7  // Mon = 0, Sun = 6
     val rows = if (leading + month.lengthOfMonth() <= 35) 5 else 6
 
-    // Reserve the header band (must match WidgetCalendarRenderer's layout:
-    // margin 2.5% + title 6% + weekday 4% = ~12.5%) so taps don't trigger
-    // when the user taps the month title.
-    val headerHeightDp = (size.height.value * 0.125f).dp
-    val bottomMarginDp = (size.height.value * 0.025f).dp
+    // Reserve the header band — must match WidgetCalendarRenderer's layout
+    // (title 7% + weekday 4.5% = 11.5%). Taps on the title band fall through
+    // to the underlying image and do nothing, which keeps the calendar title
+    // a "safe zone" the user can press without accidentally opening a day.
+    val headerHeightDp = (size.height.value * 0.115f).dp
 
     Column(modifier = GlanceModifier.fillMaxSize()) {
         Spacer(GlanceModifier.height(headerHeightDp))
@@ -169,7 +174,6 @@ private fun TapGrid(month: YearMonth) {
                 }
             }
         }
-        Spacer(GlanceModifier.height(bottomMarginDp))
     }
 }
 
