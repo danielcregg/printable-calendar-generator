@@ -1958,6 +1958,24 @@ window.addEventListener("DOMContentLoaded", () => {
     document.getElementById(id).addEventListener("change", renderPreview);
   }
 
+  // Colour swatches in the toolbar — instant-click sync with the dropdown
+  // in the drawer's Colours panel.
+  const shadeSelect = document.getElementById("shadeColour");
+  const syncColorSwatches = () => {
+    for (const sw of document.querySelectorAll(".color-swatch")) {
+      sw.classList.toggle("active", sw.dataset.shade === shadeSelect.value);
+    }
+  };
+  for (const sw of document.querySelectorAll(".color-swatch")) {
+    sw.addEventListener("click", () => {
+      if (shadeSelect.value === sw.dataset.shade) return;
+      shadeSelect.value = sw.dataset.shade;
+      shadeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+  }
+  shadeSelect.addEventListener("change", syncColorSwatches);
+  syncColorSwatches();
+
   refreshSavedList();
   refreshGroupList();
   autoFillTeachingDates();
