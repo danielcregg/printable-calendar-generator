@@ -232,6 +232,40 @@ The service worker is cache-first. **When you change any precached asset, bump t
 the service worker keeps serving the old cached file to returning visitors, even when
 the `?v=` query on the script tags changes — it matches requests with `ignoreSearch`.
 
+## Day editor
+
+Tapping any day in the on-screen preview opens a modal that mirrors the day
+cell at large size. The cell preview is a real `<canvas>` rendered by
+`drawCellOnCanvas` using the same rules as `drawCalendar` (weekend / zebra
+shading, Arial 22 pt day number, equispaced `#cccccc` dashes, 12 pt labels
+in slots) — so the modal is a pixel-faithful enlarged copy of how the
+printed cell will look. Click hit-zones for each slot are transparent
+`<button>`s positioned absolutely over the canvas, sized in canvas-pixel
+space and translated to CSS pixels via `devicePixelRatio` for crisp text
+on hi-DPI screens.
+
+Slot interactions:
+
+- **Empty slot** → "+ Add a reminder" inline hint; click opens a text
+  input over the slot region; Enter appends a `YYYY-MM-DD | Label` line
+  to the Custom dates textarea.
+- **One-off custom date** → click to edit in place; clearing the field
+  and pressing Enter deletes the line.
+- **Holiday** → read-only with tooltip; uncheck "Irish holidays" in the
+  toolbar to hide all of them.
+- **Recurring custom date** → click to override only this occurrence.
+  `findRecurringSource` walks the textarea to locate the source rule,
+  then `addExceptionToRecurrence` appends the date to the rule's
+  `except` clause; if the user typed different text, a one-off override
+  line is appended on the same date. The other occurrences of the
+  recurrence are untouched.
+
+The colour swatches in the toolbar (`<button class="color-swatch">`) are a
+shortcut for the **Shading colour** dropdown that lives inside the Setup
+drawer. They sync both directions: clicking a swatch sets the dropdown
+and re-renders; opening the drawer and changing the dropdown updates which
+swatch shows the active ring.
+
 ## Sharing
 
 A configured calendar can be sent to someone else as a copy-pasteable URL or as a

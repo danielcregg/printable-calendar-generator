@@ -38,9 +38,10 @@ settings restored) or **Download as file** (a `.json` file the recipient can dro
 **Load a file**). Both options carry the whole setup in the link or the file itself, so
 nothing is uploaded to any server.
 
-For shared sessions the app supports two more modes (both require deploying the
-optional Cloudflare Worker — off by default, see [`worker/README.md`](worker/README.md)
-for the one-time setup):
+For shared sessions the app supports two more modes. They are enabled on the official
+deployment at <https://danielcregg.github.io/printable-calendar-generator/>; in any
+fork they stay hidden until that fork's owner deploys the optional Cloudflare Worker
+themselves (see [`worker/README.md`](worker/README.md) for the one-time setup):
 
 - **Publish read-only** — you keep one master copy and share a viewer link with as many
   people as you like. They see your latest version each time they open it; their local
