@@ -32,6 +32,7 @@ object WidgetCalendarRenderer {
     private const val WEEKEND_COLOR = 0xFFEEEEEE.toInt()   // subtle weekend shade
     private const val ADJACENT_COLOR = 0xFFA8A8A8.toInt()  // grey for prev/next month days
     private const val ADJACENT_TAG_COLOR = 0xFF999999.toInt()
+    private const val TODAY_COLOR = 0xFF1A56DB.toInt()     // PWA --primary blue
     private const val WHITE = 0xFFFFFFFF.toInt()
 
     private val titleFormatter = DateTimeFormatter.ofPattern("LLLL", Locale.getDefault())
@@ -178,6 +179,15 @@ object WidgetCalendarRenderer {
         dayPaint.textAlign = Paint.Align.LEFT
         dayPaint.color = Color.BLACK
 
+        // Filled chip behind today's day number — primary-blue circle with
+        // white digits, the same pattern Google / Apple calendar widgets use.
+        // Drawn before the digit so the text sits cleanly on top.
+        val todayChipPaint = Paint().apply {
+            color = TODAY_COLOR
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
+
         val labelPaint = textPaint(textSize = cellH * 0.12f, bold = true)
         labelPaint.textAlign = Paint.Align.LEFT
         labelPaint.color = Color.BLACK
@@ -201,7 +211,27 @@ object WidgetCalendarRenderer {
             // Day number, top-left, just inside the cell padding.
             val numX = cellX + cellW * 0.06f
             val numY = cellY + dayNumberH * 0.95f
-            canvas.drawText(day.toString(), numX, numY, dayPaint)
+            val date = month.atDay(day)
+            val isToday = today != null && date == today
+            val dayStr = day.toString()
+
+            if (isToday) {
+                // Draw the primary-blue circle behind the digit using Paint
+                // metrics so the chip stays centred on the glyph regardless
+                // of font size. textWidth gives horizontal centre; ascent +
+                // descent average gives vertical centre.
+                val textWidth = dayPaint.measureText(dayStr)
+                val fm = dayPaint.fontMetrics
+                val textHeight = fm.descent - fm.ascent
+                val chipX = numX + textWidth / 2f
+                val chipY = numY + (fm.ascent + fm.descent) / 2f
+                val chipR = textHeight * 0.62f
+                canvas.drawCircle(chipX, chipY, chipR, todayChipPaint)
+                dayPaint.color = Color.WHITE
+            } else {
+                dayPaint.color = Color.BLACK
+            }
+            canvas.drawText(dayStr, numX, numY, dayPaint)
 
             // Labels stacked in the cell's "slots" — same as docs/app.js. There are
             // `guideLines + 1` natural slots between the day-number baseline and the
