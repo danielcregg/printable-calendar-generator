@@ -22,6 +22,7 @@ import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
@@ -256,7 +257,11 @@ private fun DayGrid(
                         isToday = inCurrentMonth && date == today,
                         isWeekend = isWeekend,
                         label = if (inCurrentMonth) labels[date]?.firstOrNull() else null,
-                        modifier = GlanceModifier.defaultWeight().fillMaxSize(),
+                        // defaultWeight() handles 1/7 horizontal distribution; fillMaxHeight
+                        // stretches the cell vertically. Using fillMaxSize() here would
+                        // include fillMaxWidth(), which fights the weight and made each cell
+                        // claim the whole row — only column 0 ever rendered.
+                        modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
                     )
                 }
             }
