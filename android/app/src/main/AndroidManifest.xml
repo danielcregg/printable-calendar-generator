@@ -23,10 +23,32 @@
         tools:targetApi="34">
 
         <!--
+            Settings / launcher activity. This is what the user sees when they tap the
+            app icon on the launcher: a Compose screen for pasting a viewer URL or
+            readId so the widget knows which published calendar to render. The TWA host
+            below keeps its own VIEW intent-filter so widget taps still open straight
+            into the PWA without going through this screen.
+        -->
+        <activity
+            android:name=".settings.SettingsActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.PrintableCalendar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
             Trusted Web Activity launcher.
             On launch, opens the deployed PWA at twaDefaultUrl with no browser chrome,
             provided /.well-known/assetlinks.json on twaHostName is signed for this APK.
             Without verified asset links, Chrome falls back to a thin Custom Tab URL bar.
+
+            The LAUNCHER intent-filter has moved to SettingsActivity above; this
+            activity is reached exclusively via widget deep-links (the VIEW filter
+            below) or via the "Open the web app" button inside SettingsActivity.
         -->
         <activity
             android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
@@ -57,11 +79,6 @@
             <meta-data
                 android:name="android.support.customtabs.trusted.SPLASH_SCREEN_FADE_OUT_DURATION"
                 android:value="300" />
-
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
 
             <!--
                 Deep-link from the home-screen widget into the TWA. The autoVerify=true

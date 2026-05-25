@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Single resizable widget covering the 2×2 → 4×3 range so the user can choose the size
-  on the launcher and the layout adapts (compact-vs-full) via Glance's SizeMode.Exact.
+  Default size is 4×4 — that is the smallest size that shows the whole month as a clean
+  7-column grid with five or six week rows. The user can resize down to 3×3-ish on
+  launchers that allow it (minResizeWidth/Height: 180dp) or up to fill the screen.
 
-  Sizes are given in dp (post-Android-12 sizing) with a fallback minimum cell count for
-  older launchers. Min/target widths roughly correspond to:
-    2×2 cell  ≈ 110 dp ×  110 dp
-    4×2 cell  ≈ 250 dp ×  110 dp
-    4×3 cell  ≈ 250 dp ×  180 dp
+  Sizes are given in dp (post-Android-12 sizing). Min/target widths roughly correspond
+  to launcher cell counts:
+    4×4 cell  ≈ 250 dp × 250 dp  (default / target)
+    3×3 cell  ≈ 180 dp × 180 dp  (smallest resize)
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:initialLayout="@layout/widget_loading"
-    android:minWidth="110dp"
-    android:minHeight="110dp"
-    android:minResizeWidth="110dp"
-    android:minResizeHeight="110dp"
+    android:minWidth="250dp"
+    android:minHeight="250dp"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="180dp"
     android:targetCellWidth="4"
-    android:targetCellHeight="2"
-    android:maxResizeWidth="320dp"
-    android:maxResizeHeight="280dp"
+    android:targetCellHeight="4"
+    android:maxResizeWidth="480dp"
+    android:maxResizeHeight="480dp"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:description="@string/widget_description"

@@ -68,4 +68,7 @@ dependencies {
     // Glance — Compose-style API for App Widgets.
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
+
+    // Unit tests for the data layer (RecurrenceParser, IrelandHolidays).
+    testImplementation("junit:junit:4.13.2")
 }
