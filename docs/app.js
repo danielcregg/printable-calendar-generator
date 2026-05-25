@@ -173,16 +173,19 @@ const RULE_WEEKDAYS = {
 };
 
 // "every N <day|week|month|year>" or "<first|2nd|last> <weekday> of [every [N]]
-// month[s]", optionally followed by "x N" (occurrence count) and/or
-// "until YYYY-MM-DD" (the two suffixes may appear in either order).
-// Unparseable rules return null and the caller falls back to a one-off date.
+// month[s]", optionally followed by "x N" (occurrence count), "until
+// YYYY-MM-DD" (end date) and/or "except DATE, DATE, …" (skipped dates).
+// Suffixes may appear in any order. Unparseable rules return null and the
+// caller falls back to a one-off date.
 function parseRule(text) {
   const r = text.toLowerCase().trim();
   if (!r) return null;
-  let body = r, count = null, until = null;
+  let body = r, count = null, until = null, exceptions = [];
   let progress = true;
   while (progress) {
     progress = false;
+    const exm = body.match(/\s+except\s+(\d{4}-\d{2}-\d{2}(?:\s*,\s*\d{4}-\d{2}-\d{2})*)$/);
+    if (exm) { exceptions = exm[1].split(/\s*,\s*/); body = body.slice(0, exm.index); progress = true; continue; }
     const um = body.match(/\s+until\s+(\d{4}-\d{2}-\d{2})$/);
     if (um) { until = um[1]; body = body.slice(0, um.index); progress = true; continue; }
     const cm = body.match(/\s+x\s*(\d+)$/);
@@ -190,12 +193,12 @@ function parseRule(text) {
   }
   body = body.trim();
   const aliases = { daily: "day", weekly: "week", monthly: "month", yearly: "year" };
-  if (aliases[body]) return { unit: aliases[body], n: 1, count, until };
+  if (aliases[body]) return { unit: aliases[body], n: 1, count, until, exceptions };
   const interval = body.match(/^every\s+(?:(\d+)\s+)?(day|days|week|weeks|month|months|year|years)$/);
   if (interval) {
     const n = interval[1] ? Number(interval[1]) : 1;
     const unit = interval[2].replace(/s$/, "");
-    return { unit, n, count, until };
+    return { unit, n, count, until, exceptions };
   }
   // "first tuesday of month", "last friday of every month", "2nd monday of every 3 months"
   const nth = body.match(/^(\S+)\s+(\S+)\s+of\s+(?:every\s+)?(?:(\d+)\s+)?months?$/);
@@ -204,7 +207,7 @@ function parseRule(text) {
     const weekday = RULE_WEEKDAYS[nth[2]];
     if (ordinal !== undefined && weekday !== undefined) {
       const n = nth[3] ? Number(nth[3]) : 1;
-      return { unit: "nthWeekdayOfMonth", ordinal, weekday, n, count, until };
+      return { unit: "nthWeekdayOfMonth", ordinal, weekday, n, count, until, exceptions };
     }
   }
   return null;
@@ -237,6 +240,7 @@ function* expandRule(startISO, rule, year) {
   const untilDate = rule.until ? new Date(rule.until + "T00:00:00") : null;
   const stopAt = new Date(year + 2, 0, 1);
   const maxCount = Math.min(rule.count != null ? rule.count : Infinity, 5000);
+  const exceptions = new Set(rule.exceptions || []);
 
   // "Nth weekday of month" rules ignore the literal start date and yield
   // the computed Nth weekday of each month from the start's month onward.
@@ -248,8 +252,8 @@ function* expandRule(startISO, rule, year) {
       const target = nthWeekdayOfMonth(cursor.getFullYear(), cursor.getMonth(), rule.ordinal, rule.weekday);
       if (target) {
         if (untilDate && target > untilDate) break;
-        yield isoDate(target);
-        i++;
+        const iso = isoDate(target);
+        if (!exceptions.has(iso)) { yield iso; i++; }
       }
       cursor.setMonth(cursor.getMonth() + rule.n);
     }
@@ -261,8 +265,8 @@ function* expandRule(startISO, rule, year) {
   while (i < maxCount) {
     if (untilDate && current > untilDate) break;
     if (current >= stopAt) break;
-    yield isoDate(current);
-    i++;
+    const iso = isoDate(current);
+    if (!exceptions.has(iso)) { yield iso; i++; }
     if (rule.unit === "day") current.setDate(current.getDate() + rule.n);
     else if (rule.unit === "week") current.setDate(current.getDate() + rule.n * 7);
     else if (rule.unit === "month") current.setMonth(current.getMonth() + rule.n);
@@ -1176,7 +1180,7 @@ function parseCustomDateLine(line) {
 
 // Index of the textarea line that defines a one-off entry for (date, label),
 // or -1 if no such line exists (the label comes from a recurrence expansion
-// or a holiday and shouldn't be edited in place here).
+// or a holiday).
 function findOneOffLineIndex(date, label) {
   const lines = document.getElementById("customDates").value.split("\n");
   for (let i = 0; i < lines.length; i++) {
@@ -1186,6 +1190,49 @@ function findOneOffLineIndex(date, label) {
     }
   }
   return -1;
+}
+
+// Locates the recurring textarea line whose expansion produces (date, label).
+// Returns { index, parsed, rule } or null. Used by the day editor so the
+// user can override or skip one occurrence of a recurring rule without
+// rewriting the whole rule text by hand.
+function findRecurringSource(date, label) {
+  const lines = document.getElementById("customDates").value.split("\n");
+  const year = Number(date.slice(0, 4));
+  for (let i = 0; i < lines.length; i++) {
+    const parsed = parseCustomDateLine(lines[i]);
+    if (!parsed || parsed.label !== label || !parsed.rule) continue;
+    const rule = parseRule(parsed.rule);
+    if (!rule) continue;
+    for (const occ of expandRule(parsed.date, rule, year)) {
+      if (occ === date) return { index: i, parsed, rule };
+      if (occ > date) break;  // expansion is monotonic — no later match possible
+    }
+  }
+  return null;
+}
+
+// Appends `dateToExcept` to the recurrence on textarea line `lineIndex`.
+// Idempotent: if the date is already in an existing "except …" suffix, the
+// line is left unchanged. Re-renders the preview when it's done.
+function addExceptionToRecurrence(lineIndex, dateToExcept) {
+  const box = document.getElementById("customDates");
+  const lines = box.value.split("\n");
+  const parsed = parseCustomDateLine(lines[lineIndex]);
+  if (!parsed || !parsed.rule) return;
+  let ruleText = parsed.rule;
+  const existing = ruleText.match(/\bexcept\s+(\d{4}-\d{2}-\d{2}(?:\s*,\s*\d{4}-\d{2}-\d{2})*)/i);
+  if (existing) {
+    const dates = existing[1].split(/\s*,\s*/);
+    if (dates.includes(dateToExcept)) return;
+    const merged = [...dates, dateToExcept].sort().join(", ");
+    ruleText = ruleText.replace(existing[0], `except ${merged}`);
+  } else {
+    ruleText = `${ruleText} except ${dateToExcept}`;
+  }
+  lines[lineIndex] = `${parsed.date} | ${parsed.label} | ${ruleText}`;
+  box.value = lines.join("\n").replace(/\n+$/, "");
+  renderPreview();
 }
 
 // Replaces (or removes, if `newLine` is empty) one line in the Custom dates
@@ -1287,7 +1334,7 @@ function buildSlotHit(date, item, rect, dpr) {
   if (!item) {
     hit.classList.add("empty");
     hit.textContent = "+ Add a reminder";
-    hit.addEventListener("click", () => beginSlotEdit(hit, "", -1, false));
+    hit.addEventListener("click", () => beginSlotEdit(hit, "", null));
     return hit;
   }
 
@@ -1297,19 +1344,33 @@ function buildSlotHit(date, item, rect, dpr) {
     return hit;
   }
 
-  const sourceIndex = findOneOffLineIndex(date, item.text);
-  if (sourceIndex < 0) {
-    hit.classList.add("readonly");
-    hit.title = "Comes from a recurring rule — edit in the Custom dates box";
+  // A custom-date label can come from a one-off line OR a recurring rule.
+  // Both are editable; the source object tells the editor what to do on save.
+  const oneoffIndex = findOneOffLineIndex(date, item.text);
+  if (oneoffIndex >= 0) {
+    hit.addEventListener("click", () => beginSlotEdit(hit, item.text, { type: "oneoff", index: oneoffIndex }));
     return hit;
   }
-  hit.addEventListener("click", () => beginSlotEdit(hit, item.text, sourceIndex, true));
+  const recurring = findRecurringSource(date, item.text);
+  if (recurring) {
+    hit.title = "Editing only this occurrence of a recurring entry";
+    hit.addEventListener("click", () => beginSlotEdit(hit, item.text, { type: "recurring", index: recurring.index }));
+    return hit;
+  }
+
+  // Orphan label (label doesn't trace back to any textarea line). Shouldn't
+  // happen with the current data flow; render as readonly to be safe.
+  hit.classList.add("readonly");
   return hit;
 }
 
 // Swap the hit button for an inline text input over the same slot region.
 // Enter saves, Escape reverts, blur commits whatever's in the input.
-function beginSlotEdit(hitButton, currentValue, sourceIndex, isCustom) {
+// `source` is null for an empty slot, { type: "oneoff", index } for a
+// one-off line, or { type: "recurring", index } for one occurrence of a
+// recurring rule (in which case Save adds an `except` to that rule and
+// optionally a one-off override on this date).
+function beginSlotEdit(hitButton, currentValue, source) {
   const editor = document.createElement("div");
   editor.className = "slot-editor";
   editor.style.left = hitButton.style.left;
@@ -1323,7 +1384,7 @@ function beginSlotEdit(hitButton, currentValue, sourceIndex, isCustom) {
   input.placeholder = "Reminder";
   input.spellcheck = false;
   input.maxLength = 64;
-  if (isCustom) input.style.fontStyle = "italic";
+  if (source) input.style.fontStyle = "italic";
   editor.appendChild(input);
 
   let committed = false;
@@ -1332,11 +1393,17 @@ function beginSlotEdit(hitButton, currentValue, sourceIndex, isCustom) {
     if (committed) return;
     committed = true;
     const next = input.value.trim();
-    if (sourceIndex >= 0) {
-      if (next === "") replaceCustomDateLine(sourceIndex, "");
-      else if (next !== currentValue) replaceCustomDateLine(sourceIndex, `${date} | ${next}`);
-    } else if (next !== "") {
-      appendCustomDateLine(`${date} | ${next}`);
+    if (!source) {
+      if (next !== "") appendCustomDateLine(`${date} | ${next}`);
+    } else if (source.type === "oneoff") {
+      if (next === "") replaceCustomDateLine(source.index, "");
+      else if (next !== currentValue) replaceCustomDateLine(source.index, `${date} | ${next}`);
+    } else if (source.type === "recurring" && next !== currentValue) {
+      // Override one occurrence: skip it in the rule, then add a one-off
+      // line for any replacement text the user typed. Leaving the input
+      // blank just skips the date silently.
+      addExceptionToRecurrence(source.index, date);
+      if (next !== "") appendCustomDateLine(`${date} | ${next}`);
     }
     renderDayDialogCell();
   };

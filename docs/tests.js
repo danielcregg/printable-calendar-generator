@@ -112,39 +112,48 @@
   // -- Recurrence parser -------------------------------------------------
   group("Recurrence parser");
   test("parseRule: weekly", () =>
-    assertDeep(parseRule("weekly"), { unit: "week", n: 1, count: null, until: null }));
+    assertDeep(parseRule("weekly"), { unit: "week", n: 1, count: null, until: null, exceptions: [] }));
   test("parseRule: yearly", () =>
-    assertDeep(parseRule("yearly"), { unit: "year", n: 1, count: null, until: null }));
+    assertDeep(parseRule("yearly"), { unit: "year", n: 1, count: null, until: null, exceptions: [] }));
   test("parseRule: every 2 weeks", () =>
-    assertDeep(parseRule("every 2 weeks"), { unit: "week", n: 2, count: null, until: null }));
+    assertDeep(parseRule("every 2 weeks"), { unit: "week", n: 2, count: null, until: null, exceptions: [] }));
   test("parseRule: every week (no explicit N)", () =>
-    assertDeep(parseRule("every week"), { unit: "week", n: 1, count: null, until: null }));
+    assertDeep(parseRule("every week"), { unit: "week", n: 1, count: null, until: null, exceptions: [] }));
   test("parseRule: weekly x 10", () =>
-    assertDeep(parseRule("weekly x 10"), { unit: "week", n: 1, count: 10, until: null }));
+    assertDeep(parseRule("weekly x 10"), { unit: "week", n: 1, count: 10, until: null, exceptions: [] }));
   test("parseRule: every 2 weeks until DATE", () =>
     assertDeep(parseRule("every 2 weeks until 2026-12-31"),
-      { unit: "week", n: 2, count: null, until: "2026-12-31" }));
+      { unit: "week", n: 2, count: null, until: "2026-12-31", exceptions: [] }));
   test("parseRule: x N then until DATE", () =>
     assertDeep(parseRule("every 2 weeks x 5 until 2026-12-31"),
-      { unit: "week", n: 2, count: 5, until: "2026-12-31" }));
+      { unit: "week", n: 2, count: 5, until: "2026-12-31", exceptions: [] }));
   test("parseRule: until DATE then x N (reversed)", () =>
     assertDeep(parseRule("every 2 weeks until 2026-12-31 x 5"),
-      { unit: "week", n: 2, count: 5, until: "2026-12-31" }));
+      { unit: "week", n: 2, count: 5, until: "2026-12-31", exceptions: [] }));
   test("parseRule: case-insensitive shortcut", () =>
-    assertDeep(parseRule("MONTHLY"), { unit: "month", n: 1, count: null, until: null }));
+    assertDeep(parseRule("MONTHLY"), { unit: "month", n: 1, count: null, until: null, exceptions: [] }));
   test("parseRule: nonsense returns null", () => assertEq(parseRule("once a fortnight"), null));
   test("parseRule: first tuesday of month", () =>
     assertDeep(parseRule("first tuesday of month"),
-      { unit: "nthWeekdayOfMonth", ordinal: 1, weekday: 1, n: 1, count: null, until: null }));
+      { unit: "nthWeekdayOfMonth", ordinal: 1, weekday: 1, n: 1, count: null, until: null, exceptions: [] }));
   test("parseRule: last friday of every month", () =>
     assertDeep(parseRule("last friday of every month"),
-      { unit: "nthWeekdayOfMonth", ordinal: -1, weekday: 4, n: 1, count: null, until: null }));
+      { unit: "nthWeekdayOfMonth", ordinal: -1, weekday: 4, n: 1, count: null, until: null, exceptions: [] }));
   test("parseRule: 2nd monday of every 3 months with x N", () =>
     assertDeep(parseRule("2nd monday of every 3 months x 4"),
-      { unit: "nthWeekdayOfMonth", ordinal: 2, weekday: 0, n: 3, count: 4, until: null }));
+      { unit: "nthWeekdayOfMonth", ordinal: 2, weekday: 0, n: 3, count: 4, until: null, exceptions: [] }));
   test("parseRule: nth weekday accepts short weekday name", () =>
     assertDeep(parseRule("first tue of month"),
-      { unit: "nthWeekdayOfMonth", ordinal: 1, weekday: 1, n: 1, count: null, until: null }));
+      { unit: "nthWeekdayOfMonth", ordinal: 1, weekday: 1, n: 1, count: null, until: null, exceptions: [] }));
+  test("parseRule: except DATE suffix", () =>
+    assertDeep(parseRule("every 2 weeks except 2026-04-06"),
+      { unit: "week", n: 2, count: null, until: null, exceptions: ["2026-04-06"] }));
+  test("parseRule: except with multiple dates", () =>
+    assertDeep(parseRule("every week except 2026-04-06, 2026-05-04, 2026-06-01"),
+      { unit: "week", n: 1, count: null, until: null, exceptions: ["2026-04-06", "2026-05-04", "2026-06-01"] }));
+  test("parseRule: except combines with until and x N", () =>
+    assertDeep(parseRule("every 2 weeks x 10 until 2026-12-31 except 2026-04-06"),
+      { unit: "week", n: 2, count: 10, until: "2026-12-31", exceptions: ["2026-04-06"] }));
 
   // -- Recurrence expansion ----------------------------------------------
   group("Recurrence expansion");
@@ -201,6 +210,16 @@
     // be null. We don't parse ordinal 5 from text, but the helper supports
     // arbitrary ordinals and should report when there isn't one.
     assertEq(nthWeekdayOfMonth(2026, 4, 5, 1), null));
+  test("expandRule: except skips a single occurrence", () =>
+    assertDeep(
+      [...expandRule("2026-09-08", { unit: "week", n: 2, count: 4, until: null, exceptions: ["2026-09-22"] }, 2026)],
+      ["2026-09-08", "2026-10-06", "2026-10-20", "2026-11-03"]
+    ));
+  test("expandRule: except on nth-weekday-of-month rule", () =>
+    assertDeep(
+      [...expandRule("2026-01-01", { unit: "nthWeekdayOfMonth", ordinal: 1, weekday: 1, n: 1, count: 4, until: null, exceptions: ["2026-04-07"] }, 2026)],
+      ["2026-01-06", "2026-02-03", "2026-03-03", "2026-05-05"]
+    ));
 
   // -- Custom-dates text parsing -----------------------------------------
   group("parseCustomDates");
