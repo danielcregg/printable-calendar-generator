@@ -63,9 +63,13 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
 
     // TWA — wraps the deployed PWA in a Chrome Custom Tabs / Trusted Web Activity.
-    // Explicit androidx.browser pin overrides the alpha (1.9.0-alpha02) that
-    // androidbrowserhelper would otherwise drag in via transitive resolution.
-    implementation(libs.androidx.browser)
+    // androidbrowserhelper 2.6.0 transitively requests browser:1.9.0-alpha02, which
+    // demands compileSdk 36 + AGP 8.9.1. We pin to the latest stable browser (1.8.0)
+    // with a strictly constraint — Gradle's default "highest version wins" would
+    // otherwise pick the alpha and break the build.
+    implementation(libs.androidx.browser) {
+        version { strictly("1.8.0") }
+    }
     implementation(libs.google.androidbrowserhelper)
 
     // Glance — Compose-style API for App Widgets.
