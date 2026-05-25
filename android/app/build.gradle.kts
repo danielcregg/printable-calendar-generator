@@ -63,6 +63,9 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
 
     // TWA — wraps the deployed PWA in a Chrome Custom Tabs / Trusted Web Activity.
+    // Explicit androidx.browser pin overrides the alpha (1.9.0-alpha02) that
+    // androidbrowserhelper would otherwise drag in via transitive resolution.
+    implementation(libs.androidx.browser)
     implementation(libs.google.androidbrowserhelper)
 
     // Glance — Compose-style API for App Widgets.
