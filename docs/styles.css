@@ -276,20 +276,10 @@ button:focus-visible {
   flex: 0 0 auto;
 }
 
-/* Topbar row: [☰ PrintCal] ……… [‹ year month ›] ………
-   Title pinned to the left next to the hamburger; picker absolutely
-   centred so it always sits over the (centred) calendar regardless of
-   how wide the left-side content is. The topbar's own sticky position
-   acts as the positioning context. */
-.topbar .month-nav {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-/* Selects in the picker default to width:100% from the base form-control
-   rule — force content-width so they don't stretch across the topbar. */
-.topbar .month-nav select {
+/* Month picker styling — lives below the canvas now, not in the topbar.
+   Selects in the picker default to width:100% from the base form-control
+   rule; force content-width so the picker stays compact. */
+.month-nav select {
   width: auto;
   min-width: 0;
   font-size: var(--text-sm);
@@ -559,7 +549,9 @@ button:focus-visible {
    when either viewport width OR available height is the binding constraint,
    so the bottom of the page never falls off the screen on a short window. */
 .stage canvas {
-  width: min(100%, 1120px, calc((100dvh - var(--topbar-h) - 80px) * 1.4143));
+  /* 140px reserves space for: top padding (24) + bottom padding (48)
+     + month-nav row (44) + flex gap (16) + safety (8) */
+  width: min(100%, 1120px, calc((100dvh - var(--topbar-h) - 140px) * 1.4143));
   height: auto;
   background: white;
   display: block;
@@ -892,16 +884,10 @@ canvas {
 
 /* --- Responsive ------------------------------------------------------- */
 @media (max-width: 640px) {
-  .panel { padding: var(--space-4); }
-
-  /* On phones the title would collide with the centred picker, so it
-     steps aside. The hamburger is enough to anchor the brand. */
-  .topbar-title { display: none; }
-
-  /* Compact the month picker so it fits comfortably on a phone topbar. */
-  .topbar .month-nav { gap: var(--space-1); }
-  .topbar .month-nav select { font-size: var(--text-xs); padding: 5px 22px 5px 8px; }
-  .topbar .month-nav button { width: 32px; height: 32px; }
+  /* Compact the month picker on phones — same content, less chrome. */
+  .month-nav { gap: var(--space-1); }
+  .month-nav select { font-size: var(--text-xs); padding: 5px 22px 5px 8px; }
+  .month-nav button { width: 32px; height: 32px; }
 }
 
 @media (max-width: 460px) {

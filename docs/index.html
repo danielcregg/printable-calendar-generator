@@ -28,26 +28,6 @@
       </svg>
       PrintCal
     </h1>
-    <div class="month-nav">
-      <button id="prevMonthBtn" type="button" aria-label="Previous month">&lsaquo;</button>
-      <select id="year" aria-label="Year"></select>
-      <select id="month" aria-label="Month">
-        <option value="all">Full year</option>
-        <option value="0" selected>January</option>
-        <option value="1">February</option>
-        <option value="2">March</option>
-        <option value="3">April</option>
-        <option value="4">May</option>
-        <option value="5">June</option>
-        <option value="6">July</option>
-        <option value="7">August</option>
-        <option value="8">September</option>
-        <option value="9">October</option>
-        <option value="10">November</option>
-        <option value="11">December</option>
-      </select>
-      <button id="nextMonthBtn" type="button" aria-label="Next month">&rsaquo;</button>
-    </div>
   </header>
 
   <div class="view-banner" id="viewBanner" hidden role="status">
@@ -317,6 +297,26 @@
 
     <main class="stage" id="stage">
       <canvas id="preview" width="1123" height="794" aria-label="Calendar preview"></canvas>
+      <div class="month-nav">
+        <button id="prevMonthBtn" type="button" aria-label="Previous month">&lsaquo;</button>
+        <select id="year" aria-label="Year"></select>
+        <select id="month" aria-label="Month">
+          <option value="all">Full year</option>
+          <option value="0" selected>January</option>
+          <option value="1">February</option>
+          <option value="2">March</option>
+          <option value="3">April</option>
+          <option value="4">May</option>
+          <option value="5">June</option>
+          <option value="6">July</option>
+          <option value="7">August</option>
+          <option value="8">September</option>
+          <option value="9">October</option>
+          <option value="10">November</option>
+          <option value="11">December</option>
+        </select>
+        <button id="nextMonthBtn" type="button" aria-label="Next month">&rsaquo;</button>
+      </div>
     </main>
   </div>
 
