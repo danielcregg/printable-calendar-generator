@@ -258,11 +258,15 @@ button:focus-visible {
   color: var(--text);
 }
 
-/* Topbar row: [☰ PrintCal] -------------- [‹ year month ›]
-   Title pinned to the left next to the hamburger; picker pushed to the
-   right edge by an auto margin. */
+/* Topbar row: [☰ PrintCal] ……… [‹ year month ›] ………
+   Title pinned to the left next to the hamburger; picker absolutely
+   centred so it always sits over the (centred) calendar regardless of
+   how wide the left-side content is. The topbar's own sticky position
+   acts as the positioning context. */
 .topbar .month-nav {
-  margin-left: auto;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 /* Selects in the picker default to width:100% from the base form-control
@@ -597,14 +601,6 @@ button:focus-visible {
 .fab:hover  { background: var(--primary-dark); box-shadow: var(--shadow-lg); }
 .fab:active { transform: translateY(1px); }
 
-.fab-secondary {
-  background: var(--panel);
-  color: var(--primary);
-  border: 1px solid var(--primary);
-  box-shadow: var(--shadow-sm);
-}
-.fab-secondary:hover { background: var(--primary-soft); box-shadow: var(--shadow-md); }
-
 canvas {
   width: 100%;
   height: auto;
@@ -775,15 +771,14 @@ canvas {
 @media (max-width: 640px) {
   .panel { padding: var(--space-4); }
 
+  /* On phones the title would collide with the centred picker, so it
+     steps aside. The hamburger is enough to anchor the brand. */
+  .topbar-title { display: none; }
+
   /* Compact the month picker so it fits comfortably on a phone topbar. */
   .topbar .month-nav { gap: var(--space-1); }
   .topbar .month-nav select { font-size: var(--text-xs); padding: 5px 22px 5px 8px; }
   .topbar .month-nav button { width: 32px; height: 32px; }
-}
-
-@media (max-width: 380px) {
-  /* On the narrowest phones, hide the title so the picker still fits. */
-  .topbar-title { display: none; }
 }
 
 @media (max-width: 460px) {

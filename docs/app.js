@@ -944,7 +944,9 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
 }
 
 // Builds the multi-page jsPDF document for the current selection — used by
-// both Download (saves a file) and Print (opens in a new tab with autoPrint).
+// Print, which opens it in a new tab with autoPrint. The browser's print
+// dialog includes "Save as PDF" as a destination, so this single flow
+// covers both "send to a printer" and "save a copy" intents.
 function buildPdfDoc() {
   const { jsPDF } = window.jspdf;
   const year = Number(document.getElementById("year").value);
@@ -959,16 +961,6 @@ function buildPdfDoc() {
   return doc;
 }
 
-function downloadPdf() {
-  const year = Number(document.getElementById("year").value);
-  const monthValue = document.getElementById("month").value;
-  const doc = buildPdfDoc();
-  const name = monthValue === "all" ? `calendar_${year}.pdf` : `${MONTH_NAMES.en[Number(monthValue)].toLowerCase()}_${year}.pdf`;
-  doc.save(name);
-}
-
-// Generates the same PDF as downloadPdf but opens it in a new tab with
-// autoPrint set, so the browser's print dialog appears immediately.
 function printCalendar() {
   const doc = buildPdfDoc();
   doc.autoPrint();
@@ -2302,7 +2294,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // Preview controls.
   document.getElementById("previewBtn").addEventListener("click", renderPreview);
-  document.getElementById("downloadBtn").addEventListener("click", downloadPdf);
   document.getElementById("printBtn").addEventListener("click", printCalendar);
   document.getElementById("preview").addEventListener("click", handlePreviewClick);
   document.getElementById("dayDialogClose").addEventListener("click", closeDayDialog);

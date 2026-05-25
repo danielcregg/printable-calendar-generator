@@ -188,10 +188,10 @@
 
           <p class="hint">All entries live in the box below. Click any line to edit; advanced users can type rules directly using the syntax <code>YYYY-MM-DD | Label | rule</code>.</p>
 
-          <textarea id="customDates" rows="6" spellcheck="false">2026-01-01 | Pay Day | every 2 weeks
-2026-01-05 | Bins | every 2 weeks
-2026-09-01 | School Starts
-2026-11-12 | Birthday | yearly</textarea>
+          <textarea id="customDates" rows="6" spellcheck="false" placeholder="2026-12-25 | Christmas
+2026-11-12 | Birthday | yearly
+2026-09-08 | Bins | every 2 weeks
+2026-09-15 | Swimming | every week x 10"></textarea>
 
           <div class="date-groups">
             <p class="hint">Reusable date groups (e.g. family birthdays):</p>
@@ -293,13 +293,9 @@
   </dialog>
 
   <div class="fab-group">
-    <button class="fab fab-secondary" id="printBtn" type="button">
+    <button class="fab" id="printBtn" type="button">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Print
-    </button>
-    <button class="fab" id="downloadBtn" type="button">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Download PDF
     </button>
   </div>
 
