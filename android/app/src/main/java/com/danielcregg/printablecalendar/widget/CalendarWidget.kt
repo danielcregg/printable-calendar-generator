@@ -4,85 +4,70 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.Image
+import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
+import androidx.glance.LocalSize
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
-import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
-import androidx.glance.background
-import androidx.glance.color.ColorProvider
-import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
+import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxHeight
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
-import androidx.glance.layout.padding
-import androidx.glance.text.FontWeight
-import androidx.glance.text.Text
-import androidx.glance.text.TextAlign
-import androidx.glance.text.TextStyle
-import com.danielcregg.printablecalendar.R
 import com.danielcregg.printablecalendar.data.DayLabel
 import com.danielcregg.printablecalendar.data.StubWidgetDataSource
 import com.danielcregg.printablecalendar.data.WidgetDataSource
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /**
- * Home-screen widget showing "this month at a glance" — a clean Mon-first 7-column grid
- * sized to the launcher's 4×4 cell default, with today highlighted, weekend columns
- * lightly shaded, and adjacent-month leading/trailing cells filled in (matching the
- * print layout in `docs/app.js`).
+ * Home-screen widget that displays the same A4 calendar layout the PWA / PDF
+ * produces. The month is drawn into a [android.graphics.Bitmap] by
+ * [WidgetCalendarRenderer] using `android.graphics.Canvas`, then shown as a single
+ * Glance [Image]. A transparent grid of clickable boxes sits on top of the image
+ * so each day cell still has its own deep link into the PWA.
+ *
+ * ## Why Bitmap instead of Glance composition
+ *
+ * Glance composes [RemoteViews] under the hood and is fine for simple text and
+ * rows, but it can't draw what makes the print layout look like the print layout:
+ *
+ *   - bordered cells with day numbers anchored top-left,
+ *   - dashed writing-guide lines through each cell,
+ *   - holiday labels stacked in bottom-left "slots" (with bold/italic mixing),
+ *   - faint adjacent-month tags in the top-right corner.
+ *
+ * All of those require absolute positioning and stroke control that Glance
+ * doesn't expose. Drawing to a Bitmap and presenting via Image gives us the full
+ * Canvas API at the cost of one tradeoff: the bitmap itself is one tap target,
+ * which we work around by overlaying a transparent click grid (see [TapGrid]).
  *
  * ## Per-cell deep links
  *
- * Every day cell — including the leading/trailing adjacent-month days — has its own
- * `ACTION_VIEW` intent against `.../printable-calendar-generator/?d=YYYY-MM-DD`.
- * The PWA's `loadFromQueryIfPresent` reads `?d=` and opens the day editor focused on
- * that ISO date. Adjacent-month cells link into the *actual* month their date belongs
- * to (the previous or next month), not the rendered month — so the user lands where
- * they expect.
+ * Every day cell — current-month, leading prev-month, trailing next-month — has
+ * its own `ACTION_VIEW` intent against the PWA's `?d=YYYY-MM-DD` deep link.
+ * Adjacent-month cells route to their actual calendar month so the user lands
+ * where they expect.
  *
- * The deep-link host is verified via Digital Asset Links (see `digital_asset_links.json`
- * and the `<intent-filter android:autoVerify="true">` in the manifest), so taps route
- * straight into the TWA without the disambiguation dialog.
+ * ## Sizing & memory
  *
- * ## Visual rules
- *
- * Follows `AGENTS.md`'s design rules where they apply to an on-screen widget:
- *
- *  - Mon-first 7-column grid.
- *  - Saturday and Sunday columns lightly shaded (`#f0f0f0` in light, `#262626` in dark).
- *  - Adjacent-month day numbers in light grey (`#a8a8a8`), no labels.
- *  - Today's cell filled with `#1a56db` (the PWA's `--primary` blue), day number in
- *    white bold; any holiday label on that cell flips to white bold too.
- *  - Holiday labels in default text colour, bold. Custom-date labels in a muted slate
- *    colour to differentiate (Glance doesn't expose italic, so colour stands in for
- *    "bold italic" from the print layout).
- *  - Month header "JUNE 2026" centred, 16 sp bold, with a slim horizontal divider
- *    immediately below.
- *
- * The writing guide lines and teaching-week gutter from the print layout are dropped:
- * the widget is a glanceable summary, not a print preview.
- *
- * ## Sizing
- *
- * Declared as a single resizable widget in `res/xml/widget_info.xml`, defaulting to
- * 4×4 launcher cells. Glance's [SizeMode.Exact] hands us the current size on every
- * update; the layout adapts within the same composable so the grid stays readable
- * down to roughly 3×3.
+ * The bitmap is sized to the widget's actual pixel dimensions, capped at 700 px
+ * on either axis to stay well under RemoteViews' bitmap-size limit
+ * (~2 MB at ARGB_8888). On launches where the widget would render larger, the
+ * bitmap is scaled down proportionally and Glance stretches it back up; the
+ * print-layout proportions are preserved either way.
  */
 class CalendarWidget(
     private val dataSourceProvider: (Context) -> WidgetDataSource = { StubWidgetDataSource() },
@@ -94,9 +79,6 @@ class CalendarWidget(
         val source = dataSourceProvider(context)
         val month = source.currentMonth()
         val today = source.today()
-        // The grid spans the rendered month plus adjacent leading/trailing days. We
-        // only fetch labels for the rendered month; adjacent-month cells stay clean
-        // to match the print layout (no holiday or custom-date text on greyed days).
         val labels = source.labelsFor(month)
         provideContent {
             WidgetContent(month = month, today = today, labels = labels)
@@ -104,35 +86,13 @@ class CalendarWidget(
     }
 }
 
-// ============================================================================
-// Colour tokens
-// ----------------------------------------------------------------------------
-// Glance exposes two compatible ways to specify a colour:
-//
-//   1. `background(@ColorRes Int)` accepts a raw resource ID — Android auto-resolves
-//      day/night via the values/values-night colours folder. We use this for cell
-//      backgrounds where the styling cascades through `Box.background(...)`.
-//
-//   2. `androidx.glance.color.ColorProvider(day, night)` builds a [ColorProvider]
-//      tied to system dark mode. In Glance 1.1.x the factory takes two `Long` ARGB
-//      values; the `Color`-taking overload only arrives in 1.2.x. We use this for
-//      text colours, which need a [ColorProvider] inside a [TextStyle] — the
-//      resource-backed factory is `@RestrictTo` and can't be called from app code.
-//
-// Each entry below mirrors the equivalent ARGB in `res/values/colors.xml` and
-// `res/values-night/colors.xml`. Keep them aligned when changing either set.
-// ============================================================================
-
-// ARGB literals wrapped in Compose Color() — Glance's ColorProvider(day, night)
-// factory takes Compose Colors, not raw Longs.
-private val WidgetForeground = ColorProvider(day = Color(0xFF111111), night = Color(0xFFF5F5F5))
-private val WidgetOnPrimary = ColorProvider(day = Color(0xFFFFFFFF), night = Color(0xFFFFFFFF))
-private val WidgetAdjacent = ColorProvider(day = Color(0xFFA8A8A8), night = Color(0xFF5C5C5C))
-private val WidgetLabelMuted = ColorProvider(day = Color(0xFF64748B), night = Color(0xFF94A3B8))
-
 /** Base URL of the deployed PWA. `?d=YYYY-MM-DD` is appended per cell. */
 private const val DEEP_LINK_BASE =
     "https://danielcregg.github.io/printable-calendar-generator/"
+
+/** Cap any axis of the rendered bitmap to this many pixels so we stay under
+ *  the RemoteViews bitmap-size budget (~2 MB at ARGB_8888 ≈ 720 × 720). */
+private const val BITMAP_DIMENSION_CAP_PX = 700
 
 @Composable
 private fun WidgetContent(
@@ -140,205 +100,76 @@ private fun WidgetContent(
     today: LocalDate,
     labels: Map<LocalDate, List<DayLabel>>,
 ) {
-    // Root no longer carries its own clickable — each DayCell owns its tap target so
-    // a tap goes to the day that was touched, not the whole widget.
-    Column(
-        modifier = GlanceModifier
-            .fillMaxSize()
-            .background(R.color.widget_background)
-            .cornerRadius(16.dp)
-            .padding(12.dp),
-    ) {
-        Header(month = month)
-        Divider()
-        Spacer(GlanceModifier.height(6.dp))
-        WeekdayHeader()
-        Spacer(GlanceModifier.height(2.dp))
-        DayGrid(month = month, today = today, labels = labels)
-    }
-}
+    val context = LocalContext.current
+    val size = LocalSize.current
+    val density = context.resources.displayMetrics.density
 
-@Composable
-private fun Header(month: YearMonth) {
-    // "JUNE 2026" centred, 16sp bold — matches AGENTS.md's "month name bold, year
-    // regular" idea, condensed for the widget where there is no room for a separate
-    // year stamp. The print layout's strict left/right split would be wasted at this
-    // size; a single centred title reads better.
-    val titleFormatter = DateTimeFormatter.ofPattern("LLLL yyyy", Locale.getDefault())
-    val title = month.format(titleFormatter).uppercase(Locale.getDefault())
-    Row(
-        modifier = GlanceModifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = title,
-            modifier = GlanceModifier.defaultWeight(),
-            style = TextStyle(
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = WidgetForeground,
-                textAlign = TextAlign.Center,
-            ),
+    // Compute the bitmap's pixel size. Down-scale proportionally if either axis
+    // would exceed the cap — keeps memory bounded for huge resized widgets.
+    val rawW = (size.width.value * density).toInt().coerceAtLeast(1)
+    val rawH = (size.height.value * density).toInt().coerceAtLeast(1)
+    val maxAxis = maxOf(rawW, rawH).toFloat()
+    val scale = if (maxAxis > BITMAP_DIMENSION_CAP_PX) BITMAP_DIMENSION_CAP_PX / maxAxis else 1f
+    val widthPx = (rawW * scale).toInt().coerceAtLeast(1)
+    val heightPx = (rawH * scale).toInt().coerceAtLeast(1)
+
+    val bitmap = WidgetCalendarRenderer.render(
+        widthPx = widthPx,
+        heightPx = heightPx,
+        month = month,
+        today = today,
+        labels = labels,
+    )
+
+    Box(modifier = GlanceModifier.fillMaxSize()) {
+        Image(
+            provider = ImageProvider(bitmap),
+            contentDescription = null,
+            modifier = GlanceModifier.fillMaxSize(),
+            contentScale = ContentScale.Fit,
         )
+        // Invisible 7 × rows grid of clickable Boxes, laid on top of the image
+        // so every cell still has its own tap target → PWA day editor.
+        TapGrid(month = month)
     }
 }
 
+/**
+ * Transparent grid that mirrors the bitmap's cell layout and turns each cell
+ * into its own tap target. The grid skips the top ~12.5% of the widget — that's
+ * the area the renderer reserves for the month title + weekday header band, so
+ * taps there fall through to the underlying Image (no link, intentionally).
+ */
 @Composable
-private fun Divider() {
-    // Slim horizontal divider directly under the month header. 1 dp tall, in the
-    // theme's `widget_divider` colour — light grey on light, dim grey on dark.
-    Spacer(GlanceModifier.height(6.dp))
-    Box(
-        modifier = GlanceModifier
-            .fillMaxWidth()
-            .height(1.dp)
-            .background(R.color.widget_divider),
-    ) {}
-}
-
-@Composable
-private fun WeekdayHeader() {
-    // Monday-first weekday header. Matches the print layout's MON/TUE/… style, but
-    // single letters because a widget cell is too narrow for three-letter labels.
-    val mondayFirst = listOf("M", "T", "W", "T", "F", "S", "S")
-    Row(modifier = GlanceModifier.fillMaxWidth()) {
-        mondayFirst.forEachIndexed { index, letter ->
-            val isWeekend = index >= 5  // Sat (5) and Sun (6)
-            val bgRes = if (isWeekend) R.color.widget_weekend else R.color.widget_background
-            Box(
-                modifier = GlanceModifier
-                    .defaultWeight()
-                    .background(bgRes)
-                    .padding(vertical = 2.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = letter,
-                    style = TextStyle(
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = WidgetForeground,
-                        textAlign = TextAlign.Center,
-                    ),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun DayGrid(
-    month: YearMonth,
-    today: LocalDate,
-    labels: Map<LocalDate, List<DayLabel>>,
-) {
-    // Monday-offset placement: how many adjacent-month days lead the grid before day 1.
+private fun TapGrid(month: YearMonth) {
+    val size = LocalSize.current
     val firstOfMonth = month.atDay(1)
-    val leading = (firstOfMonth.dayOfWeek.value + 6) % 7  // Mon=0 .. Sun=6
-    val daysInMonth = month.lengthOfMonth()
-    val totalCells = leading + daysInMonth
-    val rows = (totalCells + 6) / 7  // 5 or 6 rows depending on month
+    val leading = (firstOfMonth.dayOfWeek.value + 6) % 7  // Mon = 0, Sun = 6
+    val rows = if (leading + month.lengthOfMonth() <= 35) 5 else 6
+
+    // Reserve the header band (must match WidgetCalendarRenderer's layout:
+    // margin 2.5% + title 6% + weekday 4% = ~12.5%) so taps don't trigger
+    // when the user taps the month title.
+    val headerHeightDp = (size.height.value * 0.125f).dp
+    val bottomMarginDp = (size.height.value * 0.025f).dp
 
     Column(modifier = GlanceModifier.fillMaxSize()) {
+        Spacer(GlanceModifier.height(headerHeightDp))
         for (row in 0 until rows) {
             Row(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
                 for (col in 0 until 7) {
                     val cellIndex = row * 7 + col
-                    // Compute the actual date for this cell — leading cells go into
-                    // the previous month, trailing into the next, so every cell is
-                    // tappable to a real date (matching the print layout).
                     val date = firstOfMonth.plusDays((cellIndex - leading).toLong())
-                    val inCurrentMonth = YearMonth.from(date) == month
-                    val isWeekend = col >= 5
-                    DayCell(
-                        date = date,
-                        inCurrentMonth = inCurrentMonth,
-                        isToday = inCurrentMonth && date == today,
-                        isWeekend = isWeekend,
-                        label = if (inCurrentMonth) labels[date]?.firstOrNull() else null,
-                        // defaultWeight() handles 1/7 horizontal distribution; fillMaxHeight
-                        // stretches the cell vertically. Using fillMaxSize() here would
-                        // include fillMaxWidth(), which fights the weight and made each cell
-                        // claim the whole row — only column 0 ever rendered.
-                        modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
-                    )
+                    Box(
+                        modifier = GlanceModifier
+                            .defaultWeight()
+                            .fillMaxHeight()
+                            .clickable(actionStartActivity(deepLinkIntentFor(date))),
+                    ) {}
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun DayCell(
-    date: LocalDate,
-    inCurrentMonth: Boolean,
-    isToday: Boolean,
-    isWeekend: Boolean,
-    label: DayLabel?,
-    modifier: GlanceModifier,
-) {
-    // Background priority: today > weekend tint > plain widget background.
-    val backgroundRes = when {
-        isToday -> R.color.widget_today
-        isWeekend -> R.color.widget_weekend
-        else -> R.color.widget_background
-    }
-
-    // Day-number colour: today white, adjacent-month grey, otherwise default fg.
-    val numberColor = when {
-        isToday -> WidgetOnPrimary
-        !inCurrentMonth -> WidgetAdjacent
-        else -> WidgetForeground
-    }
-
-    val numberStyle = TextStyle(
-        fontSize = 12.sp,
-        // Bold for today and current-month days; regular for adjacent-month (the
-        // print layout uses light grey + bold there, but the widget leans further into
-        // the "this isn't the rendered month" hint with a lighter weight too).
-        fontWeight = if (!inCurrentMonth) FontWeight.Normal else FontWeight.Bold,
-        color = numberColor,
-        textAlign = TextAlign.Center,
-    )
-
-    // Label colour: white on today, muted slate for custom dates, default fg for holidays.
-    val labelColor = when {
-        isToday -> WidgetOnPrimary
-        label?.kind == DayLabel.Kind.CUSTOM -> WidgetLabelMuted
-        else -> WidgetForeground
-    }
-
-    Box(
-        modifier = modifier
-            .padding(1.dp)
-            .background(backgroundRes)
-            .cornerRadius(6.dp)
-            .clickable(actionStartActivity(deepLinkIntentFor(date))),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            modifier = GlanceModifier.fillMaxSize().padding(2.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(text = date.dayOfMonth.toString(), style = numberStyle)
-            // Adjacent-month cells stay clean — matches the print layout's behaviour
-            // of greying out leading/trailing day numbers with no holiday text.
-            if (inCurrentMonth && label != null) {
-                Text(
-                    text = label.text,
-                    style = TextStyle(
-                        fontSize = 7.sp,
-                        // Holidays are bold per spec; custom dates also bold (Glance
-                        // doesn't expose italic — we already differentiate by colour).
-                        fontWeight = FontWeight.Bold,
-                        color = labelColor,
-                        textAlign = TextAlign.Center,
-                    ),
-                )
-            }
-        }
+        Spacer(GlanceModifier.height(bottomMarginDp))
     }
 }
 
