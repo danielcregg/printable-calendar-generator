@@ -283,13 +283,18 @@ button:focus-visible {
 
 /* Month picker styling — lives below the canvas now, not in the topbar.
    Selects in the picker default to width:100% from the base form-control
-   rule; force content-width so the picker stays compact. */
+   rule. Pin both to the same min-width so the year ("2026") and the
+   month ("September") render as a matched pair, and reserve enough
+   right padding that the chevron never crowds the text. The base
+   select rule positions its chevron at right:10px with a 16px svg, so
+   anything text needs padding-right >= 30px to clear it. */
 .month-nav select {
   width: auto;
-  min-width: 0;
+  min-width: 116px;
   font-size: var(--text-sm);
   font-weight: 600;
-  padding: 6px 26px 6px 10px;
+  padding: 6px 32px 6px 12px;
+  text-align: center;
 }
 
 /* --- Icon buttons (hamburger, drawer close) ----------------------------- */
@@ -895,7 +900,12 @@ canvas {
 @media (max-width: 640px) {
   /* Compact the month picker on phones — same content, less chrome. */
   .month-nav { gap: var(--space-1); }
-  .month-nav select { font-size: var(--text-xs); padding: 5px 22px 5px 8px; }
+  .month-nav select {
+    font-size: var(--text-xs);
+    /* Right padding still has to clear the chevron (right:10 + 16 = 26). */
+    padding: 5px 28px 5px 10px;
+    min-width: 102px;
+  }
   .month-nav button { width: 32px; height: 32px; flex: 0 0 32px; }
 }
 
