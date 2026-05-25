@@ -1,3 +1,7 @@
 # Agent worktrees created by Claude Code when sub-agents need an isolated
 # copy of the repository. Transient — not part of the project.
 .claude/
+
+# In-progress scaffold from a background agent. Will be removed and the
+# directory committed properly once the agent reports completion.
+android/
