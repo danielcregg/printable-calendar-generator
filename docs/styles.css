@@ -657,12 +657,6 @@ canvas {
 }
 .day-dialog-head h2 { margin: 0; font-size: var(--text-lg); }
 .day-dialog-body { padding: var(--space-5); }
-.day-dialog-hint {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  margin: var(--space-3) 0 0;
-  text-align: center;
-}
 
 /* The cell preview is a real canvas drawn with the same code path as the
    printed cell, so it's a pixel-faithful copy of how the day will look
@@ -705,6 +699,12 @@ canvas {
   background: rgba(26, 86, 219, .08);
   outline: none;
   box-shadow: none;
+}
+/* Empty slots show a faded "+ Add a reminder" hint at all times so the
+   interaction is discoverable without a paragraph of helper text. The
+   hint brightens on hover. */
+.slot-hit.empty {
+  color: rgba(15, 23, 42, .32);
 }
 .slot-hit.empty:hover,
 .slot-hit.empty:focus-visible {
