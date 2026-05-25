@@ -1,3 +1,10 @@
 # Agent worktrees created by Claude Code when sub-agents need an isolated
 # copy of the repository. Transient — not part of the project.
 .claude/
+
+# Cloudflare Wrangler local state and per-user config. The repo ships
+# worker/wrangler.toml.example; each deployer creates their own
+# worker/wrangler.toml with their KV namespace id (see worker/README.md).
+.wrangler/
+worker/.wrangler/
+worker/wrangler.toml
