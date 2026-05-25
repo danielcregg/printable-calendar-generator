@@ -411,6 +411,7 @@ button:focus-visible {
 .save-row input,
 .save-row select { flex: 1 1 200px; width: auto; min-width: 0; }
 .save-row button { flex: 0 0 auto; }
+.save-row[hidden] { display: none; }  /* `flex` would otherwise out-rank the [hidden] attribute */
 
 .quick-add { display: contents; }
 .quick-add-label {
@@ -659,6 +660,36 @@ canvas {
   height: auto;
   display: block;
   background: white;
+}
+
+/* --- Live sharing status pill ------------------------------------------ */
+.live-share { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border); }
+.live-share-status {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.live-share-status::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #15803d;  /* green dot */
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+.live-share-status.live-share-error::before { background: #b91c1c; animation: none; }
+.live-share-ts { font-weight: 400; color: var(--text-muted); }
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .35; }
 }
 
 /* --- Day editor (modal opened by clicking a day) ----------------------- */

@@ -7,9 +7,12 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ffffff">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="styles.css?v=2026-05-recurring-override">
+  <!-- Optional Cloudflare Worker that powers the Live sharing feature.
+       Blank = feature hidden. See worker/README.md for deployment. -->
+  <meta name="cal-share-worker" content="">
+  <link rel="stylesheet" href="styles.css?v=2026-05-live-share">
   <script defer src="vendor/jspdf.umd.min.js"></script>
-  <script defer src="app.js?v=2026-05-recurring-override"></script>
+  <script defer src="app.js?v=2026-05-live-share"></script>
 </head>
 <body class="app">
   <header class="topbar">
@@ -189,6 +192,18 @@
             <button id="exportBtn" type="button">Download as file</button>
             <button id="importBtn" type="button">Load a file</button>
             <input id="importFile" type="file" accept=".json,application/json" hidden>
+          </div>
+
+          <div class="live-share" id="liveShareBlock" hidden>
+            <p class="hint">Or share a <strong>live</strong> calendar &mdash; both of you open the same link and edits sync within a few seconds.</p>
+            <div class="save-row" id="liveShareStartRow">
+              <button id="liveShareStartBtn" type="button">Start live sharing</button>
+            </div>
+            <div class="save-row" id="liveShareActiveRow" hidden>
+              <span class="live-share-status" id="liveShareStatus">Live <span class="live-share-ts" id="liveShareTs"></span></span>
+              <button id="liveShareCopyBtn" type="button">Copy live link</button>
+              <button id="liveShareStopBtn" type="button">Stop sharing</button>
+            </div>
           </div>
         </section>
 

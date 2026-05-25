@@ -38,6 +38,11 @@ settings restored) or **Download as file** (a `.json` file the recipient can dro
 **Load a file**). Both options carry the whole setup in the link or the file itself, so
 nothing is uploaded to any server.
 
+For households who want **two people editing the same calendar at the same time**, an
+optional **Live sharing** feature uses a tiny Cloudflare Worker so changes sync within a
+few seconds. It is off by default and stays hidden unless you deploy the Worker; see
+[`worker/README.md`](worker/README.md) for the one-time setup.
+
 Generating a PDF needs nothing online — jsPDF is bundled in `docs/vendor/`. The site is
 also a Progressive Web App: your browser can install it as a standalone app, and once
 visited it keeps working with no internet connection.

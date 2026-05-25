@@ -53,6 +53,10 @@ printable-calendar-generator/
       icon-192.png       # App icons referenced by the PWA manifest
       icon-512.png
   Original Sample month/      # Reference printed sample PDF
+  worker/                     # OPTIONAL Cloudflare Worker powering live sharing
+    share.js                  #   ~70 lines — GET/PUT calendar JSON in Workers KV
+    wrangler.toml.example     #   rename + edit, then `wrangler deploy`
+    README.md                 #   deployment + free-tier capacity notes
   README.md
   AGENTS.md
   CLAUDE.md
@@ -241,6 +245,26 @@ afterwards. The file form is plain pretty-printed JSON so it's diff-friendly.
 URL shorteners are deliberately not used: every free shortener stores the long URL on
 its own server, which would leak personal dates and break the offline-first model. Long
 URLs that get truncated by a chat app are handled by falling back to the file export.
+
+### Live sharing (optional, opt-in)
+
+For households who want two devices editing the same calendar in near-real-time, the
+`worker/` directory ships a tiny Cloudflare Worker that exposes `GET/PUT /:calendarId`
+backed by Workers KV. The static app reads `<meta name="cal-share-worker">` for the
+Worker URL — when blank, the **Live sharing** UI in the Saved calendars panel stays
+hidden and no network calls are made. When a URL is configured:
+
+- Starting a session generates a ~16-char URL-safe-base64 id (~95 bits of entropy)
+  and reflects it in the address bar as `?live=<id>`.
+- The app pulls every 5 s and pushes 1.5 s after the last local change. Conflicts use
+  last-write-wins by server timestamp — fine for a household calendar where two
+  people rarely edit the same second; would need CRDTs if usage patterns ever grew.
+- The id is the bearer secret; anyone who knows it can read and write. The Worker
+  has no enumeration endpoint.
+
+Live sharing is deliberately opt-in because it sends user data to a third party
+(Cloudflare). The default-off behaviour preserves the "nothing leaves your device"
+guarantee for users who don't want it.
 
 ## Testing checklist
 

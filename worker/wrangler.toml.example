@@ -1,0 +1,13 @@
+# Rename to wrangler.toml and fill in the kv_namespaces id after creating
+# the namespace (see ./README.md). Do not commit the live wrangler.toml
+# if your KV id is sensitive in your context.
+
+name = "printcal-share"
+main = "share.js"
+compatibility_date = "2024-10-01"
+
+# Created via: wrangler kv namespace create CAL_KV
+# Paste the returned id here.
+[[kv_namespaces]]
+binding = "CAL_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"

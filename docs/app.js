@@ -1000,6 +1000,7 @@ function renderPreview() {
     lang: document.getElementById("language").value,
   });
   updateMonthNav();
+  liveShareSchedulePush();
 }
 
 // Disables the prev/next arrows in full-year mode (no single month to step
@@ -1925,6 +1926,181 @@ function loadFromHashIfPresent() {
   return applied;
 }
 
+// ============================================================================
+// Live sharing: poll/push a tiny JSON blob through a Cloudflare Worker so
+// two devices can keep the same calendar in sync. The Worker URL is read
+// from a <meta name="cal-share-worker"> tag — when empty (default), the
+// live-share UI stays hidden and this code is a no-op.
+// ============================================================================
+
+const LIVE_PARAM = "live";
+const LIVE_POLL_MS = 5_000;
+const LIVE_PUSH_DEBOUNCE_MS = 1_500;
+const LIVE_ID_BYTES = 12;  // ≈ 16 chars in url-safe base64 → ~95 bits of entropy
+
+const liveState = {
+  id: null,
+  workerUrl: "",
+  lastServerTs: 0,
+  pullTimer: null,
+  pushTimer: null,
+  inFlightPull: false,
+  applyingRemote: false,
+  lastSyncAt: 0,
+};
+
+function liveShareWorkerUrl() {
+  const meta = document.querySelector('meta[name="cal-share-worker"]');
+  const raw = (meta && meta.content || "").trim().replace(/\/+$/, "");
+  return raw;
+}
+
+function randomLiveId() {
+  const bytes = new Uint8Array(LIVE_ID_BYTES);
+  crypto.getRandomValues(bytes);
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+}
+
+function liveShareEndpoint(id) {
+  return `${liveState.workerUrl}/${id}`;
+}
+
+async function liveSharePull() {
+  if (!liveState.id || liveState.pushTimer) return;  // skip while local push pending
+  if (liveState.inFlightPull) return;
+  liveState.inFlightPull = true;
+  try {
+    const res = await fetch(liveShareEndpoint(liveState.id), { cache: "no-store" });
+    if (res.status === 404) {
+      // First time anyone's opened this id — push our current state so the
+      // recipient sees what we have right now.
+      await liveSharePush();
+      return;
+    }
+    if (!res.ok) { setLiveStatus("Error", true); return; }
+    const data = await res.json();
+    if (!data || typeof data.ts !== "number" || data.ts <= liveState.lastServerTs) {
+      setLiveStatus(liveSyncedRecency());
+      return;
+    }
+    if (data.payload) {
+      liveState.applyingRemote = true;
+      try { applySharePayload(data.payload); }
+      finally { liveState.applyingRemote = false; }
+    }
+    liveState.lastServerTs = data.ts;
+    liveState.lastSyncAt = Date.now();
+    setLiveStatus(liveSyncedRecency());
+  } catch {
+    setLiveStatus("Offline", true);
+  } finally {
+    liveState.inFlightPull = false;
+  }
+}
+
+async function liveSharePush() {
+  if (!liveState.id) return;
+  const ts = Date.now();
+  const body = JSON.stringify({ ts, payload: buildSharePayload() });
+  try {
+    const res = await fetch(liveShareEndpoint(liveState.id), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
+    if (!res.ok) { setLiveStatus("Error", true); return; }
+    liveState.lastServerTs = ts;
+    liveState.lastSyncAt = Date.now();
+    setLiveStatus(liveSyncedRecency());
+  } catch {
+    setLiveStatus("Offline", true);
+  }
+}
+
+// Debounced from renderPreview: any user-driven change waits 1.5 s for
+// keystrokes to settle and then pushes the whole payload.
+function liveShareSchedulePush() {
+  if (!liveState.id || liveState.applyingRemote) return;
+  clearTimeout(liveState.pushTimer);
+  liveState.pushTimer = setTimeout(() => {
+    liveState.pushTimer = null;
+    liveSharePush();
+  }, LIVE_PUSH_DEBOUNCE_MS);
+}
+
+function liveSyncedRecency() {
+  if (!liveState.lastSyncAt) return "";
+  const ago = Math.round((Date.now() - liveState.lastSyncAt) / 1000);
+  if (ago < 5) return "synced just now";
+  if (ago < 60) return `synced ${ago}s ago`;
+  return `synced ${Math.round(ago / 60)} min ago`;
+}
+
+function setLiveStatus(text, isError = false) {
+  const status = document.getElementById("liveShareStatus");
+  if (!status) return;
+  document.getElementById("liveShareTs").textContent = text;
+  status.classList.toggle("live-share-error", !!isError);
+}
+
+function liveShareStart(id, { pushInitial }) {
+  liveState.id = id;
+  liveState.lastServerTs = 0;
+  liveState.lastSyncAt = 0;
+  document.getElementById("liveShareStartRow").hidden = true;
+  document.getElementById("liveShareActiveRow").hidden = false;
+  setLiveStatus("Connecting…");
+  // Reflect the live id in the URL so refreshing or sharing the URL works.
+  const u = new URL(location.href);
+  u.searchParams.set(LIVE_PARAM, id);
+  history.replaceState(null, "", u.toString());
+  if (pushInitial) liveSharePush();
+  else liveSharePull();
+  liveState.pullTimer = setInterval(liveSharePull, LIVE_POLL_MS);
+}
+
+function liveShareStop() {
+  clearInterval(liveState.pullTimer);
+  clearTimeout(liveState.pushTimer);
+  liveState.id = null;
+  liveState.pullTimer = null;
+  liveState.pushTimer = null;
+  document.getElementById("liveShareStartRow").hidden = false;
+  document.getElementById("liveShareActiveRow").hidden = true;
+  const u = new URL(location.href);
+  u.searchParams.delete(LIVE_PARAM);
+  history.replaceState(null, "", u.toString());
+}
+
+function wireLiveShare() {
+  liveState.workerUrl = liveShareWorkerUrl();
+  if (!liveState.workerUrl) return;  // feature disabled when no Worker configured
+  const block = document.getElementById("liveShareBlock");
+  block.hidden = false;
+
+  document.getElementById("liveShareStartBtn").addEventListener("click", () => {
+    liveShareStart(randomLiveId(), { pushInitial: true });
+  });
+  document.getElementById("liveShareStopBtn").addEventListener("click", liveShareStop);
+  document.getElementById("liveShareCopyBtn").addEventListener("click", () => {
+    if (!liveState.id) return;
+    const u = new URL(location.href);
+    u.searchParams.set(LIVE_PARAM, liveState.id);
+    navigator.clipboard?.writeText(u.toString())
+      .then(() => setLiveStatus("Link copied"))
+      .catch(() => window.prompt("Copy this live-share link:", u.toString()));
+  });
+
+  // If the URL already carries ?live=<id>, jump straight into a session
+  // and let the pull populate our local state.
+  const incomingId = new URL(location.href).searchParams.get(LIVE_PARAM);
+  if (incomingId && /^[A-Za-z0-9_-]{16,40}$/.test(incomingId)) {
+    liveShareStart(incomingId, { pushInitial: false });
+  }
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   // Bail out when the generator controls aren't present (e.g. the tests.html
   // page loads this script for its pure helpers and has no UI of its own).
@@ -1982,6 +2158,7 @@ window.addEventListener("DOMContentLoaded", () => {
     if (file) importCalendarFile(file);
     event.target.value = "";  // allow re-importing the same file
   });
+  wireLiveShare();
 
   // .ics import (drag-and-drop and file picker).
   const icsDrop = document.getElementById("icsDrop");
