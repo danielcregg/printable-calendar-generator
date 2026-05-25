@@ -664,70 +664,72 @@ canvas {
   text-align: center;
 }
 
-.enlarged-cell {
-  background: white;
-  border: 1px solid var(--text);
-  border-radius: 4px;
+/* The cell preview is a real canvas drawn with the same code path as the
+   printed cell, so it's a pixel-faithful copy of how the day will look
+   after Print/Download. Click hit-zones for each slot are HTML buttons
+   positioned absolutely on top, transparent until hover. */
+.enlarged-cell-wrap {
+  position: relative;
+  width: 100%;
   margin: 0 auto;
+  line-height: 0;  /* prevent baseline gap below the canvas */
+}
+.enlarged-cell-wrap canvas {
   width: 100%;
-  aspect-ratio: var(--cell-aspect, 39.6 / 33.6);
-  display: grid;
-  grid-template-rows: var(--day-number-h, 27%) 1fr;
+  height: auto;
+  display: block;
 }
-.enlarged-cell-number {
-  display: flex;
-  align-items: flex-end;
-  padding: 0 0 0 12px;
-  font-weight: 800;
-  font-size: clamp(28px, 7vw, 44px);
-  line-height: 1;
+.enlarged-cell-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
-.enlarged-cell-slots {
-  display: grid;
-  grid-template-rows: repeat(var(--slot-count, 4), 1fr);
-}
-.enlarged-slot {
-  display: flex;
-  align-items: center;
-  padding: 0 12px;
-  font-family: inherit;
-  font-size: clamp(13px, 1.6vw, 15px);
-  font-weight: 700;
-  text-align: left;
-  width: 100%;
+.slot-hit {
+  position: absolute;
   background: transparent;
   border: none;
-  border-top: 1px dashed #bfbfbf;
+  padding: 0 12px;
   cursor: pointer;
-  color: var(--text);
-}
-.enlarged-slot:first-child { border-top: none; }
-.enlarged-slot.empty {
-  color: var(--text-muted);
+  font-family: inherit;
+  font-size: clamp(12px, 1.4vw, 14px);
   font-weight: 500;
+  color: transparent;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  text-align: left;
+  transition: background-color .15s ease, color .15s ease;
 }
-.enlarged-slot.custom { font-style: italic; }
-.enlarged-slot.readonly { cursor: default; }
-/* The global button:hover paints a dark background by default. Reset it
-   so readonly slots stay clean and only editable slots get the soft tint. */
-.enlarged-slot:hover,
-.enlarged-slot:focus-visible { background: transparent; box-shadow: none; outline: none; }
-.enlarged-slot:not(.readonly):hover,
-.enlarged-slot:not(.readonly):focus-visible { background: var(--primary-soft); }
-.enlarged-slot-editor {
+.slot-hit:hover,
+.slot-hit:focus-visible {
+  background: rgba(26, 86, 219, .08);
+  outline: none;
+  box-shadow: none;
+}
+.slot-hit.empty:hover,
+.slot-hit.empty:focus-visible {
+  color: var(--primary-dark);
+}
+.slot-hit.readonly { cursor: default; }
+.slot-hit.readonly:hover,
+.slot-hit.readonly:focus-visible {
+  background: transparent;
+  color: transparent;
+}
+.slot-editor {
+  position: absolute;
   display: flex;
   align-items: center;
   padding: 0 8px;
-  border-top: 1px dashed #bfbfbf;
+  pointer-events: auto;
 }
-.enlarged-slot-editor:first-child { border-top: none; }
-.enlarged-slot-editor input {
+.slot-editor input {
   flex: 1;
   border: 1px solid var(--primary);
   border-radius: var(--radius-sm);
   padding: 4px 6px;
   font-family: inherit;
-  font-size: clamp(13px, 1.6vw, 15px);
+  font-size: clamp(13px, 1.5vw, 14px);
   font-weight: 700;
   background: white;
   color: var(--text);

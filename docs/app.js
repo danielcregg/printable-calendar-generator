@@ -1054,6 +1054,115 @@ function handlePreviewClick(event) {
 // add, edit or delete custom-date labels for that day.
 // ============================================================================
 
+// Renders ONE day cell into `canvas` using the same drawing rules as
+// drawCalendar so the modal preview is pixel-faithful to the printed
+// output. Returns the slot rectangles (in canvas-pixel coordinates) so
+// the caller can position click-hit zones and inline editors over them.
+function drawCellOnCanvas(canvas, year, monthIndex, day, entry, options) {
+  const ctx = canvas.getContext("2d");
+  const rows = monthRows(year, monthIndex);
+  const cellMmW = 39.6;                       // colW = (297 - 2*7) / 7
+  const cellMmH = rows === 6 ? 28 : 33.6;     // rowH = (210 - 2*7 - 22) / rows
+  const scale = Math.min(canvas.width / cellMmW, canvas.height / cellMmH);
+  const cellW = cellMmW * scale;
+  const cellH = cellMmH * scale;
+  const cellX = (canvas.width - cellW) / 2;
+  const cellY = (canvas.height - cellH) / 2;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Where this day sits in the month grid (drives zebra + weekend shading).
+  const firstWeekday = mondayIndex(new Date(year, monthIndex, 1));
+  const dayOffset = (day - 1) + firstWeekday;
+  const cellRow = Math.floor(dayOffset / 7);
+  const cellCol = dayOffset % 7;
+
+  // Cell background — white, then layered shading, in the same order as
+  // drawCalendar (zebra first, weekend overrides).
+  ctx.fillStyle = "white";
+  ctx.fillRect(cellX, cellY, cellW, cellH);
+  const shade = SHADE_THEMES[options.shadeColour] || SHADE_THEMES.grey;
+  if (options.zebraWeeks && cellRow % 2 === 1) {
+    ctx.fillStyle = rgbCss(shade.zebra);
+    ctx.fillRect(cellX, cellY, cellW, cellH);
+  }
+  if (options.zebraColumns && cellCol % 2 === 1) {
+    ctx.fillStyle = rgbCss(shade.zebra);
+    ctx.fillRect(cellX, cellY, cellW, cellH);
+  }
+  if (options.shadeWeekends && cellCol >= 5) {
+    ctx.fillStyle = rgbCss(shade.weekend);
+    ctx.fillRect(cellX, cellY, cellW, cellH);
+  }
+
+  // Writing-guide dashes — equispaced between day-number baseline and bottom.
+  const lines = baseGuideLines(rows);
+  if (options.guideLines) {
+    ctx.save();
+    ctx.strokeStyle = "#cccccc";
+    ctx.lineWidth = 0.6 * scale;
+    ctx.setLineDash([2 * scale, 3 * scale]);
+    const x0 = cellX + 3 * scale;
+    const x1 = cellX + cellW - 3 * scale;
+    const yStart = cellY + 9 * scale;
+    const spacing = (cellH - 9 * scale) / (lines + 1);
+    for (let k = 1; k <= lines; k++) {
+      const y = yStart + k * spacing;
+      ctx.beginPath();
+      ctx.moveTo(x0, y);
+      ctx.lineTo(x1, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Cell border.
+  ctx.strokeStyle = "#222222";
+  ctx.lineWidth = 0.7 * scale;
+  ctx.strokeRect(cellX, cellY, cellW, cellH);
+
+  // Day number, top-left.
+  ctx.fillStyle = "black";
+  ctx.font = `bold ${pt(22, scale)}px Arial`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(String(day), cellX + 3 * scale, cellY + 9 * scale);
+
+  // Labels, slotted from the bottom up — same maths as drawCalendar.
+  const customCss = rgbCss(LABEL_COLOURS[options.customColour] || LABEL_COLOURS.black);
+  const stack = labelStack(entry);
+  const slots = lines + 1;
+  const visible = stack.slice(-slots);
+  const slotSpacing = (cellH - 9 * scale) / slots;
+  const labelMaxW = cellW - 6 * scale;
+  visible.forEach((item, i) => {
+    const text = item.text.slice(0, 32);
+    const weight = item.custom ? "italic bold" : "bold";
+    let labelPt = 12;
+    ctx.font = `${weight} ${pt(labelPt, scale)}px Arial`;
+    const textW = ctx.measureText(text).width;
+    if (textW > labelMaxW) {
+      labelPt *= labelMaxW / textW;
+      ctx.font = `${weight} ${pt(labelPt, scale)}px Arial`;
+    }
+    ctx.fillStyle = item.custom ? customCss : "black";
+    const slotIndex = slots - (visible.length - 1 - i);
+    const slotBottom = cellY + 9 * scale + slotIndex * slotSpacing;
+    ctx.fillText(text, cellX + 3 * scale, slotBottom - 2 * scale);
+  });
+
+  // Slot rectangles for hit-testing — slot k sits between dash k-1 and dash k
+  // (with dash 0 being the day-number baseline and dash N being the cell
+  // bottom). All values in canvas-pixel coordinates.
+  const slotRects = [];
+  for (let k = 1; k <= slots; k++) {
+    const yTop = cellY + 9 * scale + (k - 1) * slotSpacing;
+    const yBot = cellY + 9 * scale + k * slotSpacing;
+    slotRects.push({ x: cellX, y: yTop, w: cellW, h: yBot - yTop, slotIndex: k });
+  }
+  return { slotRects, cellX, cellY, cellW, cellH };
+}
+
 // Parses a single Custom dates textarea line. Returns { date, label, rule }
 // or null for blanks, comments, or anything that doesn't match the format.
 function parseCustomDateLine(line) {
@@ -1094,8 +1203,9 @@ function replaceCustomDateLine(index, newLine) {
 function openDayDialog(date) {
   const dialog = document.getElementById("dayDialog");
   dialog.dataset.date = date;
-  renderDayDialogCell();
+  // showModal first so the wrap's clientWidth is measurable when we render.
   if (!dialog.open) dialog.showModal();
+  renderDayDialogCell();
 }
 
 function closeDayDialog() {
@@ -1113,8 +1223,6 @@ function renderDayDialogCell() {
   const monthIndex = Number(mStr) - 1;
   const day = Number(dStr);
   const rows = monthRows(year, monthIndex);
-  const lines = baseGuideLines(rows);
-  const slots = lines + 1;
 
   const lang = document.getElementById("language").value || "en";
   const locale = lang === "ga" ? "ga-IE" : "en-IE";
@@ -1123,77 +1231,99 @@ function renderDayDialogCell() {
       weekday: "long", day: "numeric", month: "long", year: "numeric",
     });
 
-  const cellH = rows === 6 ? 28 : 33.6;
-  const cellEl = document.getElementById("dayDialogCell");
-  cellEl.style.setProperty("--cell-aspect", `39.6 / ${cellH}`);
-  cellEl.style.setProperty("--day-number-h", `${(9 / cellH * 100).toFixed(2)}%`);
-  cellEl.style.setProperty("--slot-count", String(slots));
-  cellEl.innerHTML = "";
+  // Size the canvas to the wrap's CSS width, keeping the cell's aspect.
+  // The internal canvas buffer is upscaled by devicePixelRatio for crisp
+  // text on high-DPI screens.
+  const wrap = document.getElementById("dayDialogWrap");
+  const canvas = document.getElementById("dayDialogCanvas");
+  const cellMmH = rows === 6 ? 28 : 33.6;
+  const aspect = 39.6 / cellMmH;
+  const cssWidth = wrap.clientWidth || 480;
+  const cssHeight = cssWidth / aspect;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.style.width = cssWidth + "px";
+  canvas.style.height = cssHeight + "px";
+  canvas.width = Math.round(cssWidth * dpr);
+  canvas.height = Math.round(cssHeight * dpr);
 
-  const numEl = document.createElement("div");
-  numEl.className = "enlarged-cell-number";
-  numEl.textContent = String(day);
-  cellEl.appendChild(numEl);
-
+  const options = {
+    shadeWeekends: document.getElementById("shadeWeekends").checked,
+    zebraWeeks: document.getElementById("zebraWeeks").checked,
+    zebraColumns: document.getElementById("zebraColumns").checked,
+    guideLines: document.getElementById("guideLines").checked,
+    shadeColour: document.getElementById("shadeColour").value,
+    customColour: document.getElementById("customColour").value,
+  };
   const entry = buildLabels(year).get(date) || { holiday: null, custom: [] };
+  const result = drawCellOnCanvas(canvas, year, monthIndex, day, entry, options);
+
+  // Build invisible click-hit buttons in CSS-pixel coordinates over each
+  // slot. Empty slots reveal "+ Add a reminder" on hover; editable slots
+  // tint blue; readonly slots show a tooltip but don't react.
+  const overlay = document.getElementById("dayDialogOverlay");
+  overlay.innerHTML = "";
   const stack = labelStack(entry);
+  const slots = baseGuideLines(rows) + 1;
   const visible = stack.slice(-slots);
   const firstVisibleSlot = slots - visible.length + 1;
-
-  const slotsEl = document.createElement("div");
-  slotsEl.className = "enlarged-cell-slots";
-  cellEl.appendChild(slotsEl);
-
-  for (let slotIndex = 1; slotIndex <= slots; slotIndex++) {
+  for (const rect of result.slotRects) {
+    const slotIndex = rect.slotIndex;
     const indexInVisible = slotIndex - firstVisibleSlot;
     const item = (indexInVisible >= 0 && indexInVisible < visible.length) ? visible[indexInVisible] : null;
-    slotsEl.appendChild(buildSlotButton(date, slotIndex, item));
+    overlay.appendChild(buildSlotHit(date, item, rect, dpr));
   }
 }
 
-function buildSlotButton(date, slotIndex, item) {
-  const slot = document.createElement("button");
-  slot.type = "button";
-  slot.className = "enlarged-slot";
+function buildSlotHit(date, item, rect, dpr) {
+  const hit = document.createElement("button");
+  hit.type = "button";
+  hit.className = "slot-hit";
+  // Canvas coords → CSS coords (the canvas is upscaled by dpr internally).
+  hit.style.left = (rect.x / dpr) + "px";
+  hit.style.top = (rect.y / dpr) + "px";
+  hit.style.width = (rect.w / dpr) + "px";
+  hit.style.height = (rect.h / dpr) + "px";
 
   if (!item) {
-    slot.classList.add("empty");
-    slot.textContent = "+ Add a reminder";
-    slot.addEventListener("click", () => beginSlotEdit(slot, "", -1));
-    return slot;
+    hit.classList.add("empty");
+    hit.textContent = "+ Add a reminder";
+    hit.addEventListener("click", () => beginSlotEdit(hit, "", -1, false));
+    return hit;
   }
 
-  slot.textContent = item.text;
   if (!item.custom) {
-    slot.classList.add("holiday", "readonly");
-    slot.title = "Public holiday";
-    return slot;
+    hit.classList.add("readonly");
+    hit.title = "Public holiday";
+    return hit;
   }
 
-  slot.classList.add("custom");
   const sourceIndex = findOneOffLineIndex(date, item.text);
   if (sourceIndex < 0) {
-    slot.classList.add("readonly");
-    slot.title = "Comes from a recurring rule — edit in the Custom dates box";
-  } else {
-    slot.addEventListener("click", () => beginSlotEdit(slot, item.text, sourceIndex));
+    hit.classList.add("readonly");
+    hit.title = "Comes from a recurring rule — edit in the Custom dates box";
+    return hit;
   }
-  return slot;
+  hit.addEventListener("click", () => beginSlotEdit(hit, item.text, sourceIndex, true));
+  return hit;
 }
 
-// Replaces a slot button with an inline text input. Enter saves, Escape
-// reverts, blur commits whatever's in the input.
-function beginSlotEdit(slotButton, currentValue, sourceIndex) {
+// Swap the hit button for an inline text input over the same slot region.
+// Enter saves, Escape reverts, blur commits whatever's in the input.
+function beginSlotEdit(hitButton, currentValue, sourceIndex, isCustom) {
   const editor = document.createElement("div");
-  editor.className = "enlarged-slot-editor";
-  if (slotButton.classList.contains("custom")) editor.style.fontStyle = "italic";
+  editor.className = "slot-editor";
+  editor.style.left = hitButton.style.left;
+  editor.style.top = hitButton.style.top;
+  editor.style.width = hitButton.style.width;
+  editor.style.height = hitButton.style.height;
 
   const input = document.createElement("input");
   input.type = "text";
   input.value = currentValue;
-  input.placeholder = "Label";
+  input.placeholder = "Reminder";
   input.spellcheck = false;
   input.maxLength = 64;
+  if (isCustom) input.style.fontStyle = "italic";
   editor.appendChild(input);
 
   let committed = false;
@@ -1203,11 +1333,8 @@ function beginSlotEdit(slotButton, currentValue, sourceIndex) {
     committed = true;
     const next = input.value.trim();
     if (sourceIndex >= 0) {
-      if (next === "" || next === currentValue) {
-        if (next === "") replaceCustomDateLine(sourceIndex, "");
-      } else {
-        replaceCustomDateLine(sourceIndex, `${date} | ${next}`);
-      }
+      if (next === "") replaceCustomDateLine(sourceIndex, "");
+      else if (next !== currentValue) replaceCustomDateLine(sourceIndex, `${date} | ${next}`);
     } else if (next !== "") {
       appendCustomDateLine(`${date} | ${next}`);
     }
@@ -1225,7 +1352,7 @@ function beginSlotEdit(slotButton, currentValue, sourceIndex) {
   });
   input.addEventListener("blur", commit);
 
-  slotButton.replaceWith(editor);
+  hitButton.replaceWith(editor);
   setTimeout(() => { input.focus(); input.select(); }, 0);
 }
 
