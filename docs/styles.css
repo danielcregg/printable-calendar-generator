@@ -512,7 +512,11 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
+  /* Vertically centre the canvas in the available space. On portrait
+     phones this drops the (short, A4-landscape) canvas into the thumb
+     zone; on desktop where the canvas almost fills the viewport, it
+     barely moves. */
+  justify-content: center;
   gap: var(--space-4);
   padding: var(--space-6) var(--space-4) var(--space-12);
 }
