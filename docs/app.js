@@ -1158,7 +1158,7 @@ function buildSlotButton(date, slotIndex, item) {
 
   if (!item) {
     slot.classList.add("empty");
-    slot.textContent = "+ Add a label";
+    slot.textContent = "+ Add a reminder";
     slot.addEventListener("click", () => beginSlotEdit(slot, "", -1));
     return slot;
   }
