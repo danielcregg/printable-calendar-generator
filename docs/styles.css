@@ -249,10 +249,30 @@ button:focus-visible {
   border-bottom: 1px solid var(--border);
 }
 
-/* Month nav lives in the topbar — hamburger on the left, picker centred. */
+.topbar-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1;
+  color: var(--text);
+}
+
+/* Topbar row: [☰ PrintCal] -------------- [‹ year month ›]
+   Title pinned to the left next to the hamburger; picker pushed to the
+   right edge by an auto margin. */
 .topbar .month-nav {
-  flex: 1;
-  justify-content: center;
+  margin-left: auto;
+}
+
+/* Selects in the picker default to width:100% from the base form-control
+   rule — force content-width so they don't stretch across the topbar. */
+.topbar .month-nav select {
+  width: auto;
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  padding: 6px 26px 6px 10px;
 }
 
 /* --- Icon buttons (hamburger, drawer close) ----------------------------- */
@@ -757,8 +777,13 @@ canvas {
 
   /* Compact the month picker so it fits comfortably on a phone topbar. */
   .topbar .month-nav { gap: var(--space-1); }
-  .topbar .month-nav select { font-size: var(--text-sm); padding: 6px 26px 6px 10px; }
+  .topbar .month-nav select { font-size: var(--text-xs); padding: 5px 22px 5px 8px; }
   .topbar .month-nav button { width: 32px; height: 32px; }
+}
+
+@media (max-width: 380px) {
+  /* On the narrowest phones, hide the title so the picker still fits. */
+  .topbar-title { display: none; }
 }
 
 @media (max-width: 460px) {
