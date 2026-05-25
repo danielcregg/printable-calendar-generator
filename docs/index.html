@@ -19,7 +19,26 @@
     <button class="icon-btn topbar-menu" id="menuBtn" type="button" aria-label="Open setup controls" aria-controls="drawer" aria-expanded="false">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </button>
-    <h1 class="topbar-title">Calendar Generator</h1>
+    <div class="month-nav">
+      <button id="prevMonthBtn" type="button" aria-label="Previous month">&lsaquo;</button>
+      <select id="year" aria-label="Year"></select>
+      <select id="month" aria-label="Month">
+        <option value="all">Full year</option>
+        <option value="0" selected>January</option>
+        <option value="1">February</option>
+        <option value="2">March</option>
+        <option value="3">April</option>
+        <option value="4">May</option>
+        <option value="5">June</option>
+        <option value="6">July</option>
+        <option value="7">August</option>
+        <option value="8">September</option>
+        <option value="9">October</option>
+        <option value="10">November</option>
+        <option value="11">December</option>
+      </select>
+      <button id="nextMonthBtn" type="button" aria-label="Next month">&rsaquo;</button>
+    </div>
   </header>
 
   <div class="view-banner" id="viewBanner" hidden role="status">
@@ -41,6 +60,30 @@
       <div class="drawer-body">
 
         <section class="panel">
+          <h2>Display</h2>
+          <div class="controls">
+            <label>Holidays
+              <select id="country" aria-label="Holidays">
+                <option value="IE" selected>Irish holidays</option>
+                <option value="NONE">No holidays</option>
+              </select>
+            </label>
+            <label>Language
+              <select id="language" aria-label="Language">
+                <option value="en" selected>English</option>
+                <option value="ga">Gaeilge</option>
+              </select>
+            </label>
+          </div>
+          <div class="checks">
+            <label class="check"><input id="guideLines" type="checkbox" checked> Guidelines</label>
+            <label class="check"><input id="fullDayNames" type="checkbox"> Full day names</label>
+            <label class="check"><input id="teachingWeeks" type="checkbox"> Teaching weeks</label>
+            <label class="check"><input id="notesArea" type="checkbox"> Notes area</label>
+          </div>
+        </section>
+
+        <section class="panel">
           <h2>Colours</h2>
           <p class="hint">Optional &mdash; the calendar is black and white by default.</p>
           <div class="controls">
@@ -59,6 +102,12 @@
                 <option value="green">Green</option>
               </select>
             </label>
+          </div>
+          <div class="shade-group">
+            <span class="shade-label">Shade:</span>
+            <label class="check"><input id="shadeWeekends" type="checkbox" checked> weekends</label>
+            <label class="check"><input id="zebraWeeks" type="checkbox"> weeks</label>
+            <label class="check"><input id="zebraColumns" type="checkbox"> weekdays</label>
           </div>
         </section>
 
@@ -223,56 +272,6 @@
     </aside>
 
     <main class="stage" id="stage">
-      <div class="stage-controls">
-        <div class="month-nav">
-          <button id="prevMonthBtn" type="button" aria-label="Previous month">&lsaquo;</button>
-          <select id="year" aria-label="Year"></select>
-          <select id="month" aria-label="Month">
-            <option value="all">Full year</option>
-            <option value="0" selected>January</option>
-            <option value="1">February</option>
-            <option value="2">March</option>
-            <option value="3">April</option>
-            <option value="4">May</option>
-            <option value="5">June</option>
-            <option value="6">July</option>
-            <option value="7">August</option>
-            <option value="8">September</option>
-            <option value="9">October</option>
-            <option value="10">November</option>
-            <option value="11">December</option>
-          </select>
-          <button id="nextMonthBtn" type="button" aria-label="Next month">&rsaquo;</button>
-        </div>
-        <select id="country" aria-label="Holidays">
-          <option value="IE" selected>Irish holidays</option>
-          <option value="NONE">No holidays</option>
-        </select>
-        <select id="language" aria-label="Language">
-          <option value="en" selected>English</option>
-          <option value="ga">Gaeilge</option>
-        </select>
-        <div class="checks">
-          <div class="shade-group">
-            <span class="shade-label">Shade:</span>
-            <label class="check"><input id="shadeWeekends" type="checkbox" checked> weekends</label>
-            <label class="check"><input id="zebraWeeks" type="checkbox"> weeks</label>
-            <label class="check"><input id="zebraColumns" type="checkbox"> weekdays</label>
-          </div>
-          <div class="shade-group color-swatches" role="radiogroup" aria-label="Shading colour">
-            <span class="shade-label">Colour:</span>
-            <button type="button" class="color-swatch" data-shade="grey" aria-label="Grey" title="Grey (default)"></button>
-            <button type="button" class="color-swatch" data-shade="blue" aria-label="Blue" title="Blue"></button>
-            <button type="button" class="color-swatch" data-shade="green" aria-label="Green" title="Green"></button>
-            <button type="button" class="color-swatch" data-shade="warm" aria-label="Warm" title="Warm"></button>
-          </div>
-          <label class="check"><input id="guideLines" type="checkbox" checked> Guidelines</label>
-          <label class="check"><input id="fullDayNames" type="checkbox"> Full day names</label>
-          <label class="check"><input id="teachingWeeks" type="checkbox"> Teaching weeks</label>
-          <label class="check"><input id="notesArea" type="checkbox"> Notes area</label>
-        </div>
-      </div>
-      <p class="stage-hint">Tap any day to add a custom date.</p>
       <canvas id="preview" width="1123" height="794" aria-label="Calendar preview"></canvas>
     </main>
   </div>

@@ -249,14 +249,10 @@ button:focus-visible {
   border-bottom: 1px solid var(--border);
 }
 
-.topbar-title {
+/* Month nav lives in the topbar — hamburger on the left, picker centred. */
+.topbar .month-nav {
   flex: 1;
-  margin: 0;
-  font-size: var(--text-lg);
-  font-weight: 700;
-  letter-spacing: -0.015em;
-  line-height: 1;
-  color: var(--text);
+  justify-content: center;
 }
 
 /* --- Icon buttons (hamburger, drawer close) ----------------------------- */
@@ -479,60 +475,20 @@ button:focus-visible {
   padding: var(--space-6) var(--space-4) var(--space-12);
 }
 
+/* The calendar canvas is the A4 sheet itself. Square corners and a soft
+   drop shadow read as "pristine page sitting on a desk", which is what
+   the printed PDF will look like. The min() expression shrinks the canvas
+   when either viewport width OR available height is the binding constraint,
+   so the bottom of the page never falls off the screen on a short window. */
 .stage canvas {
-  width: 100%;
+  width: min(100%, 1120px, calc((100dvh - var(--topbar-h) - 80px) * 1.4143));
   height: auto;
-  max-width: 1120px;
   background: white;
   display: block;
-  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
 }
 
 #preview { cursor: pointer; }
-
-.stage-hint {
-  margin: 0;
-  max-width: 620px;
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-  line-height: 1.45;
-  text-align: center;
-}
-
-/* --- Stage controls toolbar (Year / Month / Holidays / checks) -------- */
-.stage-controls {
-  width: 100%;
-  max-width: 1120px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3) var(--space-4);
-  align-items: center;
-  justify-content: center;
-}
-
-.stage-controls select {
-  width: auto;
-  min-width: 0;
-  font-size: var(--text-sm);
-  font-weight: 500;
-  padding: 7px 30px 7px 12px;
-}
-
-.stage-controls .month-nav {
-  margin: 0;
-}
-
-.stage-controls .month-nav select {
-  font-weight: 600;
-  font-size: var(--text-base);
-}
-
-.stage-controls .checks {
-  flex-basis: 100%;
-  justify-content: center;
-  gap: var(--space-2);
-}
 
 /* --- Month nav (prev / Year / Month / next) --------------------------- */
 .month-nav {
@@ -588,32 +544,6 @@ button:focus-visible {
 .shade-group .check:has(input:checked) {
   background: var(--primary-soft);
   color: var(--primary-dark);
-}
-
-/* --- Colour swatches (quick shading-theme picker) ---------------------- */
-.color-swatch {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  padding: 0;
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition: border-color .15s ease, box-shadow .15s ease;
-  flex: 0 0 auto;
-}
-.color-swatch[data-shade="grey"]  { background: #e8e8e8; }
-.color-swatch[data-shade="blue"]  { background: #cfdcf2; }
-.color-swatch[data-shade="green"] { background: #c0d8c0; }
-.color-swatch[data-shade="warm"]  { background: #f4e8da; }
-.color-swatch:hover,
-.color-swatch:focus-visible {
-  border-color: var(--border-strong);
-  outline: none;
-  box-shadow: none;
-}
-.color-swatch.active {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px var(--primary-soft);
 }
 
 /* --- Floating action buttons (Print / Download) ----------------------- */
@@ -825,36 +755,10 @@ canvas {
 @media (max-width: 640px) {
   .panel { padding: var(--space-4); }
 
-  .stage-controls { gap: var(--space-2); }
-  .stage-controls .checks {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-2);
-    width: 100%;
-  }
-  .stage-controls .check {
-    font-size: var(--text-xs);
-    white-space: normal;
-  }
-  /* Shade group spans the full grid row so the next checkbox doesn't
-     pair with one of the shading ones. Tighten the inner padding/gap
-     so all three checkboxes plus the "Shade:" label fit on one line
-     down to ~340 px viewports. */
-  .stage-controls .checks .shade-group {
-    grid-column: 1 / -1;
-    justify-content: center;
-    flex-wrap: nowrap;
-    gap: 2px;
-    padding: 3px 6px;
-  }
-  .stage-controls .checks .shade-group .check {
-    padding: 3px 6px;
-    gap: 5px;
-  }
-  .stage-controls .checks .shade-group .shade-label {
-    margin-right: 2px;
-    font-size: var(--text-xs);
-  }
+  /* Compact the month picker so it fits comfortably on a phone topbar. */
+  .topbar .month-nav { gap: var(--space-1); }
+  .topbar .month-nav select { font-size: var(--text-sm); padding: 6px 26px 6px 10px; }
+  .topbar .month-nav button { width: 32px; height: 32px; }
 }
 
 @media (max-width: 460px) {
