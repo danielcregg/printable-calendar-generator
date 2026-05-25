@@ -61,15 +61,19 @@
 
     <aside class="drawer" id="drawer" aria-label="Calendar setup">
       <div class="drawer-head">
-        <span class="drawer-title">Setup</span>
         <button class="icon-btn" id="drawerCloseBtn" type="button" aria-label="Close setup controls">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
       </div>
       <div class="drawer-body">
 
-        <section class="panel">
-          <h2>Display</h2>
+        <details class="drawer-section" open>
+          <summary>
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>
+            <span class="section-title">Display</span>
+            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="section-inner">
           <div class="controls">
             <label>Holidays
               <select id="country" aria-label="Holidays">
@@ -90,10 +94,16 @@
             <label class="check"><input id="teachingWeeks" type="checkbox"> Teaching weeks</label>
             <label class="check"><input id="notesArea" type="checkbox"> Notes area</label>
           </div>
-        </section>
+          </div>
+        </details>
 
-        <section class="panel">
-          <h2>Colours</h2>
+        <details class="drawer-section">
+          <summary>
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="8" cy="9" r="1.4" fill="currentColor" stroke="none"/><circle cx="16" cy="9" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.4" fill="currentColor" stroke="none"/></svg>
+            <span class="section-title">Colours</span>
+            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="section-inner">
           <p class="hint">Optional &mdash; the calendar is black and white by default.</p>
           <div class="controls">
             <label>Shading colour
@@ -118,10 +128,16 @@
             <label class="check"><input id="zebraWeeks" type="checkbox"> weeks</label>
             <label class="check"><input id="zebraColumns" type="checkbox"> weekdays</label>
           </div>
-        </section>
+          </div>
+        </details>
 
-        <section class="panel" id="teachingPanel" hidden>
-          <h2>Teaching week schedule</h2>
+        <details class="drawer-section" id="teachingPanel" hidden>
+          <summary>
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            <span class="section-title">Teaching weeks</span>
+            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="section-inner">
           <p class="hint">Auto-filled from the year &mdash; edit any date if your schedule differs. The Easter break covers two weeks.</p>
           <div class="controls">
             <label>Semester 1: Week 1 starts
@@ -140,10 +156,16 @@
           <div class="buttons">
             <button id="autoFillWeeksBtn" type="button">Reset to automatic dates</button>
           </div>
-        </section>
+          </div>
+        </details>
 
-        <section class="panel">
-          <h2>Custom dates</h2>
+        <details class="drawer-section">
+          <summary>
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+            <span class="section-title">Custom dates</span>
+            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="section-inner">
 
           <div class="quick-add">
             <div class="save-row">
@@ -219,10 +241,16 @@
           <div class="buttons">
             <button id="previewBtn" type="button">Update preview</button>
           </div>
-        </section>
+          </div>
+        </details>
 
-        <section class="panel">
-          <h2>Import from a calendar file</h2>
+        <details class="drawer-section">
+          <summary>
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span class="section-title">Import .ics file</span>
+            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="section-inner">
           <p class="hint">Select or drag in an .ics file (Outlook, Google, Apple), then tick the dates to add.</p>
           <div id="icsDrop" class="ics-drop">
             <p>Drop an <strong>.ics</strong> file here, or choose one:</p>
@@ -233,10 +261,16 @@
             <button id="icsAddBtn" type="button">Add selected dates</button>
             <button id="icsClearBtn" type="button">Clear</button>
           </div>
-        </section>
+          </div>
+        </details>
 
-        <section class="panel">
-          <h2>Saved calendars</h2>
+        <details class="drawer-section">
+          <summary>
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <span class="section-title">Save &amp; share</span>
+            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </summary>
+          <div class="section-inner">
           <p class="hint">Saved in this browser only.</p>
           <div class="save-row">
             <input id="calendarName" type="text" placeholder="Name this calendar" spellcheck="false" aria-label="Calendar name">
@@ -275,7 +309,8 @@
               <button id="publishStopBtn" type="button">Stop publishing</button>
             </div>
           </div>
-        </section>
+          </div>
+        </details>
 
       </div>
     </aside>

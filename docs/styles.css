@@ -53,7 +53,7 @@
 
   /* App shell dims */
   --topbar-h: 56px;
-  --drawer-w: 320px;
+  --drawer-w: 352px;
 
   /* Focus ring */
   --ring: 0 0 0 3px rgba(26, 86, 219, .22);
@@ -356,18 +356,10 @@ button:focus-visible {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   height: var(--topbar-h);
-  padding: 0 var(--space-2) 0 var(--space-5);
+  padding: 0 var(--space-2);
   border-bottom: 1px solid var(--border);
-}
-
-.drawer-title {
-  font-weight: 700;
-  font-size: var(--text-xs);
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--text-muted);
 }
 
 .drawer-body {
@@ -375,7 +367,7 @@ button:focus-visible {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  padding: var(--space-1) var(--space-5) var(--space-8);
+  padding: 0 0 var(--space-8);
 }
 
 /* --- Scrim behind the modal drawer ------------------------------------- */
@@ -390,24 +382,64 @@ button:focus-visible {
 }
 .scrim.show { opacity: 1; pointer-events: auto; }
 
-/* --- Panels (inside the drawer) --------------------------------------- */
-.panel {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: var(--space-5);
-  margin: var(--space-4) 0;
-}
-
-.drawer .panel {
-  margin: 0;
-  padding: var(--space-5) 0;
-  border: 0;
-  border-radius: 0;
-  background: none;
+/* --- Accordion sections (inside the drawer) --------------------------- */
+.drawer-section {
   border-bottom: 1px solid var(--border);
 }
-.drawer .panel:last-child { border-bottom: 0; }
+.drawer-section:last-of-type { border-bottom: 0; }
+.drawer-section[hidden] { display: none; }
+
+/* Summary row: icon + title + chevron. Whole row is the click target. */
+.drawer-section > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text);
+  user-select: none;
+  transition: background .15s ease;
+}
+.drawer-section > summary::-webkit-details-marker { display: none; }
+.drawer-section > summary::marker { content: ""; }
+.drawer-section > summary:hover { background: rgba(15, 23, 42, .04); }
+.drawer-section > summary:focus-visible {
+  outline: 0;
+  background: var(--primary-soft);
+}
+
+.section-icon {
+  width: 22px;
+  height: 22px;
+  color: var(--primary);
+  flex: 0 0 auto;
+}
+
+.section-title { flex: 1; }
+
+.section-chevron {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+  flex: 0 0 auto;
+  transition: transform .22s ease;
+}
+.drawer-section[open] > summary .section-chevron {
+  transform: rotate(180deg);
+}
+
+.section-inner {
+  padding: 0 var(--space-5) var(--space-5);
+  animation: section-fade-in 180ms ease-out;
+}
+
+@keyframes section-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
 .hint {
   margin-top: -2px;

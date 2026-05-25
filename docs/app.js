@@ -2349,6 +2349,19 @@ window.addEventListener("DOMContentLoaded", () => {
     if (event.key === "Escape") closeDrawer();
   });
 
+  // Drawer accordion: one section open at a time. The native <details>
+  // toggle event fires for both open and close; we only react to opens
+  // and close every other section.
+  const drawerSections = document.querySelectorAll(".drawer-section");
+  for (const section of drawerSections) {
+    section.addEventListener("toggle", () => {
+      if (!section.open) return;
+      for (const other of drawerSections) {
+        if (other !== section && other.open) other.open = false;
+      }
+    });
+  }
+
   // Saved-calendar and date-group controls.
   document.getElementById("saveBtn").addEventListener("click", saveCalendar);
   document.getElementById("loadBtn").addEventListener("click", loadCalendar);
