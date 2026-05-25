@@ -2207,6 +2207,82 @@ function wireLiveShare() {
   else if (valid(viewId))    viewStart(viewId);
 }
 
+// ============================================================================
+// Deep-link query params (used by the Android widget):
+//   ?m=YYYY-MM       — focus the calendar on that month.
+//   ?d=YYYY-MM-DD    — focus on the month containing that day, then open
+//                      the day editor for it.
+// Parsed AFTER wireLiveShare and AFTER the first renderPreview so they
+// stack cleanly on top of ?live=/?publish=/?view= and on top of any
+// settings restored from a #cal= hash. Malformed values are silently
+// ignored. After applying, both params are stripped from the address bar
+// (other params are preserved).
+// ============================================================================
+function loadFromQueryIfPresent() {
+  const url = new URL(location.href);
+  const rawMonth = url.searchParams.get("m");
+  const rawDay = url.searchParams.get("d");
+  if (rawMonth == null && rawDay == null) return;
+
+  // ?d= wins over ?m= when both are present — the day param already implies
+  // a month and we want the day editor to open on the right date.
+  let targetYear = null;
+  let targetMonth = null;  // 0..11
+  let openDayIso = null;
+
+  if (rawDay != null) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(rawDay);
+    if (m) {
+      const y = Number(m[1]);
+      const mo = Number(m[2]);
+      const d = Number(m[3]);
+      if (y >= MIN_YEAR && y <= MAX_YEAR && mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+        // Reject impossible dates like 2026-02-30 by checking the round-trip.
+        const probe = new Date(y, mo - 1, d);
+        if (probe.getFullYear() === y && probe.getMonth() === mo - 1 && probe.getDate() === d) {
+          targetYear = y;
+          targetMonth = mo - 1;
+          openDayIso = `${m[1]}-${m[2]}-${m[3]}`;
+        }
+      }
+    }
+  } else if (rawMonth != null) {
+    const m = /^(\d{4})-(\d{2})$/.exec(rawMonth);
+    if (m) {
+      const y = Number(m[1]);
+      const mo = Number(m[2]);
+      if (y >= MIN_YEAR && y <= MAX_YEAR && mo >= 1 && mo <= 12) {
+        targetYear = y;
+        targetMonth = mo - 1;
+      }
+    }
+  }
+
+  if (targetYear != null) {
+    const yearSelect = document.getElementById("year");
+    const monthSelect = document.getElementById("month");
+    let changed = false;
+    if (yearSelect.value !== String(targetYear)) {
+      yearSelect.value = String(targetYear);
+      changed = true;
+    }
+    if (monthSelect.value !== String(targetMonth)) {
+      monthSelect.value = String(targetMonth);
+      changed = true;
+    }
+    if (changed) renderPreview();
+    if (openDayIso) openDayDialog(openDayIso);
+  }
+
+  // Strip ?m and ?d from the URL but keep everything else (?live, ?view, …).
+  if (url.searchParams.has("m") || url.searchParams.has("d")) {
+    url.searchParams.delete("m");
+    url.searchParams.delete("d");
+    const qs = url.searchParams.toString();
+    history.replaceState(null, "", location.pathname + (qs ? "?" + qs : "") + location.hash);
+  }
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   // Bail out when the generator controls aren't present (e.g. the tests.html
   // page loads this script for its pure helpers and has no UI of its own).
@@ -2334,4 +2410,8 @@ window.addEventListener("DOMContentLoaded", () => {
   // applySettings already calls renderPreview, so only render explicitly when
   // no shared payload was applied — avoids a visible flash of the defaults.
   if (!loadFromHashIfPresent()) renderPreview();
+
+  // ?m=YYYY-MM and ?d=YYYY-MM-DD layer on top of the above — used by the
+  // Android widget to deep-link to a month or day.
+  loadFromQueryIfPresent();
 });

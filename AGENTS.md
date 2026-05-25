@@ -280,6 +280,22 @@ Shared sessions are deliberately opt-in because they send user data to a third
 party (Cloudflare). The default-off behaviour preserves the "nothing leaves your
 device" guarantee for users who don't want it.
 
+### Deep-link query params
+
+Two extra URL query params let an outside caller — currently the Android
+widget (see `android-widget-plan.md`) — open the app focused on a specific
+month or day:
+
+- `?m=YYYY-MM` — set the Year/Month selects to that month and re-render.
+- `?d=YYYY-MM-DD` — same, plus open the day editor for that ISO date.
+
+They are parsed in `loadFromQueryIfPresent` after `wireLiveShare` and after
+the initial `renderPreview`, so they compose cleanly with `?live=`, `?publish=`
+and `?view=` (e.g. `?view=abc&d=2026-05-04`). Malformed values and out-of-range
+years (outside `MIN_YEAR..MAX_YEAR`) are silently ignored. Both params are
+stripped from the address bar via `history.replaceState` once applied;
+everything else in the query string is preserved.
+
 ## Testing checklist
 
 Before finishing any change, verify:
