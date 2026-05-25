@@ -14,7 +14,7 @@
     <color name="widget_background">#ffffff</color>
     <color name="widget_foreground">#111111</color>
 
-    <!-- Today highlight (matches the PWA's `--primary` blue). -->
+    <!-- Today highlight: same blue as the PWA's primary token. -->
     <color name="widget_today">#1a56db</color>
     <color name="widget_today_text">#ffffff</color>
 
