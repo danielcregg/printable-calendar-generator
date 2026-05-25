@@ -2276,6 +2276,40 @@ function loadFromQueryIfPresent() {
   }
 }
 
+// First-visit coach bubble — shown once per device (gated by localStorage),
+// pointing at the canvas with "Tap any day to add a reminder". Dismissed on
+// the first canvas click or after 6 s.
+function showCoachBubble() {
+  if (localStorage.getItem("printcal-coached")) return;
+  if (document.body.classList.contains("is-viewing")) return;  // viewers can't edit
+
+  const canvas = document.getElementById("preview");
+  const bubble = document.getElementById("coachBubble");
+  if (!canvas || !bubble) return;
+
+  const rect = canvas.getBoundingClientRect();
+  bubble.style.left = `${rect.left + rect.width / 2}px`;
+  bubble.style.top = `${rect.top + rect.height * 0.32}px`;
+  bubble.hidden = false;
+
+  let dismissed = false;
+  const dismiss = () => {
+    if (dismissed) return;
+    dismissed = true;
+    bubble.classList.add("coach-fade-out");
+    setTimeout(() => {
+      bubble.hidden = true;
+      bubble.classList.remove("coach-fade-out");
+    }, 260);
+    localStorage.setItem("printcal-coached", "1");
+    canvas.removeEventListener("click", dismiss);
+    clearTimeout(autoTimer);
+  };
+
+  canvas.addEventListener("click", dismiss);
+  const autoTimer = setTimeout(dismiss, 6000);
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   // Bail out when the generator controls aren't present (e.g. the tests.html
   // page loads this script for its pure helpers and has no UI of its own).
@@ -2406,4 +2440,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // ?m=YYYY-MM and ?d=YYYY-MM-DD layer on top of the above — used by the
   // Android widget to deep-link to a month or day.
   loadFromQueryIfPresent();
+
+  // Show the first-visit teaching bubble after the canvas has settled.
+  setTimeout(showCoachBubble, 1500);
 });

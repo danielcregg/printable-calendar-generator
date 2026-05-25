@@ -71,6 +71,12 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  animation: app-fade-in 220ms ease-out;
+}
+
+@keyframes app-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 body.app.drawer-open { overflow: hidden; }
@@ -245,17 +251,29 @@ button:focus-visible {
   gap: var(--space-2);
   height: var(--topbar-h);
   padding: 0 var(--space-3);
-  background: var(--panel);
+  /* Very subtle wash of the brand tint — adds depth without competing
+     with the calendar. Falls back to white on the bottom half. */
+  background: linear-gradient(180deg, #ffffff 0%, #f5f8ff 100%);
   border-bottom: 1px solid var(--border);
 }
 
 .topbar-title {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: var(--text-lg);
   font-weight: 700;
   letter-spacing: -0.015em;
   line-height: 1;
   color: var(--text);
+}
+
+.brand-mark {
+  width: 22px;
+  height: 22px;
+  color: var(--primary);
+  flex: 0 0 auto;
 }
 
 /* Topbar row: [☰ PrintCal] ……… [‹ year month ›] ………
@@ -510,6 +528,13 @@ button:focus-visible {
   background: white;
   display: block;
   box-shadow: var(--shadow-md);
+  transition: box-shadow 220ms ease-out, transform 220ms ease-out;
+}
+
+/* Lift the page a touch on hover — paper picked up off the desk. */
+.stage canvas:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
 }
 
 #preview { cursor: pointer; }
@@ -595,6 +620,13 @@ button:focus-visible {
   cursor: pointer;
   box-shadow: var(--shadow-md);
   transition: background .15s ease, box-shadow .15s ease, transform .1s ease;
+  /* Arrives from below with a slight overshoot on first load. */
+  animation: fab-arrive 520ms cubic-bezier(.34, 1.56, .64, 1) 150ms backwards;
+}
+
+@keyframes fab-arrive {
+  from { opacity: 0; transform: translateY(48px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .fab svg { width: 18px; height: 18px; }
@@ -606,6 +638,61 @@ canvas {
   height: auto;
   display: block;
   background: white;
+}
+
+/* --- First-visit coach bubble ------------------------------------------
+   Positioned via JS to sit over the canvas with an arrow pointing down at
+   a day cell. Shown for ~6s on the first visit only, then never again. */
+.coach-bubble {
+  position: fixed;
+  z-index: 50;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 10px 28px rgba(26, 86, 219, .38);
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+  transform-origin: bottom center;
+  animation:
+    coach-pop-in 380ms cubic-bezier(.34, 1.56, .64, 1) backwards,
+    coach-pulse 1.9s ease-in-out 380ms infinite;
+}
+.coach-bubble[hidden] { display: none; }
+
+.coach-bubble::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 10px solid var(--primary-dark);
+  /* drop shadow extends to the arrow tip */
+  filter: drop-shadow(0 4px 4px rgba(26, 86, 219, .25));
+}
+
+.coach-bubble.coach-fade-out {
+  animation: coach-pop-out 240ms ease-in forwards;
+}
+
+@keyframes coach-pop-in {
+  from { opacity: 0; transform: translate(-50%, -90%) scale(.7); }
+  to   { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+}
+@keyframes coach-pop-out {
+  from { opacity: 1; transform: translate(-50%, -100%) scale(1); }
+  to   { opacity: 0; transform: translate(-50%, -90%) scale(.7); }
+}
+@keyframes coach-pulse {
+  0%, 100% { transform: translate(-50%, -100%) scale(1); }
+  50%      { transform: translate(-50%, -106%) scale(1.04); }
 }
 
 /* --- Live sharing status pills + viewer banner ------------------------- */
