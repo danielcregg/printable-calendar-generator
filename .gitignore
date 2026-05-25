@@ -1,0 +1,3 @@
+# Agent worktrees created by Claude Code when sub-agents need an isolated
+# copy of the repository. Transient — not part of the project.
+.claude/
