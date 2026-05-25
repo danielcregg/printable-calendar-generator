@@ -2205,6 +2205,7 @@ function wireLiveShare() {
   if (valid(liveId))         liveShareStart(liveId, { pushInitial: false });
   else if (valid(publishId)) publishStart(publishId);
   else if (valid(viewId))    viewStart(viewId);
+  else if (liveId || publishId || viewId) setLiveUrlParams({});
 }
 
 // ============================================================================

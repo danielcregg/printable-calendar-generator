@@ -301,9 +301,17 @@ Three modes, each driven by a URL query param:
 The publish/view pair uses a deterministic `readId = base64url(sha256("view:" +
 writeId)[0:12])` computed identically on the client and on the Worker. Each PUT
 to `/<writeId>` also refreshes a pointer at `view:<readId> → <writeId>`, so the
-Worker can resolve viewer reads through the pointer (`GET /view/<readId>`) and
-reject any writes against the readId at the URL routing layer. Viewers truly
-cannot edit, even if they tamper with the URL.
+Worker can resolve viewer reads through the pointer (`GET /view/<readId>`). The
+client never PUTs in `view` mode, so viewers can't edit through the UI. The
+Worker itself treats every well-formed ID identically at the URL layer, so a
+direct `PUT /<readId>` is accepted — but the published view is still safe:
+that write only stores `cal:<readId>` and `view:<deriveReadId(readId)>`, both
+orphan entries unreachable from any `?view=<readId>` URL. The meaningful
+`view:<readId> → <writeId>` pointer is only written by a PUT against the
+writeId, so the published calendar stays correct even under direct Worker
+tampering. **If you change the Worker, preserve this property:** the
+`view:<...>` pointer must always be keyed by `deriveReadId(currentPutId)`,
+never by `currentPutId` itself.
 
 - Polling cadence: every 5 s.
 - Push debounce: 1.5 s after the last local change.
