@@ -681,8 +681,12 @@ button:focus-visible {
    width. Absolute positioning for .stage-actions avoids the grid-template
    collapse that pushed Print onto a second line on narrow viewports. */
 .stage-bottom-row {
-  width: 100%;
-  max-width: 1120px;
+  /* Match the canvas's width formula exactly so the row's right edge —
+     where Print lives — always sits at the calendar's right edge. Using
+     max-width:1120px alone made the row stay wider than the canvas at
+     100 %+ zoom (canvas shrinks via the height-derived constraint, row
+     does not), so Print ended up past the canvas right edge. */
+  width: min(100%, 1120px, calc((100dvh - var(--topbar-h) - 150px) * 1.4143));
   position: relative;
   display: flex;
   justify-content: center;
