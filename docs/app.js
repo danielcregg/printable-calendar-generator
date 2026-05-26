@@ -1472,6 +1472,9 @@ function addRecurringDate() {
   }
   const line = rule ? `${date} | ${label} | ${rule}` : `${date} | ${label}`;
   appendCustomDateLine(line);
+  // Reset every input in the quick-add form so the next entry starts fresh
+  // and the date picker visually returns to its dd/mm/yyyy placeholder.
+  document.getElementById("recurDate").value = "";
   document.getElementById("recurLabel").value = "";
   document.getElementById("recurCount").value = "";
   document.getElementById("recurUntil").value = "";
