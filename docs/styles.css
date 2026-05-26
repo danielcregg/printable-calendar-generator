@@ -609,14 +609,15 @@ button:focus-visible {
 
 /* --- "Shade:" group --------------------------------------------------- */
 .shade-group {
-  display: inline-flex;
-  flex-wrap: wrap;
+  /* No pill chrome — just an inline row of [Shade: weekends weeks weekdays]
+     that sits flush with the rest of the panel. Forced to a single line
+     (flex-wrap: nowrap + white-space) so the three checks never break onto
+     a second row inside the drawer. */
+  display: flex;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: var(--space-2);
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  background: var(--panel);
-  border: 1px solid var(--border);
+  gap: var(--space-1);
+  white-space: nowrap;
 }
 
 .shade-label {
@@ -627,9 +628,10 @@ button:focus-visible {
 }
 
 .shade-group .check {
-  padding: 4px 8px;
+  padding: 4px 6px;
   border: 0;
   background: transparent;
+  font-size: var(--text-xs);
 }
 .shade-group .check:hover { background: rgba(15, 23, 42, .04); }
 .shade-group .check:has(input:checked) {
