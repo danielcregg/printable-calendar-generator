@@ -559,9 +559,9 @@ button:focus-visible {
    when either viewport width OR available height is the binding constraint,
    so the bottom of the page never falls off the screen on a short window. */
 .stage canvas {
-  /* 200px reserves space for: top padding (24) + bottom padding (48)
-     + month-nav row (44) + Print button row (~44) + 2 flex gaps (32) + safety (8) */
-  width: min(100%, 1120px, calc((100dvh - var(--topbar-h) - 200px) * 1.4143));
+  /* 150px reserves space for: top padding (24) + bottom padding (48)
+     + the single bottom-row (~50, picker + Print sharing one line) + gap (16) + safety (12) */
+  width: min(100%, 1120px, calc((100dvh - var(--topbar-h) - 150px) * 1.4143));
   height: auto;
   background: white;
   display: block;
@@ -676,12 +676,23 @@ button:focus-visible {
 }
 
 /* --- Floating action buttons (Print / Download) ----------------------- */
-/* In-stage action row that holds the Print FAB right-aligned just below
-   the calendar + month picker, matching the canvas's max-width so the
-   button lines up with the right edge of the calendar. */
-.stage-actions {
+/* Row that sits directly under the calendar: month-nav centred, Print
+   button pushed to the right edge of the canvas's max-width so they
+   share one horizontal line and the button visually aligns with the
+   calendar's right edge. Three-column grid (1fr auto 1fr) so the
+   centre column stays a true centre regardless of the right column's
+   actual width. */
+.stage-bottom-row {
   width: 100%;
   max-width: 1120px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-2);
+}
+.stage-bottom-row .month-nav { grid-column: 2; }
+.stage-actions {
+  grid-column: 3;
   display: flex;
   justify-content: flex-end;
 }
@@ -690,8 +701,10 @@ button:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  height: 44px;
-  padding: 0 18px 0 14px;
+  /* Match the month-nav arrow buttons (36 dp desktop, 32 dp mobile)
+     so Print sits at exactly the picker's height. */
+  height: 36px;
+  padding: 0 14px 0 12px;
   border: 0;
   border-radius: var(--radius-md);
   background: var(--primary);
@@ -946,6 +959,7 @@ canvas {
     min-width: 102px;
   }
   .month-nav button { width: 32px; height: 32px; flex: 0 0 32px; }
+  .stage-actions .fab { height: 32px; padding: 0 12px 0 10px; font-size: var(--text-xs); }
 }
 
 @media (max-width: 460px) {
