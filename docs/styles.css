@@ -637,6 +637,34 @@ button:focus-visible {
   color: var(--primary-dark);
 }
 
+/* --- Label colour palette (Custom dates quick-add) -------------------- */
+.label-colour-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex: 1 1 auto;
+  align-items: center;
+}
+.label-colour-swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  flex: 0 0 30px;
+  transition: transform .12s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.label-colour-swatch:hover { transform: scale(1.08); }
+.label-colour-swatch:focus-visible {
+  outline: 0;
+  border-color: var(--text);
+}
+.label-colour-swatch.active {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--primary-soft);
+}
+
 /* --- Floating action buttons (Print / Download) ----------------------- */
 .fab-group {
   position: fixed;

@@ -43,9 +43,14 @@ const SHADE_THEMES = {
   warm:  { weekend: [249, 240, 228], zebra: [251, 246, 238] },
 };
 const LABEL_COLOURS = {
-  black: [0, 0, 0],
-  blue:  [26, 86, 219],
-  green: [34, 113, 58],
+  black:  [0, 0, 0],
+  blue:   [26, 86, 219],
+  green:  [21, 128, 61],
+  red:    [220, 38, 38],
+  orange: [234, 88, 12],
+  purple: [124, 58, 237],
+  pink:   [219, 39, 119],
+  teal:   [13, 148, 136],
 };
 
 // localStorage keys for the two stores below.
@@ -1448,7 +1453,7 @@ function addRecurringDate() {
   const endMode = document.getElementById("recurEnd").value;
   const countRaw = document.getElementById("recurCount").value.trim();
   const untilDate = document.getElementById("recurUntil").value;
-  const colour = document.getElementById("recurColour").value;
+  const colour = document.querySelector("#recurColourPalette .label-colour-swatch.active")?.dataset.colour || "black";
   if (!date || !label) {
     window.alert("Pick a date and enter a label first.");
     return;
@@ -1470,7 +1475,11 @@ function addRecurringDate() {
   document.getElementById("recurLabel").value = "";
   document.getElementById("recurCount").value = "";
   document.getElementById("recurUntil").value = "";
-  document.getElementById("recurColour").value = "black";
+  // Reset the swatch picker to Black for the next entry.
+  for (const sw of document.querySelectorAll("#recurColourPalette .label-colour-swatch")) {
+    sw.classList.toggle("active", sw.dataset.colour === "black");
+    sw.setAttribute("aria-checked", String(sw.dataset.colour === "black"));
+  }
 }
 
 // Show/hide the contextual sub-controls in the quick-add form:
@@ -2447,6 +2456,22 @@ window.addEventListener("DOMContentLoaded", () => {
   // Custom-date quick-add form.
   document.getElementById("recurAddBtn").addEventListener("click", addRecurringDate);
   document.getElementById("recurFreq").addEventListener("change", updateQuickAddVisibility);
+  // Colour palette: single-select swatches, one active at a time.
+  const palette = document.getElementById("recurColourPalette");
+  if (palette) {
+    for (const sw of palette.querySelectorAll(".label-colour-swatch")) {
+      sw.setAttribute("role", "radio");
+      sw.setAttribute("aria-checked", String(sw.classList.contains("active")));
+      sw.addEventListener("click", () => {
+        for (const other of palette.querySelectorAll(".label-colour-swatch")) {
+          other.classList.remove("active");
+          other.setAttribute("aria-checked", "false");
+        }
+        sw.classList.add("active");
+        sw.setAttribute("aria-checked", "true");
+      });
+    }
+  }
   document.getElementById("recurEnd").addEventListener("change", updateQuickAddVisibility);
   updateQuickAddVisibility();
 
