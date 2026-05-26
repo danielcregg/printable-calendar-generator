@@ -50,7 +50,6 @@ const LABEL_COLOURS = {
   orange: [234, 88, 12],
   purple: [124, 58, 237],
   pink:   [219, 39, 119],
-  teal:   [13, 148, 136],
 };
 
 // localStorage keys for the two stores below.
@@ -1677,7 +1676,15 @@ function applySettings(settings) {
   } else {
     autoFillTeachingDates();
   }
-  document.getElementById("shadeColour").value = settings.shadeColour || "grey";
+  const loadedShade = settings.shadeColour || "grey";
+  document.getElementById("shadeColour").value = loadedShade;
+  // Sync the swatch palette's active marker to match the loaded value so the
+  // visual state lines up with the hidden input that downstream renderers read.
+  for (const sw of document.querySelectorAll("#shadeColourPalette .label-colour-swatch")) {
+    const matches = sw.dataset.shade === loadedShade;
+    sw.classList.toggle("active", matches);
+    sw.setAttribute("aria-checked", String(matches));
+  }
   document.getElementById("notesArea").checked = !!settings.notesArea;
   document.getElementById("language").value = settings.language || "en";
   document.getElementById("customDates").value = settings.customDates;
@@ -2472,6 +2479,27 @@ window.addEventListener("DOMContentLoaded", () => {
         }
         sw.classList.add("active");
         sw.setAttribute("aria-checked", "true");
+      });
+    }
+  }
+  // Shading-colour palette: writes its value to the hidden #shadeColour
+  // input + fires `change` so the existing render-trigger pipeline picks it
+  // up without any other code path changing.
+  const shadePalette = document.getElementById("shadeColourPalette");
+  if (shadePalette) {
+    for (const sw of shadePalette.querySelectorAll(".label-colour-swatch")) {
+      sw.setAttribute("role", "radio");
+      sw.setAttribute("aria-checked", String(sw.classList.contains("active")));
+      sw.addEventListener("click", () => {
+        for (const other of shadePalette.querySelectorAll(".label-colour-swatch")) {
+          other.classList.remove("active");
+          other.setAttribute("aria-checked", "false");
+        }
+        sw.classList.add("active");
+        sw.setAttribute("aria-checked", "true");
+        const hidden = document.getElementById("shadeColour");
+        hidden.value = sw.dataset.shade;
+        hidden.dispatchEvent(new Event("change", { bubbles: true }));
       });
     }
   }

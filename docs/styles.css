@@ -664,6 +664,14 @@ button:focus-visible {
   border-color: var(--text);
   box-shadow: 0 0 0 2px var(--primary-soft);
 }
+/* Shading tints are extremely pale; give them a hairline ring so they
+   are visible against the white drawer background even when inactive. */
+.shade-swatch {
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.shade-swatch.active {
+  box-shadow: inset 0 0 0 1px var(--border-strong), 0 0 0 2px var(--primary-soft);
+}
 
 /* --- Floating action buttons (Print / Download) ----------------------- */
 .fab-group {
