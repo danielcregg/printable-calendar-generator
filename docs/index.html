@@ -94,13 +94,6 @@
                 <option value="warm">Warm</option>
               </select>
             </label>
-            <label>Custom date colour
-              <select id="customColour">
-                <option value="black" selected>Black (default)</option>
-                <option value="blue">Blue</option>
-                <option value="green">Green</option>
-              </select>
-            </label>
           </div>
           <div class="shade-group">
             <span class="shade-label">Shade:</span>
@@ -190,6 +183,14 @@
               </select>
               <input id="recurCount" type="number" min="1" placeholder="times" hidden aria-label="Number of times">
               <input id="recurUntil" type="date" hidden aria-label="End date">
+            </div>
+            <div class="save-row">
+              <label class="quick-add-label" for="recurColour">Colour</label>
+              <select id="recurColour" aria-label="Label colour">
+                <option value="black" selected>Black (default)</option>
+                <option value="blue">Blue</option>
+                <option value="green">Green</option>
+              </select>
             </div>
             <div class="save-row">
               <button id="recurAddBtn" type="button">Add to list</button>

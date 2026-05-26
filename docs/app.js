@@ -286,12 +286,23 @@ function parseCustomDates(text, year) {
     const parts = line.split("|");
     const date = (parts[0] || "").trim();
     const label = (parts[1] || "").trim();
-    const ruleText = parts.slice(2).join("|").trim();
+    let ruleText = parts.slice(2).join("|").trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !label) continue;
+    // Extract optional `colour <name>` clause from the rule text. Each label
+    // line can carry its own colour; black is the default. Anything outside
+    // the LABEL_COLOURS table falls back to black.
+    let colour = "black";
+    const colourMatch = ruleText.match(/\bcolou?r\s+(\w+)\b/i);
+    if (colourMatch) {
+      const requested = colourMatch[1].toLowerCase();
+      if (LABEL_COLOURS[requested]) colour = requested;
+      ruleText = (ruleText.slice(0, colourMatch.index) +
+        ruleText.slice(colourMatch.index + colourMatch[0].length)).trim();
+    }
     const rule = ruleText ? parseRule(ruleText) : null;
     for (const occ of expandRule(date, rule, year)) {
       if (!labels.has(occ)) labels.set(occ, []);
-      labels.get(occ).push(label);
+      labels.get(occ).push({ text: label, colour });
     }
   }
   return labels;
@@ -324,8 +335,12 @@ function buildLabels(year) {
 // bottom. Returns an array of { text, custom: boolean }.
 function labelStack(entry) {
   if (!entry) return [];
-  const stack = entry.custom.map((text) => ({ text, custom: true }));
-  if (entry.holiday) stack.push({ text: entry.holiday, custom: false });
+  const stack = entry.custom.map((item) => ({
+    text: item.text,
+    custom: true,
+    colour: item.colour || "black",
+  }));
+  if (entry.holiday) stack.push({ text: entry.holiday, custom: false, colour: "black" });
   return stack;
 }
 
@@ -455,7 +470,6 @@ function computeEmptyRuns(leadingCount, trailingStart, rows) {
 function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   const { shadeWeekends, zebraWeeks, zebraColumns, guideLines, fullDayNames, teachingWeeks, notesArea } = options;
   const shade = SHADE_THEMES[options.shadeColour] || SHADE_THEMES.grey;
-  const customCss = rgbCss(LABEL_COLOURS[options.customColour] || LABEL_COLOURS.black);
   const lang = options.lang || "en";
   const monthNames = MONTH_NAMES[lang] || MONTH_NAMES.en;
   const weekdayNames = WEEKDAYS[lang] || WEEKDAYS.en;
@@ -647,7 +661,9 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
           labelPt *= labelMaxW / textW;
           ctx.font = `${weight} ${pt(labelPt, scale)}px Arial`;
         }
-        ctx.fillStyle = item.custom ? customCss : "black";
+        ctx.fillStyle = item.custom
+          ? rgbCss(LABEL_COLOURS[item.colour] || LABEL_COLOURS.black)
+          : "black";
         const slotIndex = slots - (visible.length - 1 - i);  // 1..slots from top
         const slotBottom = y + 9 * scale + slotIndex * slotSpacing;
         // Baseline sits 2 mm above the slot's bottom line so descenders
@@ -745,7 +761,6 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   const guideLines = document.getElementById("guideLines").checked;
   const fullDayNames = document.getElementById("fullDayNames").checked;
   const shade = SHADE_THEMES[document.getElementById("shadeColour").value] || SHADE_THEMES.grey;
-  const customRgb = LABEL_COLOURS[document.getElementById("customColour").value] || LABEL_COLOURS.black;
 
   // Background.
   doc.setFillColor(255, 255, 255);
@@ -871,8 +886,12 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
       visible.forEach((item, i) => {
         const text = item.text.slice(0, 32);
         doc.setFont("helvetica", item.custom ? "bolditalic" : "bold");
-        if (item.custom) doc.setTextColor(...customRgb);
-        else doc.setTextColor(0, 0, 0);
+        if (item.custom) {
+          const rgb = LABEL_COLOURS[item.colour] || LABEL_COLOURS.black;
+          doc.setTextColor(...rgb);
+        } else {
+          doc.setTextColor(0, 0, 0);
+        }
         let fontSize = 12;
         doc.setFontSize(fontSize);
         const textW = doc.getTextWidth(text);
@@ -987,7 +1006,6 @@ function renderPreview() {
     fullDayNames: document.getElementById("fullDayNames").checked,
     teachingWeeks: document.getElementById("teachingWeeks").checked ? teachingWeekMap() : null,
     shadeColour: document.getElementById("shadeColour").value,
-    customColour: document.getElementById("customColour").value,
     notesArea: document.getElementById("notesArea").checked,
     lang: document.getElementById("language").value,
   });
@@ -1126,7 +1144,6 @@ function drawCellOnCanvas(canvas, year, monthIndex, day, entry, options) {
   ctx.fillText(String(day), cellX + 3 * scale, cellY + 9 * scale);
 
   // Labels, slotted from the bottom up — same maths as drawCalendar.
-  const customCss = rgbCss(LABEL_COLOURS[options.customColour] || LABEL_COLOURS.black);
   const stack = labelStack(entry);
   const slots = lines + 1;
   const visible = stack.slice(-slots);
@@ -1142,7 +1159,9 @@ function drawCellOnCanvas(canvas, year, monthIndex, day, entry, options) {
       labelPt *= labelMaxW / textW;
       ctx.font = `${weight} ${pt(labelPt, scale)}px Arial`;
     }
-    ctx.fillStyle = item.custom ? customCss : "black";
+    ctx.fillStyle = item.custom
+      ? rgbCss(LABEL_COLOURS[item.colour] || LABEL_COLOURS.black)
+      : "black";
     const slotIndex = slots - (visible.length - 1 - i);
     const slotBottom = cellY + 9 * scale + slotIndex * slotSpacing;
     ctx.fillText(text, cellX + 3 * scale, slotBottom - 2 * scale);
@@ -1292,7 +1311,6 @@ function renderDayDialogCell() {
     zebraColumns: document.getElementById("zebraColumns").checked,
     guideLines: document.getElementById("guideLines").checked,
     shadeColour: document.getElementById("shadeColour").value,
-    customColour: document.getElementById("customColour").value,
   };
   const entry = buildLabels(year).get(date) || { holiday: null, custom: [] };
   const result = drawCellOnCanvas(canvas, year, monthIndex, day, entry, options);
@@ -1430,21 +1448,29 @@ function addRecurringDate() {
   const endMode = document.getElementById("recurEnd").value;
   const countRaw = document.getElementById("recurCount").value.trim();
   const untilDate = document.getElementById("recurUntil").value;
+  const colour = document.getElementById("recurColour").value;
   if (!date || !label) {
     window.alert("Pick a date and enter a label first.");
     return;
   }
-  let line = `${date} | ${label}`;
+  // Build the rule part: frequency + optional end clause + optional colour.
+  // `colour X` is omitted when black so plain entries stay clean. The parser
+  // accepts the clause anywhere in the rule text; we put it last for clarity.
+  let rule = "";
   if (freq) {
-    let rule = freq;
+    rule = freq;
     if (endMode === "count" && Number(countRaw) > 0) rule += ` x ${Number(countRaw)}`;
     else if (endMode === "until" && untilDate) rule += ` until ${untilDate}`;
-    line += ` | ${rule}`;
   }
+  if (colour && colour !== "black") {
+    rule = rule ? `${rule} colour ${colour}` : `colour ${colour}`;
+  }
+  const line = rule ? `${date} | ${label} | ${rule}` : `${date} | ${label}`;
   appendCustomDateLine(line);
   document.getElementById("recurLabel").value = "";
   document.getElementById("recurCount").value = "";
   document.getElementById("recurUntil").value = "";
+  document.getElementById("recurColour").value = "black";
 }
 
 // Show/hide the contextual sub-controls in the quick-add form:
@@ -1614,7 +1640,6 @@ function currentSettings() {
     s2Start: document.getElementById("s2Start").value,
     s2Break: document.getElementById("s2Break").value,
     shadeColour: document.getElementById("shadeColour").value,
-    customColour: document.getElementById("customColour").value,
     notesArea: document.getElementById("notesArea").checked,
     language: document.getElementById("language").value,
     customDates: document.getElementById("customDates").value,
@@ -1641,7 +1666,6 @@ function applySettings(settings) {
     autoFillTeachingDates();
   }
   document.getElementById("shadeColour").value = settings.shadeColour || "grey";
-  document.getElementById("customColour").value = settings.customColour || "black";
   document.getElementById("notesArea").checked = !!settings.notesArea;
   document.getElementById("language").value = settings.language || "en";
   document.getElementById("customDates").value = settings.customDates;
@@ -1805,7 +1829,7 @@ function toggleDrawer() {
 const RENDER_TRIGGER_IDS = [
   "year", "month", "country",
   "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines",
-  "shadeColour", "customColour", "notesArea",
+  "shadeColour", "notesArea",
   "fullDayNames", "teachingWeeks",
   "s1Start", "s1Break", "s2Start", "s2Break",
   "customDates",
