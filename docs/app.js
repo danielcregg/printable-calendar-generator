@@ -126,6 +126,35 @@ function stBrigidsDay(year) {
   return firstMonday(year, 1);
 }
 
+function ukHolidays(year) {
+  // UK (England & Wales) bank holidays. Scotland and NI differ slightly but
+  // share most of these — split into separate handlers later if needed.
+  const easter = easterSunday(year);
+  const labels = new Map();
+  labels.set(`${year}-01-01`, "New Year's Day");
+  const jan1 = new Date(year, 0, 1);
+  if (jan1.getDay() === 6) labels.set(`${year}-01-03`, "New Year observed");
+  else if (jan1.getDay() === 0) labels.set(`${year}-01-02`, "New Year observed");
+  labels.set(isoDate(addDays(easter, -2)), "Good Friday");
+  labels.set(isoDate(addDays(easter, 1)), "Easter Monday");
+  labels.set(isoDate(firstMonday(year, 4)), "May Bank Holiday");
+  labels.set(isoDate(lastMonday(year, 4)), "Spring Bank Holiday");
+  labels.set(isoDate(lastMonday(year, 7)), "Summer Bank Holiday");
+  labels.set(`${year}-12-25`, "Christmas Day");
+  labels.set(`${year}-12-26`, "Boxing Day");
+  const christmas = new Date(year, 11, 25);
+  const boxing = new Date(year, 11, 26);
+  if (christmas.getDay() === 6) {
+    labels.set(`${year}-12-27`, "Christmas observed");
+    labels.set(`${year}-12-28`, "Boxing observed");
+  } else if (christmas.getDay() === 0) {
+    labels.set(`${year}-12-27`, "Christmas observed");
+  } else if (boxing.getDay() === 6 || boxing.getDay() === 0) {
+    labels.set(`${year}-12-28`, "Boxing observed");
+  }
+  return labels;
+}
+
 function irelandHolidays(year) {
   const easter = easterSunday(year);
   const labels = new Map();
@@ -325,8 +354,11 @@ function buildLabels(year) {
     if (!labels.has(date)) labels.set(date, { holiday: null, custom: [] });
     return labels.get(date);
   };
-  if (document.getElementById("country").value === "IE") {
+  const country = document.getElementById("country").value;
+  if (country === "IE") {
     for (const [d, label] of irelandHolidays(year)) entryFor(d).holiday = label;
+  } else if (country === "GB") {
+    for (const [d, label] of ukHolidays(year)) entryFor(d).holiday = label;
   }
   for (const [d, list] of parseCustomDates(document.getElementById("customDates").value, year)) {
     entryFor(d).custom = list;
