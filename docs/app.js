@@ -344,7 +344,10 @@ function labelStack(entry) {
     custom: true,
     colour: item.colour || "black",
   }));
-  if (entry.holiday) stack.push({ text: entry.holiday, custom: false, colour: "black" });
+  if (entry.holiday) {
+    const holidayColour = document.getElementById("holidayColour")?.value || "black";
+    stack.push({ text: entry.holiday, custom: false, colour: holidayColour });
+  }
   return stack;
 }
 
@@ -665,9 +668,7 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
           labelPt *= labelMaxW / textW;
           ctx.font = `${weight} ${pt(labelPt, scale)}px Arial`;
         }
-        ctx.fillStyle = item.custom
-          ? rgbCss(LABEL_COLOURS[item.colour] || LABEL_COLOURS.black)
-          : "black";
+        ctx.fillStyle = rgbCss(LABEL_COLOURS[item.colour] || LABEL_COLOURS.black);
         const slotIndex = slots - (visible.length - 1 - i);  // 1..slots from top
         const slotBottom = y + 9 * scale + slotIndex * slotSpacing;
         // Baseline sits 2 mm above the slot's bottom line so descenders
@@ -890,12 +891,8 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
       visible.forEach((item, i) => {
         const text = item.text.slice(0, 32);
         doc.setFont("helvetica", item.custom ? "bolditalic" : "bold");
-        if (item.custom) {
-          const rgb = LABEL_COLOURS[item.colour] || LABEL_COLOURS.black;
-          doc.setTextColor(...rgb);
-        } else {
-          doc.setTextColor(0, 0, 0);
-        }
+        const rgb = LABEL_COLOURS[item.colour] || LABEL_COLOURS.black;
+        doc.setTextColor(...rgb);
         let fontSize = 12;
         doc.setFontSize(fontSize);
         const textW = doc.getTextWidth(text);
@@ -1010,6 +1007,7 @@ function renderPreview() {
     fullDayNames: document.getElementById("fullDayNames").checked,
     teachingWeeks: document.getElementById("teachingWeeks").checked ? teachingWeekMap() : null,
     shadeColour: document.getElementById("shadeColour").value,
+    holidayColour: document.getElementById("holidayColour").value,
     notesArea: document.getElementById("notesArea").checked,
     lang: document.getElementById("language").value,
   });
@@ -1163,9 +1161,7 @@ function drawCellOnCanvas(canvas, year, monthIndex, day, entry, options) {
       labelPt *= labelMaxW / textW;
       ctx.font = `${weight} ${pt(labelPt, scale)}px Arial`;
     }
-    ctx.fillStyle = item.custom
-      ? rgbCss(LABEL_COLOURS[item.colour] || LABEL_COLOURS.black)
-      : "black";
+    ctx.fillStyle = rgbCss(LABEL_COLOURS[item.colour] || LABEL_COLOURS.black);
     const slotIndex = slots - (visible.length - 1 - i);
     const slotBottom = cellY + 9 * scale + slotIndex * slotSpacing;
     ctx.fillText(text, cellX + 3 * scale, slotBottom - 2 * scale);
@@ -1315,6 +1311,7 @@ function renderDayDialogCell() {
     zebraColumns: document.getElementById("zebraColumns").checked,
     guideLines: document.getElementById("guideLines").checked,
     shadeColour: document.getElementById("shadeColour").value,
+    holidayColour: document.getElementById("holidayColour").value,
   };
   const entry = buildLabels(year).get(date) || { holiday: null, custom: [] };
   const result = drawCellOnCanvas(canvas, year, monthIndex, day, entry, options);
@@ -1651,6 +1648,7 @@ function currentSettings() {
     s2Start: document.getElementById("s2Start").value,
     s2Break: document.getElementById("s2Break").value,
     shadeColour: document.getElementById("shadeColour").value,
+    holidayColour: document.getElementById("holidayColour").value,
     notesArea: document.getElementById("notesArea").checked,
     language: document.getElementById("language").value,
     customDates: document.getElementById("customDates").value,
@@ -1682,6 +1680,13 @@ function applySettings(settings) {
   // visual state lines up with the hidden input that downstream renderers read.
   for (const sw of document.querySelectorAll("#shadeColourPalette .label-colour-swatch")) {
     const matches = sw.dataset.shade === loadedShade;
+    sw.classList.toggle("active", matches);
+    sw.setAttribute("aria-checked", String(matches));
+  }
+  const loadedHoliday = settings.holidayColour || "black";
+  document.getElementById("holidayColour").value = loadedHoliday;
+  for (const sw of document.querySelectorAll("#holidayColourPalette .label-colour-swatch")) {
+    const matches = sw.dataset.colour === loadedHoliday;
     sw.classList.toggle("active", matches);
     sw.setAttribute("aria-checked", String(matches));
   }
@@ -1848,7 +1853,7 @@ function toggleDrawer() {
 const RENDER_TRIGGER_IDS = [
   "year", "month", "country",
   "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines",
-  "shadeColour", "notesArea",
+  "shadeColour", "holidayColour", "notesArea",
   "fullDayNames", "teachingWeeks",
   "s1Start", "s1Break", "s2Start", "s2Break",
   "customDates",
@@ -2499,6 +2504,27 @@ window.addEventListener("DOMContentLoaded", () => {
         sw.setAttribute("aria-checked", "true");
         const hidden = document.getElementById("shadeColour");
         hidden.value = sw.dataset.shade;
+        hidden.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+    }
+  }
+  // Holiday-colour palette: same pattern as shading. Hidden #holidayColour
+  // input gets the selected colour name; labelStack reads it when stacking
+  // each day's holiday entry. Change event triggers a re-render.
+  const holidayPalette = document.getElementById("holidayColourPalette");
+  if (holidayPalette) {
+    for (const sw of holidayPalette.querySelectorAll(".label-colour-swatch")) {
+      sw.setAttribute("role", "radio");
+      sw.setAttribute("aria-checked", String(sw.classList.contains("active")));
+      sw.addEventListener("click", () => {
+        for (const other of holidayPalette.querySelectorAll(".label-colour-swatch")) {
+          other.classList.remove("active");
+          other.setAttribute("aria-checked", "false");
+        }
+        sw.classList.add("active");
+        sw.setAttribute("aria-checked", "true");
+        const hidden = document.getElementById("holidayColour");
+        hidden.value = sw.dataset.colour;
         hidden.dispatchEvent(new Event("change", { bubbles: true }));
       });
     }
