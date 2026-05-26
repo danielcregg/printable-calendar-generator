@@ -677,24 +677,23 @@ button:focus-visible {
 
 /* --- Floating action buttons (Print / Download) ----------------------- */
 /* Row that sits directly under the calendar: month-nav centred, Print
-   button pushed to the right edge of the canvas's max-width so they
-   share one horizontal line and the button visually aligns with the
-   calendar's right edge. Three-column grid (1fr auto 1fr) so the
-   centre column stays a true centre regardless of the right column's
-   actual width. */
+   button pinned to the right of the row regardless of the picker's
+   width. Absolute positioning for .stage-actions avoids the grid-template
+   collapse that pushed Print onto a second line on narrow viewports. */
 .stage-bottom-row {
   width: 100%;
   max-width: 1120px;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: var(--space-2);
-}
-.stage-bottom-row .month-nav { grid-column: 2; }
-.stage-actions {
-  grid-column: 3;
+  position: relative;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
+  align-items: center;
+  min-height: 40px;
+}
+.stage-actions {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .fab {
