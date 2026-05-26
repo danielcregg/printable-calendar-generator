@@ -559,9 +559,9 @@ button:focus-visible {
    when either viewport width OR available height is the binding constraint,
    so the bottom of the page never falls off the screen on a short window. */
 .stage canvas {
-  /* 140px reserves space for: top padding (24) + bottom padding (48)
-     + month-nav row (44) + flex gap (16) + safety (8) */
-  width: min(100%, 1120px, calc((100dvh - var(--topbar-h) - 140px) * 1.4143));
+  /* 200px reserves space for: top padding (24) + bottom padding (48)
+     + month-nav row (44) + Print button row (~44) + 2 flex gaps (32) + safety (8) */
+  width: min(100%, 1120px, calc((100dvh - var(--topbar-h) - 200px) * 1.4143));
   height: auto;
   background: white;
   display: block;
@@ -674,13 +674,14 @@ button:focus-visible {
 }
 
 /* --- Floating action buttons (Print / Download) ----------------------- */
-.fab-group {
-  position: fixed;
-  right: var(--space-4);
-  bottom: var(--space-4);
-  z-index: 25;
+/* In-stage action row that holds the Print FAB right-aligned just below
+   the calendar + month picker, matching the canvas's max-width so the
+   button lines up with the right edge of the calendar. */
+.stage-actions {
+  width: 100%;
+  max-width: 1120px;
   display: flex;
-  gap: var(--space-3);
+  justify-content: flex-end;
 }
 
 .fab {
