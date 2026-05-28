@@ -225,8 +225,10 @@ function parseRule(text) {
     if (cm) { count = Number(cm[1]); body = body.slice(0, cm.index); progress = true; }
   }
   body = body.trim();
-  const aliases = { daily: "day", weekly: "week", monthly: "month", yearly: "year" };
-  if (aliases[body]) return { unit: aliases[body], n: 1, count, until, exceptions };
+  const aliases = { daily: "day", weekly: "week", monthly: "month", yearly: "year", birthday: "year" };
+  if (aliases[body]) {
+    return { unit: aliases[body], n: 1, count, until, exceptions, birthday: body === "birthday" };
+  }
   const interval = body.match(/^every\s+(?:(\d+)\s+)?(day|days|week|weeks|month|months|year|years)$/);
   if (interval) {
     const n = interval[1] ? Number(interval[1]) : 1;
@@ -311,6 +313,14 @@ function* expandRule(startISO, rule, year) {
 // Lines look like "YYYY-MM-DD | Label [| rule]". Recurring rules are expanded
 // into every occurrence that falls inside the rendered year (± a small
 // buffer). Lines starting with # are treated as comments.
+// How a birthday label renders. Called by parseCustomDates for any line
+// whose rule is `birthday`. Tweak this one line to change the format —
+// e.g. `${name} (${age})`, `${name} 🎂 ${age}`, `${name}'s ${age}th`.
+// Day-box space is tight; keep it short.
+function formatBirthdayLabel(name, age) {
+  return `${name} ${age}`;
+}
+
 function parseCustomDates(text, year) {
   const labels = new Map();
   for (const raw of text.split(/\r?\n/)) {
@@ -333,9 +343,16 @@ function parseCustomDates(text, year) {
         ruleText.slice(colourMatch.index + colourMatch[0].length)).trim();
     }
     const rule = ruleText ? parseRule(ruleText) : null;
+    const birthYear = rule?.birthday ? Number(date.slice(0, 4)) : null;
     for (const occ of expandRule(date, rule, year)) {
       if (!labels.has(occ)) labels.set(occ, []);
-      labels.get(occ).push({ text: label, colour });
+      // For `birthday` rules, append the age the person TURNS on this
+      // specific occurrence. Birth year comes from the line's date prefix;
+      // the occurrence's year is the first 4 chars of the ISO date.
+      const text = birthYear != null
+        ? formatBirthdayLabel(label, Number(occ.slice(0, 4)) - birthYear)
+        : label;
+      labels.get(occ).push({ text, colour });
     }
   }
   return labels;
