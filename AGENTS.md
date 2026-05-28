@@ -11,8 +11,8 @@ violates one of them, prefer not to make it.
 2. **Black and white by default.** The starting state is print-friendly. Colour, shading themes, the Notes area — all opt-in. A user who never touches a toggle still gets a calendar they'd be happy to pin to a wall.
 3. **Readable from a few metres, writable up close.** This is a wall calendar, not a screen calendar. Type sizes, grid weights and guide lines are tuned for distance reading and pen-in-hand use, not pixel-perfect screen mockups.
 4. **Tuned for A4 landscape — every inch of the page has a purpose.** The output target is a 297 × 210 mm A4 sheet, and the layout is sized to use all of it: margins are minimal, cells fill the grid, the title sits as close to the top edge as a home printer will allow without clipping. We don't design for a generic page; we design for *this* page.
-5. **Configuration is one tap away, not in your face.** Setup (custom dates, saved calendars, .ics import, colours, teaching schedule) lives behind the drawer. Every control that crowds the toolbar has to earn its place; rare ones go in the drawer, very rare ones in the README only.
-6. **No accounts. No server. Works offline.** Everything is a static `docs/` folder; saved calendars and date groups live in `localStorage`. The PWA precaches the app shell so the calendar is generated entirely in the browser, online or not. Nothing about a user's dates ever leaves their device.
+5. **Configuration is one tap away, not in your face.** Setup (custom dates, saved calendars, colours, teaching schedule, holidays) lives behind the drawer. Every control that crowds the toolbar has to earn its place; rare ones go in the drawer, very rare ones in the README only.
+6. **No accounts. No server by default.** Everything is a static `docs/` folder; saved calendars and date groups live in `localStorage`. The calendar is generated entirely in the browser. The optional Cloudflare Worker (`worker/`) only sees data when the user explicitly clicks **Publish read-only** or **Live share**.
 7. **The PDF is the deliverable; the canvas is the editor.** The on-screen preview is the instant-feedback editing surface; the downloaded PDF is what gets pinned to the wall. We optimise both for their own job.
 8. **Resist abstractions that risk visual drift.** The dual canvas/PDF render path duplicates work on purpose. We pay the maintenance cost so the preview and the printout always agree pixel-for-pixel.
 
@@ -45,22 +45,19 @@ printable-calendar-generator/
     index.html           # Calendar generator web app (and the GitHub Pages site)
     styles.css
     app.js               # Calendar/holiday/teaching-week engine, rendering, UI, PDF export
-    manifest.json        # PWA manifest — installable-app metadata and icons
-    sw.js                # Service worker — precaches the app shell for offline use
+    tests.html           # Browser-based assertion suite for pure helpers
+    tests.js
     vendor/
       jspdf.umd.min.js   # Bundled jsPDF 2.5.1 — no CDN dependency
-    icons/
-      icon-192.png       # App icons referenced by the PWA manifest
-      icon-512.png
   Original Sample month/      # Reference printed sample PDF
-  worker/                     # OPTIONAL Cloudflare Worker powering live sharing
+  worker/                     # OPTIONAL Cloudflare Worker powering Publish/Live share
     share.js                  #   ~70 lines — GET/PUT calendar JSON in Workers KV
     wrangler.toml.example     #   rename + edit, then `wrangler deploy`
     README.md                 #   deployment + free-tier capacity notes
   README.md
   AGENTS.md
   CLAUDE.md
-  android-app-dev-guide.md    # Guide for porting the app to Android
+  possible-future-upgrades.md # Ideas parked for later (e.g. .ics import)
 ```
 
 The entire application is the static site in `docs/`. There is no build step and no
@@ -190,9 +187,9 @@ The quick-add form above the textarea writes lines for you: a date picker, label
 **Repeats** dropdown (including a "Birthday (yearly + age)" option), end-condition,
 and a swatch palette for the colour. All inputs reset to defaults after Add to list.
 
-Lines beginning with `#` are treated as comments. Dates can also be added by clicking a
-day in the preview, or by importing an `.ics` file. If multiple labels fall on the same
-date, each one is drawn on its own line, stacked above any holiday label for that day.
+Lines beginning with `#` are treated as comments. Dates can also be added by clicking
+a day in the preview. If multiple labels fall on the same date, each one is drawn on
+its own line, stacked above any holiday label for that day.
 
 ## Teaching weeks
 
@@ -248,8 +245,9 @@ The application is a single static site in `docs/`. It uses jsPDF — bundled in
 install.
 
 `app.js` holds everything: holiday calculations, teaching-week numbering, the layout
-maths, rendering, the UI, `.ics` import, browser-stored saved calendars and date groups,
-and PDF export. It is loaded by `index.html` (the generator).
+maths, rendering, the UI, browser-stored saved calendars and date groups, share/publish
+through the optional worker, and PDF export. It is loaded by `index.html` (the
+generator).
 
 `app.js` renders the calendar through two paths that must be kept consistent:
 
@@ -259,18 +257,6 @@ and PDF export. It is loaded by `index.html` (the generator).
 Any layout change must be made in **both**, or the preview and the PDF will disagree.
 The downloaded PDF is the print-quality output and the one to trust; the canvas preview
 is approximate because it uses the browser's own font rendering.
-
-## Offline support (PWA)
-
-The site is an installable Progressive Web App. `manifest.json` carries the install
-metadata and icons; `sw.js` is a service worker that precaches the whole app shell —
-the HTML page, the CSS and JS, the vendored jsPDF, the manifest and the icons — so the
-app loads and generates PDFs with no network connection.
-
-The service worker is cache-first. **When you change any precached asset, bump the
-`CACHE` constant in `sw.js`** (for example `printable-calendar-v2` to `-v3`). Otherwise
-the service worker keeps serving the old cached file to returning visitors, even when
-the `?v=` query on the script tags changes — it matches requests with `ignoreSearch`.
 
 ## Day editor
 
@@ -364,9 +350,8 @@ device" guarantee for users who don't want it.
 
 ### Deep-link query params
 
-Two extra URL query params let an outside caller — currently the Android
-widget (see `android-widget-plan.md`) — open the app focused on a specific
-month or day:
+Two extra URL query params let an outside caller open the app focused on a
+specific month or day:
 
 - `?m=YYYY-MM` — set the Year/Month selects to that month and re-render.
 - `?d=YYYY-MM-DD` — same, plus open the day editor for that ISO date.
@@ -403,12 +388,11 @@ Before finishing any change, verify:
 
 Suggested local smoke test:
 
-1. Serve the `docs/` folder with a static server (a served URL, not `file://`, is needed for the service worker).
+1. Open `docs/index.html` directly, or serve the folder with any static server.
 2. Open `docs/tests.html` and confirm the pure-function assertion suite passes (date math, holidays, recurrence parser, layout helpers).
 3. Generate a full-year 2026 calendar with IE holidays and download the PDF.
 4. Generate a single month (for example June 2026) and download it.
-5. Reload once, then load again with the network disabled, to confirm the service worker serves the app offline.
-6. Visually inspect each PDF against the checklist above.
+5. Visually inspect each PDF against the checklist above.
 
 ## Coding style
 
@@ -421,13 +405,14 @@ Suggested local smoke test:
 
 ## Future improvements
 
-Good future additions:
+See `possible-future-upgrades.md` for parked ideas (including `.ics` import,
+which used to be in the drawer and was removed during a scope-creep cleanup).
+Other good future additions:
 
 - more country holiday providers
 - Sunday-start option
 - portrait option
 - different paper sizes
 - optional localisation of weekday/month labels
-- a native Android app (see `android-app-dev-guide.md`)
 
 Avoid adding clutter to the default design. The core value of this project is that the calendar is clean, readable, and easy to write on.

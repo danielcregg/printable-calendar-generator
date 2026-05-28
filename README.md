@@ -17,10 +17,10 @@ The default design is intentionally simple, black and white, and easy to write o
 - Leading and trailing cells filled with the adjacent month's days in light grey, with a small `Jul`/`Sep` tag in the top-right
 - Irish public/bank holidays plus Good Friday and Easter Sunday support
 - Optional teaching-week numbering (W1–W13 per semester) with an editable schedule
-- Optional **recurring** custom dates (e.g. `every 2 weeks`, `weekly x 10`, `yearly`)
-- Opt-in colour presets for the shading and the custom-date label colour
+- Optional **recurring** custom dates (e.g. `every 2 weeks`, `weekly x 10`, `yearly`, `birthday`)
+- Per-date label colours, plus opt-in shading themes
+- Irish and UK bank-holiday calculators
 - Saved calendars and reusable date groups, stored in your browser
-- Installable Progressive Web App — works fully offline
 
 ## Using it
 
@@ -28,9 +28,9 @@ The whole app is the static site in `docs/`. To run it locally, open `docs/index
 in a browser, or serve the folder with any static file server.
 
 Pick a year and a month (or a full year), toggle the holiday, shading and teaching-week
-options, add your own dates, then click **Download PDF** to save a file or **Print** to
-open the print dialog directly. You can save a named calendar
-or a reusable date group in your browser to load again later.
+options, add your own dates, then click **Print** to open the browser's print dialog —
+"Save as PDF" is one of the destinations. You can save a named calendar or a reusable
+date group in your browser to load again later.
 
 To send a calendar to someone else, open the **Saved calendars** panel and choose
 **Copy share link** (the recipient pastes the URL and the calendar opens with all your
@@ -49,9 +49,7 @@ themselves (see [`worker/README.md`](worker/README.md) for the one-time setup):
 - **Live share** — two or three people open the same link and every edit syncs to
   everyone within a few seconds.
 
-Generating a PDF needs nothing online — jsPDF is bundled in `docs/vendor/`. The site is
-also a Progressive Web App: your browser can install it as a standalone app, and once
-visited it keeps working with no internet connection.
+Generating a PDF needs nothing online — jsPDF is bundled in `docs/vendor/`.
 
 ## GitHub Pages
 
@@ -65,17 +63,15 @@ The site is published straight from this repository:
 
 ## Layout options
 
-The toolbar above the calendar carries the date dropdowns and the most-used
-visual toggles; the **Setup** drawer holds the bulkier data-entry panels
-(Colours, Teaching-week schedule, Custom dates, .ics import, Saved calendars):
+The toolbar carries the date dropdowns; the **Setup** drawer holds the rest
+(Display, Calendar Shading, Teaching weeks, Holidays, Custom dates, Save &
+share):
 
-- **Year / Month / Holidays / Language** — between the prev/next arrows. Holidays is `Irish holidays` or `No holidays`. Language switches the month and weekday names on the calendar between English and `Gaeilge` (Irish).
-- **Shade: weekends / weeks / weekdays** — three checkboxes for the gentle background shading (weekend columns, alternating week rows, alternating day columns).
-- **Guidelines** — the dashed writing lines per cell; the calendar drops one line per stacked label so text never overwrites the dashes, and tightens further in six-row months.
-- **Full day names** — switch from `MON` to `MONDAY`.
-- **Teaching weeks** — adds a `W1`–`W13` gutter and reveals an editable schedule panel for years that don't fit the standard ATU pattern.
-- **Notes area** — replaces the adjacent-month dates with a merged writing block per row, with full-width guide lines and a faint "Notes" tag in the top-left.
-- **Colours** (drawer) — opt-in shading theme (grey / blue / green / warm) and custom-date label colour (black / blue / green).
+- **Year / Month** — between the prev/next arrows, with **Full year** as an option for a 12-page PDF.
+- **Display** — language (English/Gaeilge), Guidelines (the dashed writing lines), Full day names (`MON` → `MONDAY`), Teaching weeks gutter, Notes area (merges leading/trailing cells into a writing block).
+- **Calendar Shading** — pick a tint (grey / blue / green / warm) and choose which slices get shaded (weekends, alternating week rows, alternating day columns).
+- **Holidays** — pick a country (Ireland / United Kingdom / None) and the label colour.
+- **Teaching weeks** (visible when the toggle is on) — auto-filled but editable W1/reading-week/Easter-break dates for years that don't fit the standard ATU pattern.
 
 ## Custom dates
 
@@ -103,8 +99,7 @@ type a label, choose a repeat (Once, Daily, Weekly, Every 2 weeks, Monthly, Year
 optionally type a number of occurrences, and click **Add** — the correctly formatted
 entry is appended to the textarea.
 
-You can also click any day in the preview to add a date, or import an `.ics` file
-(Outlook, Google, Apple) and tick the dates to include. If a day has more than one
+You can also click any day in the preview to add a date. If a day has more than one
 custom date and/or a public holiday, the labels stack on separate lines — custom dates
 on top, holiday at the bottom.
 
@@ -128,34 +123,25 @@ For Ireland, the generator includes:
 If Christmas Day or St Stephen's Day falls on a weekend, the generator also labels the
 common observed substitute weekdays.
 
-## Android app
-
-The app can be ported to Android — see `android-app-dev-guide.md` for a guide aimed at
-AI coding tools, covering both wrapping the existing PWA and a native rebuild.
-
 ## Development
 
-The app is plain HTML, CSS and JS in `docs/` with no build step. To run it locally:
+The app is plain HTML, CSS and JS in `docs/` with no build step. Open `docs/index.html`
+in a browser, or serve the folder with any static server:
 
 ```bash
 cd docs
 python3 -m http.server 8000
 ```
 
-Then open <http://localhost:8000>. A served URL (rather than a `file://` URL) is needed
-for the service worker to register and for offline mode to work.
-
 A small browser-based test runner lives at `docs/tests.html` and exercises the pure
-helpers (date math, Ireland holidays, recurrence parser, layout helpers). Open it via
-the served URL above to run the assertions.
+helpers (date math, holidays, recurrence parser, layout helpers).
 
 ## Known limitations
 
-- **Holidays**: only Ireland (`IE`) is currently supported. Holiday labels are always in English (the Language option only switches the month and weekday names on the calendar grid).
+- **Holidays**: Ireland (`IE`) and United Kingdom (`GB`) only. Holiday labels are always in English (the Language option only switches the month and weekday names on the calendar grid).
 - **Layout**: Monday-first only; portrait orientation is not available; the page is A4 only.
 - **Year range**: the dropdown lists from the current year through 2099 — past years are not selectable from the controls.
 - **Saved data**: saved calendars and date groups live in your browser's `localStorage`. Clearing browser data, switching devices, or private browsing will lose them. A single calendar can be moved across browsers via the share link or the `.json` export; date groups have no export.
-- **`.ics` import**: handles `VEVENT`, `DTSTART`, `SUMMARY` and `FREQ=YEARLY` recurrence. Time-zone-shifted, multi-day, weekly/monthly-recurring, and `EXDATE`-excluded events are not interpreted — only the start date is taken.
 - **Print orientation**: the PDF is landscape; some browsers' print dialogs default to portrait and need a one-click change to landscape.
 - **Preview fidelity**: the on-screen canvas preview uses the browser's font rendering and is approximate. The downloaded PDF is the print-quality output.
 

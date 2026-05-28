@@ -498,44 +498,6 @@ button:focus-visible {
   border-top: 1px solid var(--border);
 }
 
-/* --- .ics import drop zone -------------------------------------------- */
-.ics-drop {
-  border: 1.5px dashed var(--border-strong);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-  text-align: center;
-  margin-top: var(--space-1);
-  transition: border-color .15s ease, background .15s ease;
-}
-.ics-drop.dragover {
-  border-color: var(--primary);
-  background: var(--primary-soft);
-}
-.ics-drop p { margin: 0 0 var(--space-2); color: var(--text-muted); }
-.ics-drop input[type="file"] { max-width: 100%; border: 0; padding: 0; background: none; }
-
-.ics-results {
-  margin-top: var(--space-3);
-  max-height: 240px;
-  overflow-y: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 6px 12px;
-}
-.ics-item {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  font-weight: 400;
-  padding: 5px 2px;
-}
-.ics-actions { margin-top: var(--space-3); }
-.ics-actions:not([hidden]) {
-  display: flex;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
-
 /* --- Stage: the calendar page (index.html) ----------------------------- */
 .stage {
   flex: 1;

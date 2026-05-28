@@ -4,15 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Printable Calendar Generator</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#ffffff">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <!-- Optional Cloudflare Worker that powers the Live sharing feature.
-       Blank = feature hidden. See worker/README.md for deployment. -->
+  <!-- Optional Cloudflare Worker that powers Publish read-only + Live share.
+       Blank = those buttons stay hidden. See worker/README.md for deployment. -->
   <meta name="cal-share-worker" content="https://printcal-share.daniel-cregg.workers.dev">
-  <link rel="stylesheet" href="styles.css?v=2026-05-deep-links">
+  <link rel="stylesheet" href="styles.css">
   <script defer src="vendor/jspdf.umd.min.js"></script>
-  <script defer src="app.js?v=2026-05-deep-links"></script>
+  <script defer src="app.js"></script>
 </head>
 <body class="app">
   <header class="topbar">
@@ -257,26 +254,6 @@
 
         <details class="drawer-section">
           <summary>
-            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <span class="section-title">Import .ics file</span>
-            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-          </summary>
-          <div class="section-inner">
-          <p class="hint">Select or drag in an .ics file (Outlook, Google, Apple), then tick the dates to add.</p>
-          <div id="icsDrop" class="ics-drop">
-            <p>Drop an <strong>.ics</strong> file here, or choose one:</p>
-            <input id="icsFile" type="file" accept=".ics,text/calendar">
-          </div>
-          <div id="icsResults" class="ics-results" hidden></div>
-          <div id="icsActions" class="ics-actions" hidden>
-            <button id="icsAddBtn" type="button">Add selected dates</button>
-            <button id="icsClearBtn" type="button">Clear</button>
-          </div>
-          </div>
-        </details>
-
-        <details class="drawer-section">
-          <summary>
             <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
             <span class="section-title">Save &amp; share</span>
             <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
@@ -379,11 +356,5 @@
   <div class="coach-bubble" id="coachBubble" hidden role="status" aria-live="polite">
     Tap any day to add a reminder &#x2728;
   </div>
-
-  <script>
-    if ("serviceWorker" in navigator) {
-      addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
-    }
-  </script>
 </body>
 </html>

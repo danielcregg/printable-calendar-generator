@@ -1554,116 +1554,6 @@ function appendCustomDateLine(text) {
 }
 
 // ============================================================================
-// .ics import (Outlook/Google/Apple)
-// ============================================================================
-
-let icsEvents = [];
-
-function parseIcs(text) {
-  // Normalise newlines, then unfold continuation lines (leading space/tab).
-  const lines = text.replace(/\r\n|\r/g, "\n").replace(/\n[ \t]/g, "").split("\n");
-  const events = [];
-  let current = null;
-  for (const line of lines) {
-    const colon = line.indexOf(":");
-    if (colon === -1) continue;
-    const name = line.slice(0, colon).split(";")[0].trim().toUpperCase();
-    const value = line.slice(colon + 1);
-    if (name === "BEGIN" && value === "VEVENT") {
-      current = {};
-      continue;
-    }
-    if (name === "END" && value === "VEVENT") {
-      if (current && current.date) {
-        events.push({ date: current.date, label: current.summary || "Imported date", yearly: !!current.yearly });
-      }
-      current = null;
-      continue;
-    }
-    if (!current) continue;
-    if (name === "DTSTART") {
-      const digits = value.replace(/[^0-9]/g, "");
-      if (digits.length >= 8) {
-        current.date = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
-      }
-    } else if (name === "SUMMARY") {
-      current.summary = value
-        .replace(/\\n/gi, " ")
-        .replace(/\\,/g, ",")
-        .replace(/\\;/g, ";")
-        .replace(/\\\\/g, "\\")
-        .trim();
-    } else if (name === "RRULE" && /FREQ=YEARLY/i.test(value)) {
-      current.yearly = true;
-    }
-  }
-  return events;
-}
-
-function loadIcsFile(file) {
-  file.text().then((text) => showIcsResults(parseIcs(text)));
-}
-
-function showIcsResults(events) {
-  const calYear = Number(document.getElementById("year").value) || new Date().getFullYear();
-  icsEvents = events
-    .map((e) => ({
-      date: e.yearly ? `${calYear}-${e.date.slice(5)}` : e.date,
-      label: e.label,
-    }))
-    .sort((a, b) => a.date.localeCompare(b.date));
-
-  const results = document.getElementById("icsResults");
-  const actions = document.getElementById("icsActions");
-  results.innerHTML = "";
-
-  if (icsEvents.length === 0) {
-    results.textContent = "No dated events were found in that file.";
-    results.hidden = false;
-    actions.hidden = true;
-    return;
-  }
-
-  icsEvents.forEach((event, index) => {
-    const row = document.createElement("label");
-    row.className = "ics-item";
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = true;
-    checkbox.dataset.index = String(index);
-    const text = document.createElement("span");
-    text.textContent = `${event.date}  —  ${event.label}`;
-    row.append(checkbox, text);
-    results.appendChild(row);
-  });
-  results.hidden = false;
-  actions.hidden = false;
-}
-
-function addIcsSelected() {
-  const lines = [];
-  for (const checkbox of document.querySelectorAll("#icsResults input:checked")) {
-    const event = icsEvents[Number(checkbox.dataset.index)];
-    if (event) lines.push(`${event.date} | ${event.label}`);
-  }
-  if (lines.length === 0) {
-    window.alert("Tick at least one date to add.");
-    return;
-  }
-  appendCustomDateLine(lines.join("\n"));
-  clearIcs();
-}
-
-function clearIcs() {
-  icsEvents = [];
-  const results = document.getElementById("icsResults");
-  results.innerHTML = "";
-  results.hidden = true;
-  document.getElementById("icsActions").hidden = true;
-  document.getElementById("icsFile").value = "";
-}
-
-// ============================================================================
 // Persistence: saved calendars and reusable date groups (localStorage)
 // ============================================================================
 
@@ -2298,7 +2188,7 @@ function wireLiveShare() {
 }
 
 // ============================================================================
-// Deep-link query params (used by the Android widget):
+// Deep-link query params:
 //   ?m=YYYY-MM       — focus the calendar on that month.
 //   ?d=YYYY-MM-DD    — focus on the month containing that day, then open
 //                      the day editor for it.
@@ -2499,24 +2389,6 @@ window.addEventListener("DOMContentLoaded", () => {
   });
   wireLiveShare();
 
-  // .ics import (drag-and-drop and file picker).
-  const icsDrop = document.getElementById("icsDrop");
-  icsDrop.addEventListener("dragover", (event) => {
-    event.preventDefault();
-    icsDrop.classList.add("dragover");
-  });
-  icsDrop.addEventListener("dragleave", () => icsDrop.classList.remove("dragover"));
-  icsDrop.addEventListener("drop", (event) => {
-    event.preventDefault();
-    icsDrop.classList.remove("dragover");
-    if (event.dataTransfer.files[0]) loadIcsFile(event.dataTransfer.files[0]);
-  });
-  document.getElementById("icsFile").addEventListener("change", (event) => {
-    if (event.target.files[0]) loadIcsFile(event.target.files[0]);
-  });
-  document.getElementById("icsAddBtn").addEventListener("click", addIcsSelected);
-  document.getElementById("icsClearBtn").addEventListener("click", clearIcs);
-
   // Custom-date quick-add form.
   document.getElementById("recurAddBtn").addEventListener("click", addRecurringDate);
   document.getElementById("recurFreq").addEventListener("change", updateQuickAddVisibility);
@@ -2626,8 +2498,8 @@ window.addEventListener("DOMContentLoaded", () => {
   // no shared payload was applied — avoids a visible flash of the defaults.
   if (!loadFromHashIfPresent()) renderPreview();
 
-  // ?m=YYYY-MM and ?d=YYYY-MM-DD layer on top of the above — used by the
-  // Android widget to deep-link to a month or day.
+  // ?m=YYYY-MM and ?d=YYYY-MM-DD layer on top of the above so external
+  // callers can deep-link straight to a month or day.
   loadFromQueryIfPresent();
 
   // Show the first-visit teaching bubble after the canvas has settled.
