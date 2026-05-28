@@ -155,23 +155,32 @@ Do not add broad multi-day school breaks by default. The agreed approach is to i
 ## Custom dates
 
 Custom dates are entered in the app's **Custom dates** box, one per line, in the format
-`YYYY-MM-DD | Label`, with an optional third pipe-separated field for a recurrence
-rule:
+`DD-MM-YYYY | Label`, with an optional third pipe-separated field for a recurrence
+rule. The parser also accepts ISO `YYYY-MM-DD` for the date prefix and inside
+`until` / `except` clauses, so older saved data keeps working unchanged; every new
+line written by the quick-add form or the day editor is in `DD-MM-YYYY`. Slash
+separators (`DD/MM/YYYY`) are also accepted on input.
 
 ```text
-2026-09-01 | School Starts
-2026-11-12 | Birthday | yearly
-2026-09-08 | Bins | every 2 weeks
-2026-09-15 | Swimming | every week x 10
-2026-04-01 | Yoga | every 2 weeks until 2026-06-30
-1978-04-27 | Michael Cregg | birthday
-2026-12-25 | Christmas Lunch | colour red
-2026-04-10 | Meeting | yearly colour blue
+01-09-2026 | School Starts
+12-11-2026 | Birthday | yearly
+08-09-2026 | Bins | every 2 weeks
+15-09-2026 | Swimming | every week x 10
+01-04-2026 | Yoga | every 2 weeks until 30-06-2026
+27-04-1978 | Michael Cregg | birthday
+25-12-2026 | Christmas Lunch | colour red
+10-04-2026 | Meeting | yearly colour blue
 ```
+
+Date parsing is centralised in `parseInputDate` / `formatInputDate` in `app.js`
+— anything written into the textarea (quick-add form, day editor, the
+`except` clause added by `addExceptionToRecurrence` when a recurring occurrence
+is edited) goes through these so the boundary stays tidy and the internal
+representation everywhere else stays ISO.
 
 Recurrence shortcuts are `daily`, `weekly`, `monthly`, `yearly`, and `birthday`
 (an alias for `yearly` that also appends the age the person turns on each
-occurrence — birth year comes from the line's `YYYY-MM-DD` prefix, formatted by
+occurrence — birth year comes from the line's date prefix, formatted by
 `formatBirthdayLabel(name, age)` in `app.js`). The general form is
 `every N <day(s)|week(s)|month(s)|year(s)>`. An "Nth weekday of the month" pattern
 is also supported: `first tuesday of month`, `last friday of every month`, `2nd
@@ -179,7 +188,7 @@ monday of every 3 months` (ordinals `first`/`1st` … `fourth`/`4th` and `last`;
 weekday names may be three-letter or full). For the "Nth weekday" form the literal
 start date is not yielded — every occurrence is the computed Nth weekday, starting
 in the start date's month. All rule forms accept optional `x N` (occurrence count),
-`until YYYY-MM-DD` (end date), `except YYYY-MM-DD,YYYY-MM-DD` (skipped dates),
+`until DD-MM-YYYY` (end date), `except DD-MM-YYYY,DD-MM-YYYY` (skipped dates),
 and `colour <name>` (per-date label colour from `LABEL_COLOURS`) suffixes in any
 order. Unparseable rules fall back to a one-off date on the start day.
 

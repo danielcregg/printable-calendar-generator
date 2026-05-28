@@ -75,24 +75,30 @@ share):
 
 ## Custom dates
 
-Add your own dates in the **Custom dates** box, one per line, as `YYYY-MM-DD | Label`,
+Add your own dates in the **Custom dates** box, one per line, as `DD-MM-YYYY | Label`,
 with an optional third pipe-separated field for a recurrence rule:
 
 ```
-2026-09-01 | School Starts
-2026-11-12 | Birthday | yearly
-2026-09-08 | Bins | every 2 weeks
-2026-09-15 | Swimming | every week x 10
-2026-04-01 | Yoga | every 2 weeks until 2026-06-30
+01-09-2026 | School Starts
+12-11-1985 | Sam | birthday
+08-09-2026 | Bins | every 2 weeks
+15-09-2026 | Swimming | every week x 10
+01-04-2026 | Yoga | every 2 weeks until 30-06-2026
 ```
 
-Recurrence shortcuts: `daily`, `weekly`, `monthly`, `yearly`. The general form is
-`every N <day(s)|week(s)|month(s)|year(s)>`. There's also an "Nth weekday of the
-month" pattern — `first tuesday of month`, `last friday of every month`,
-`2nd monday of every 3 months` — useful for things like "Child Benefit is paid on
-the first Tuesday of every month". All forms accept the optional `x N` (occurrence
-count) or `until YYYY-MM-DD` (end date) suffixes, in either order. Lines starting
-with `#` are ignored.
+Dates can also be typed in ISO `YYYY-MM-DD` form if you prefer — the parser
+accepts both, so older saved calendars carry over unchanged. The quick-add form
+and the in-preview day editor always write `DD-MM-YYYY`.
+
+Recurrence shortcuts: `daily`, `weekly`, `monthly`, `yearly`, `birthday`. The
+general form is `every N <day(s)|week(s)|month(s)|year(s)>`. There's also an
+"Nth weekday of the month" pattern — `first tuesday of month`, `last friday of
+every month`, `2nd monday of every 3 months` — useful for things like
+"Child Benefit is paid on the first Tuesday of every month". All forms accept
+the optional `x N` (occurrence count) or `until DD-MM-YYYY` (end date) suffixes,
+in either order. The `birthday` rule is `yearly` plus an auto-injected age,
+calculated from the line's date prefix (so `12-11-1985 | Sam | birthday` will
+print `Sam 41` on 12 November 2026). Lines starting with `#` are ignored.
 
 A small **quick-add** form above the textarea can build the line for you: pick a date,
 type a label, choose a repeat (Once, Daily, Weekly, Every 2 weeks, Monthly, Yearly),

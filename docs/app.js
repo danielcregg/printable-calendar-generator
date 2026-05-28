@@ -205,22 +205,55 @@ const RULE_WEEKDAYS = {
   sun: 6, sunday: 6,
 };
 
+// Accepts a date string in ISO `YYYY-MM-DD` or Irish `DD-MM-YYYY` /
+// `DD/MM/YYYY` form and normalises to ISO. Returns null on no match. Used
+// at every input boundary (textarea parsing, until/except clauses) so the
+// internal representation can stay ISO everywhere downstream.
+function parseInputDate(s) {
+  if (typeof s !== "string") return null;
+  const trimmed = s.trim();
+  const iso = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (iso) return `${iso[1]}-${iso[2].padStart(2, "0")}-${iso[3].padStart(2, "0")}`;
+  const irish = trimmed.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+  if (irish) return `${irish[3]}-${irish[2].padStart(2, "0")}-${irish[1].padStart(2, "0")}`;
+  return null;
+}
+
+// ISO `YYYY-MM-DD` -> Irish `DD-MM-YYYY` for everything written back into
+// the textarea (quick-add form, day editor, addExceptionToRecurrence).
+function formatInputDate(iso) {
+  const m = typeof iso === "string" && iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : iso;
+}
+
+// Shared sub-pattern: either ISO or Irish format. Used by parseRule's
+// `until` / `except` matchers so users can type either style anywhere.
+const DATE_PATTERN_SRC = "(?:\\d{4}-\\d{1,2}-\\d{1,2}|\\d{1,2}[-\\/]\\d{1,2}[-\\/]\\d{4})";
+
 // "every N <day|week|month|year>" or "<first|2nd|last> <weekday> of [every [N]]
-// month[s]", optionally followed by "x N" (occurrence count), "until
-// YYYY-MM-DD" (end date) and/or "except DATE, DATE, …" (skipped dates).
-// Suffixes may appear in any order. Unparseable rules return null and the
-// caller falls back to a one-off date.
+// month[s]", optionally followed by "x N" (occurrence count), "until DATE"
+// (end date) and/or "except DATE, DATE, …" (skipped dates). DATE may be ISO
+// or Irish format and is normalised to ISO internally. Suffixes may appear
+// in any order. Unparseable rules return null and the caller falls back to
+// a one-off date.
 function parseRule(text) {
   const r = text.toLowerCase().trim();
   if (!r) return null;
   let body = r, count = null, until = null, exceptions = [];
   let progress = true;
+  const exceptRe = new RegExp(`\\s+except\\s+(${DATE_PATTERN_SRC}(?:\\s*,\\s*${DATE_PATTERN_SRC})*)$`);
+  const untilRe = new RegExp(`\\s+until\\s+(${DATE_PATTERN_SRC})$`);
   while (progress) {
     progress = false;
-    const exm = body.match(/\s+except\s+(\d{4}-\d{2}-\d{2}(?:\s*,\s*\d{4}-\d{2}-\d{2})*)$/);
-    if (exm) { exceptions = exm[1].split(/\s*,\s*/); body = body.slice(0, exm.index); progress = true; continue; }
-    const um = body.match(/\s+until\s+(\d{4}-\d{2}-\d{2})$/);
-    if (um) { until = um[1]; body = body.slice(0, um.index); progress = true; continue; }
+    const exm = body.match(exceptRe);
+    if (exm) {
+      exceptions = exm[1].split(/\s*,\s*/).map(parseInputDate).filter(Boolean);
+      body = body.slice(0, exm.index);
+      progress = true;
+      continue;
+    }
+    const um = body.match(untilRe);
+    if (um) { until = parseInputDate(um[1]); body = body.slice(0, um.index); progress = true; continue; }
     const cm = body.match(/\s+x\s*(\d+)$/);
     if (cm) { count = Number(cm[1]); body = body.slice(0, cm.index); progress = true; }
   }
@@ -310,9 +343,10 @@ function* expandRule(startISO, rule, year) {
 }
 
 // Parses the Custom dates textarea into a Map of ISO date -> array of labels.
-// Lines look like "YYYY-MM-DD | Label [| rule]". Recurring rules are expanded
-// into every occurrence that falls inside the rendered year (± a small
-// buffer). Lines starting with # are treated as comments.
+// Lines look like "DD-MM-YYYY | Label [| rule]". ISO "YYYY-MM-DD" is also
+// accepted on the date prefix for backwards-compatibility with older saved
+// data. Recurring rules are expanded into every occurrence that falls inside
+// the rendered year (± a small buffer). Lines starting with # are comments.
 // How a birthday label renders. Called by parseCustomDates for any line
 // whose rule is `birthday`. Tweak this one line to change the format —
 // e.g. `${name} (${age})`, `${name} 🎂 ${age}`, `${name}'s ${age}th`.
@@ -327,10 +361,11 @@ function parseCustomDates(text, year) {
     const line = raw.trim();
     if (!line || line.startsWith("#")) continue;
     const parts = line.split("|");
-    const date = (parts[0] || "").trim();
+    const rawDate = (parts[0] || "").trim();
     const label = (parts[1] || "").trim();
     let ruleText = parts.slice(2).join("|").trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !label) continue;
+    const date = parseInputDate(rawDate);
+    if (!date || !label) continue;
     // Extract optional `colour <name>` clause from the rule text. Each label
     // line can carry its own colour; black is the default. Anything outside
     // the LABEL_COLOURS table falls back to black.
@@ -1089,7 +1124,7 @@ function stepMonth(delta) {
 }
 
 // Click on a day in the preview canvas -> prompt for a label, append a
-// "YYYY-MM-DD | Label" line to the Custom dates textarea.
+// "DD-MM-YYYY | Label" line to the Custom dates textarea.
 function handlePreviewClick(event) {
   const canvas = document.getElementById("preview");
   const rect = canvas.getBoundingClientRect();
@@ -1235,8 +1270,12 @@ function parseCustomDateLine(line) {
   if (!trimmed || trimmed.startsWith("#")) return null;
   const parts = trimmed.split("|").map((s) => s.trim());
   if (parts.length < 2) return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(parts[0]) || !parts[1]) return null;
-  return { date: parts[0], label: parts[1], rule: parts.slice(2).join("|") || null };
+  const date = parseInputDate(parts[0]);
+  if (!date || !parts[1]) return null;
+  // `date` is the normalised ISO date for lookups. `rawDate` preserves the
+  // user's original format (ISO or Irish) so addExceptionToRecurrence can
+  // write the line back without surprising them by changing styles.
+  return { date, rawDate: parts[0], label: parts[1], rule: parts.slice(2).join("|") || null };
 }
 
 // Index of the textarea line that defines a one-off entry for (date, label),
@@ -1281,17 +1320,22 @@ function addExceptionToRecurrence(lineIndex, dateToExcept) {
   const lines = box.value.split("\n");
   const parsed = parseCustomDateLine(lines[lineIndex]);
   if (!parsed || !parsed.rule) return;
+  // Match the source line's style: ISO line gets ISO except, Irish line
+  // gets Irish except. dateToExcept arrives as ISO from the canvas click.
+  const isIsoLine = /^\d{4}-/.test(parsed.rawDate);
+  const fmt = isIsoLine ? (iso) => iso : formatInputDate;
   let ruleText = parsed.rule;
-  const existing = ruleText.match(/\bexcept\s+(\d{4}-\d{2}-\d{2}(?:\s*,\s*\d{4}-\d{2}-\d{2})*)/i);
+  const existingRe = new RegExp(`\\bexcept\\s+(${DATE_PATTERN_SRC}(?:\\s*,\\s*${DATE_PATTERN_SRC})*)`, "i");
+  const existing = ruleText.match(existingRe);
   if (existing) {
-    const dates = existing[1].split(/\s*,\s*/);
+    const dates = existing[1].split(/\s*,\s*/).map(parseInputDate).filter(Boolean);
     if (dates.includes(dateToExcept)) return;
-    const merged = [...dates, dateToExcept].sort().join(", ");
+    const merged = [...dates, dateToExcept].sort().map(fmt).join(", ");
     ruleText = ruleText.replace(existing[0], `except ${merged}`);
   } else {
-    ruleText = `${ruleText} except ${dateToExcept}`;
+    ruleText = `${ruleText} except ${fmt(dateToExcept)}`;
   }
-  lines[lineIndex] = `${parsed.date} | ${parsed.label} | ${ruleText}`;
+  lines[lineIndex] = `${parsed.rawDate} | ${parsed.label} | ${ruleText}`;
   box.value = lines.join("\n").replace(/\n+$/, "");
   renderPreview();
 }
@@ -1450,21 +1494,22 @@ function beginSlotEdit(hitButton, currentValue, source) {
 
   let committed = false;
   const date = document.getElementById("dayDialog").dataset.date;
+  const displayDate = formatInputDate(date);
   const commit = () => {
     if (committed) return;
     committed = true;
     const next = input.value.trim();
     if (!source) {
-      if (next !== "") appendCustomDateLine(`${date} | ${next}`);
+      if (next !== "") appendCustomDateLine(`${displayDate} | ${next}`);
     } else if (source.type === "oneoff") {
       if (next === "") replaceCustomDateLine(source.index, "");
-      else if (next !== currentValue) replaceCustomDateLine(source.index, `${date} | ${next}`);
+      else if (next !== currentValue) replaceCustomDateLine(source.index, `${displayDate} | ${next}`);
     } else if (source.type === "recurring" && next !== currentValue) {
       // Override one occurrence: skip it in the rule, then add a one-off
       // line for any replacement text the user typed. Leaving the input
       // blank just skips the date silently.
       addExceptionToRecurrence(source.index, date);
-      if (next !== "") appendCustomDateLine(`${date} | ${next}`);
+      if (next !== "") appendCustomDateLine(`${displayDate} | ${next}`);
     }
     renderDayDialogCell();
   };
@@ -1487,7 +1532,7 @@ function beginSlotEdit(hitButton, currentValue, source) {
 // Builds a custom-date line (with optional recurrence) from the quick-add
 // inputs above the textarea and appends it to the Custom dates box.
 // Reads the quick-add form (date / label / repeats / ends) and appends one
-// `YYYY-MM-DD | Label | rule` line to the custom-dates textarea. The Repeats
+// `DD-MM-YYYY | Label | rule` line to the custom-dates textarea. The Repeats
 // dropdown's option values ARE the rule strings (e.g. "every 2 weeks",
 // "first tuesday of month") so the form maps one-to-one onto parseRule's
 // grammar — no per-option translation table needed.
@@ -1510,12 +1555,13 @@ function addRecurringDate() {
   if (freq) {
     rule = freq;
     if (endMode === "count" && Number(countRaw) > 0) rule += ` x ${Number(countRaw)}`;
-    else if (endMode === "until" && untilDate) rule += ` until ${untilDate}`;
+    else if (endMode === "until" && untilDate) rule += ` until ${formatInputDate(untilDate)}`;
   }
   if (colour && colour !== "black") {
     rule = rule ? `${rule} colour ${colour}` : `colour ${colour}`;
   }
-  const line = rule ? `${date} | ${label} | ${rule}` : `${date} | ${label}`;
+  const displayDate = formatInputDate(date);
+  const line = rule ? `${displayDate} | ${label} | ${rule}` : `${displayDate} | ${label}`;
   appendCustomDateLine(line);
   // Reset every input in the quick-add form so the next entry starts fresh
   // and the date picker visually returns to its dd/mm/yyyy placeholder.
