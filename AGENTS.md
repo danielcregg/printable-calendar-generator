@@ -120,6 +120,23 @@ calendars.
 
 ## Holiday policy
 
+Holidays are picked per country in the drawer's **Holidays** accordion section
+(`<select id="country">` with `IE`, `GB`, `NONE`). Each country has its own
+calculator function in `app.js` and `buildLabels` dispatches on the select's
+value. Holiday labels share a global colour swatch palette (also in the
+Holidays section, hidden `<input id="holidayColour">` backed by
+`#holidayColourPalette`); labelStack reads it when stacking each day's holiday
+entry. Adding a country = a new `xxxHolidays(year)` function + an option in
+the select + a branch in `buildLabels`.
+
+For United Kingdom (`GB`) — England & Wales bank holidays via `ukHolidays`:
+New Year's Day (+ observed-Monday shift), Good Friday, Easter Monday, Early
+May Bank Holiday (first Monday May), Spring Bank Holiday (last Monday May),
+Summer Bank Holiday (last Monday August), Christmas Day, Boxing Day, plus
+observed-substitute Christmas/Boxing logic for weekend collisions. Scotland
+and Northern Ireland differ slightly — split into separate handlers when
+needed.
+
 For Ireland (`IE`), include practical work/family dates:
 
 - New Year's Day
@@ -150,17 +167,28 @@ rule:
 2026-09-08 | Bins | every 2 weeks
 2026-09-15 | Swimming | every week x 10
 2026-04-01 | Yoga | every 2 weeks until 2026-06-30
+1978-04-27 | Michael Cregg | birthday
+2026-12-25 | Christmas Lunch | colour red
+2026-04-10 | Meeting | yearly colour blue
 ```
 
-Recurrence shortcuts are `daily`, `weekly`, `monthly`, `yearly`. The general form is
+Recurrence shortcuts are `daily`, `weekly`, `monthly`, `yearly`, and `birthday`
+(an alias for `yearly` that also appends the age the person turns on each
+occurrence — birth year comes from the line's `YYYY-MM-DD` prefix, formatted by
+`formatBirthdayLabel(name, age)` in `app.js`). The general form is
 `every N <day(s)|week(s)|month(s)|year(s)>`. An "Nth weekday of the month" pattern
 is also supported: `first tuesday of month`, `last friday of every month`, `2nd
 monday of every 3 months` (ordinals `first`/`1st` … `fourth`/`4th` and `last`;
 weekday names may be three-letter or full). For the "Nth weekday" form the literal
 start date is not yielded — every occurrence is the computed Nth weekday, starting
-in the start date's month. All rule forms accept optional `x N` (occurrence count)
-or `until YYYY-MM-DD` suffixes in either order. Unparseable rules fall back to a
-one-off date on the start day.
+in the start date's month. All rule forms accept optional `x N` (occurrence count),
+`until YYYY-MM-DD` (end date), `except YYYY-MM-DD,YYYY-MM-DD` (skipped dates),
+and `colour <name>` (per-date label colour from `LABEL_COLOURS`) suffixes in any
+order. Unparseable rules fall back to a one-off date on the start day.
+
+The quick-add form above the textarea writes lines for you: a date picker, label,
+**Repeats** dropdown (including a "Birthday (yearly + age)" option), end-condition,
+and a swatch palette for the colour. All inputs reset to defaults after Add to list.
 
 Lines beginning with `#` are treated as comments. Dates can also be added by clicking a
 day in the preview, or by importing an `.ics` file. If multiple labels fall on the same
@@ -184,11 +212,23 @@ them to the automatic values.
 ## Colour options
 
 The calendar is black and white by default — that simplicity is the core of
-the design. Two optional dropdowns in the **Colours** panel let a user opt
-into colour: a shading theme (grey, blue, green or warm) that tints the
-weekend and zebra shading, and a custom-date label colour (black, blue or
-green). Both default to the black-and-white choice, and holiday labels are
-always black. Presets live in `SHADE_THEMES` and `LABEL_COLOURS` in `app.js`.
+the design. Three places let a user opt into colour, all using the same
+swatch-palette pattern (small circles, click to pick, one active at a time):
+
+- **Calendar Shading** panel — `#shadeColourPalette` writes to a hidden
+  `#shadeColour` input. Four pale tints (`grey` / `blue` / `green` / `warm`)
+  applied to weekend columns and zebra shading. Presets in `SHADE_THEMES`.
+- **Holidays** panel — `#holidayColourPalette` → `#holidayColour`. 7 swatches
+  (`black` / `blue` / `green` / `red` / `orange` / `purple` / `pink`). Default
+  black. `labelStack` reads it when stacking each day's holiday entry.
+- **Custom dates** quick-add form — `#recurColourPalette` (same 7 swatches).
+  Selected colour is written into the line's rule text as a `colour <name>`
+  clause, so each custom date can carry its own colour. Default black.
+
+All colour names resolve via the `LABEL_COLOURS` table in `app.js`. The hidden
+`<input>`s exist so the existing render pipeline (settings save/load,
+`RENDER_TRIGGER_IDS` change listeners) keeps working untouched; swatch clicks
+update the input's `.value` and fire a synthetic `change` event.
 
 ## Leading and trailing cells
 
