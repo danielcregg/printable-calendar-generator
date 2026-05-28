@@ -371,16 +371,17 @@ button:focus-visible {
 }
 
 /* --- Scrim behind the modal drawer ------------------------------------- */
+/* Transparent: the scrim still consumes clicks outside the drawer so
+   tap-outside-to-close keeps working, but the calendar isn't dimmed so the
+   user can watch shading/colour swatches update live as they pick. */
 .scrim {
   position: fixed;
   inset: 0;
   z-index: 35;
-  background: rgba(15, 23, 42, .42);
-  opacity: 0;
+  background: transparent;
   pointer-events: none;
-  transition: opacity .26s ease;
 }
-.scrim.show { opacity: 1; pointer-events: auto; }
+.scrim.show { pointer-events: auto; }
 
 /* --- Accordion sections (inside the drawer) --------------------------- */
 .drawer-section {
