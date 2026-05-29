@@ -1128,7 +1128,11 @@ canvas {
 
 @media (max-width: 460px) {
   .save-row { flex-direction: column; align-items: stretch; }
-  .save-row input,
-  .save-row select,
-  .save-row button { flex: 0 0 auto; width: 100%; }
+  /* `>` so we only stretch save-row's *direct* form controls. Without
+     it the colour-swatch buttons nested inside .label-colour-palette
+     would also get width:100% and stack vertically, which broke the
+     circular palette layout on phones. */
+  .save-row > input,
+  .save-row > select,
+  .save-row > button { flex: 0 0 auto; width: 100%; }
 }
