@@ -1587,7 +1587,7 @@ function updateQuickAddVisibility() {
   const endMode = document.getElementById("recurEnd").value;
   document.getElementById("recurEndRow").hidden = !freq;
   document.getElementById("recurCount").hidden = !freq || endMode !== "count";
-  document.getElementById("recurUntil").hidden = !freq || endMode !== "until";
+  document.getElementById("recurUntilShell").hidden = !freq || endMode !== "until";
 }
 
 // Shared helper: append one or more lines to the Custom dates textarea and

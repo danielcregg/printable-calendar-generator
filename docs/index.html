@@ -164,7 +164,9 @@
 
           <div class="quick-add">
             <div class="save-row">
-              <input id="recurDate" type="date" aria-label="Date">
+              <span class="date-shell">
+                <input id="recurDate" type="date" required aria-label="Date">
+              </span>
               <input id="recurLabel" type="text" placeholder="Label" spellcheck="false" aria-label="Label">
             </div>
             <div class="save-row">
@@ -205,7 +207,9 @@
                 <option value="until">Stops on date</option>
               </select>
               <input id="recurCount" type="number" min="1" placeholder="times" hidden aria-label="Number of times">
-              <input id="recurUntil" type="date" hidden aria-label="End date">
+              <span class="date-shell" id="recurUntilShell" hidden>
+                <input id="recurUntil" type="date" required aria-label="End date">
+              </span>
             </div>
             <div class="save-row">
               <label class="quick-add-label">Colour</label>
