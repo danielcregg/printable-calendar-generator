@@ -85,6 +85,12 @@
               <button type="button" class="label-colour-swatch shade-swatch"        data-shade="warm"  style="background:#f9f0e4" aria-label="Warm"            title="Warm"></button>
             </div>
           </div>
+          <div class="save-row shade-intensity-row">
+            <label class="quick-add-label" for="shadeIntensity">Intensity</label>
+            <span class="shade-intensity-end shade-intensity-end-light" aria-hidden="true">lighter</span>
+            <input id="shadeIntensity" type="range" min="0" max="100" value="50" step="1" aria-label="Shading intensity">
+            <span class="shade-intensity-end shade-intensity-end-dark" aria-hidden="true">darker</span>
+          </div>
           <div class="checks">
             <label class="check"><input id="shadeWeekends" type="checkbox" checked> Shade weekends</label>
             <label class="check"><input id="zebraWeeks" type="checkbox"> Shade alternating weeks</label>

@@ -64,6 +64,32 @@ function rgbCss(rgb) {
   return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
 }
 
+// Shading-intensity slider modifier. `rgb` is a SHADE_THEMES tuple,
+// `intensity` is 0-100 (50 = passthrough). Below 50 lerps toward white
+// (lighter, less shading); above 50 scales channels down (darker, more
+// saturated). Returns a new [r, g, b] tuple — the source array is untouched.
+function applyShadeIntensity(rgb, intensity) {
+  const i = Math.max(0, Math.min(100, Number(intensity)));
+  if (Number.isNaN(i) || i === 50) return rgb;
+  if (i < 50) {
+    const t = i / 50;
+    return rgb.map((c) => Math.round(255 - (255 - c) * t));
+  }
+  const t = (i - 50) / 50;
+  const k = 1 - 0.45 * t;  // at intensity 100, channels scale to 55% of original
+  return rgb.map((c) => Math.round(c * k));
+}
+
+// Looks up a SHADE_THEMES entry and applies the intensity-slider modifier
+// to both its weekend and zebra tones in one go.
+function readShade(shadeColour, intensity) {
+  const base = SHADE_THEMES[shadeColour] || SHADE_THEMES.grey;
+  return {
+    weekend: applyShadeIntensity(base.weekend, intensity),
+    zebra: applyShadeIntensity(base.zebra, intensity),
+  };
+}
+
 // ============================================================================
 // Date math (Monday-first weeks, Easter, ISO formatting)
 // ============================================================================
@@ -560,7 +586,7 @@ function computeEmptyRuns(leadingCount, trailingStart, rows) {
 
 function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   const { shadeWeekends, zebraWeeks, zebraColumns, guideLines, fullDayNames, teachingWeeks, notesArea } = options;
-  const shade = SHADE_THEMES[options.shadeColour] || SHADE_THEMES.grey;
+  const shade = readShade(options.shadeColour, options.shadeIntensity);
   const lang = options.lang || "en";
   const monthNames = MONTH_NAMES[lang] || MONTH_NAMES.en;
   const weekdayNames = WEEKDAYS[lang] || WEEKDAYS.en;
@@ -849,7 +875,10 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   const zebraColumns = document.getElementById("zebraColumns").checked;
   const guideLines = document.getElementById("guideLines").checked;
   const fullDayNames = document.getElementById("fullDayNames").checked;
-  const shade = SHADE_THEMES[document.getElementById("shadeColour").value] || SHADE_THEMES.grey;
+  const shade = readShade(
+    document.getElementById("shadeColour").value,
+    document.getElementById("shadeIntensity").value,
+  );
 
   // Background.
   doc.setFillColor(255, 255, 255);
@@ -1091,6 +1120,7 @@ function renderPreview() {
     fullDayNames: document.getElementById("fullDayNames").checked,
     teachingWeeks: document.getElementById("teachingWeeks").checked ? teachingWeekMap() : null,
     shadeColour: document.getElementById("shadeColour").value,
+    shadeIntensity: document.getElementById("shadeIntensity").value,
     holidayColour: document.getElementById("holidayColour").value,
     notesArea: document.getElementById("notesArea").checked,
     lang: document.getElementById("language").value,
@@ -1182,7 +1212,7 @@ function drawCellOnCanvas(canvas, year, monthIndex, day, entry, options) {
   // drawCalendar (zebra first, weekend overrides).
   ctx.fillStyle = "white";
   ctx.fillRect(cellX, cellY, cellW, cellH);
-  const shade = SHADE_THEMES[options.shadeColour] || SHADE_THEMES.grey;
+  const shade = readShade(options.shadeColour, options.shadeIntensity);
   if (options.zebraWeeks && cellRow % 2 === 1) {
     ctx.fillStyle = rgbCss(shade.zebra);
     ctx.fillRect(cellX, cellY, cellW, cellH);
@@ -1404,6 +1434,7 @@ function renderDayDialogCell() {
     zebraColumns: document.getElementById("zebraColumns").checked,
     guideLines: document.getElementById("guideLines").checked,
     shadeColour: document.getElementById("shadeColour").value,
+    shadeIntensity: document.getElementById("shadeIntensity").value,
     holidayColour: document.getElementById("holidayColour").value,
   };
   const entry = buildLabels(year).get(date) || { holiday: null, custom: [] };
@@ -1633,6 +1664,7 @@ function currentSettings() {
     s2Start: document.getElementById("s2Start").value,
     s2Break: document.getElementById("s2Break").value,
     shadeColour: document.getElementById("shadeColour").value,
+    shadeIntensity: document.getElementById("shadeIntensity").value,
     holidayColour: document.getElementById("holidayColour").value,
     notesArea: document.getElementById("notesArea").checked,
     language: document.getElementById("language").value,
@@ -1661,6 +1693,8 @@ function applySettings(settings) {
   }
   const loadedShade = settings.shadeColour || "grey";
   document.getElementById("shadeColour").value = loadedShade;
+  document.getElementById("shadeIntensity").value =
+    settings.shadeIntensity != null ? String(settings.shadeIntensity) : "50";
   // Sync the swatch palette's active marker to match the loaded value so the
   // visual state lines up with the hidden input that downstream renderers read.
   for (const sw of document.querySelectorAll("#shadeColourPalette .label-colour-swatch")) {
@@ -1838,7 +1872,7 @@ function toggleDrawer() {
 const RENDER_TRIGGER_IDS = [
   "year", "month", "country",
   "shadeWeekends", "zebraWeeks", "zebraColumns", "guideLines",
-  "shadeColour", "holidayColour", "notesArea",
+  "shadeColour", "shadeIntensity", "holidayColour", "notesArea",
   "fullDayNames", "teachingWeeks",
   "s1Start", "s1Break", "s2Start", "s2Break",
   "customDates",
