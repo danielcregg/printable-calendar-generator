@@ -2389,6 +2389,16 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("dayDialog").addEventListener("click", (event) => {
     if (event.target.id === "dayDialog") closeDayDialog();
   });
+
+  // Save & share dialog (button in the bottom row, beside Print).
+  const saveDialog = document.getElementById("saveDialog");
+  document.getElementById("openSaveBtn").addEventListener("click", () => {
+    if (!saveDialog.open) saveDialog.showModal();
+  });
+  document.getElementById("saveDialogClose").addEventListener("click", () => saveDialog.close());
+  saveDialog.addEventListener("click", (event) => {
+    if (event.target === saveDialog) saveDialog.close();
+  });
   document.getElementById("prevMonthBtn").addEventListener("click", () => stepMonth(-1));
   document.getElementById("nextMonthBtn").addEventListener("click", () => stepMonth(1));
 

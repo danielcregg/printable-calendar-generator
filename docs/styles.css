@@ -694,6 +694,21 @@ button:focus-visible {
   right: 0;
   top: 50%;
   transform: translateY(-50%);
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Secondary "Save" FAB — same shape as Print but ghost-styled so Print stays
+   the visually dominant primary action. */
+.fab-ghost {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+.fab-ghost:hover {
+  background: rgba(15, 23, 42, .04);
+  box-shadow: var(--shadow-md);
 }
 
 .fab {
@@ -859,6 +874,20 @@ canvas {
   padding: 0;
 }
 .day-dialog::backdrop { background: rgba(15, 23, 42, .48); }
+
+/* Save & share dialog — reuses day-dialog-head / day-dialog-body styling,
+   just a slightly wider shell to fit the multi-row save/share form cleanly. */
+.save-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: 0;
+}
+.save-dialog::backdrop { background: rgba(15, 23, 42, .48); }
 .day-dialog-head {
   display: flex;
   align-items: center;

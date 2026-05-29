@@ -256,54 +256,6 @@
           </div>
         </details>
 
-        <details class="drawer-section">
-          <summary>
-            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-            <span class="section-title">Save &amp; share</span>
-            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-          </summary>
-          <div class="section-inner">
-          <p class="hint">Saved in this browser only.</p>
-          <div class="save-row">
-            <input id="calendarName" type="text" placeholder="Name this calendar" spellcheck="false" aria-label="Calendar name">
-            <button id="saveBtn" type="button">Save</button>
-          </div>
-          <div class="save-row">
-            <select id="savedCalendars" aria-label="Saved calendars">
-              <option value="">No saved calendars yet</option>
-            </select>
-            <button id="loadBtn" type="button">Load</button>
-            <button id="deleteBtn" type="button">Delete</button>
-          </div>
-
-          <p class="hint">Share this calendar with someone &mdash; send them a link to open, or a file to import.</p>
-          <div class="save-row">
-            <button id="shareLinkBtn" type="button">Copy share link</button>
-            <button id="exportBtn" type="button">Download as file</button>
-            <button id="importBtn" type="button">Load a file</button>
-            <input id="importFile" type="file" accept=".json,application/json" hidden>
-          </div>
-
-          <div class="live-share" id="liveShareBlock" hidden>
-            <p class="hint">Or use a <strong>shared link</strong> &mdash; <em>Publish</em> a read-only link recipients can open (you can edit and update it any time), or <em>Live share</em> a calendar everyone with the link can edit together.</p>
-            <div class="save-row" id="liveShareStartRow">
-              <button id="publishStartBtn" type="button">Publish read-only</button>
-              <button id="liveShareStartBtn" type="button">Live share (everyone edits)</button>
-            </div>
-            <div class="save-row" id="liveShareActiveRow" hidden>
-              <span class="live-share-status" id="liveShareStatus">Live <span class="live-share-ts" id="liveShareTs"></span></span>
-              <button id="liveShareCopyBtn" type="button">Copy live link</button>
-              <button id="liveShareStopBtn" type="button">Stop sharing</button>
-            </div>
-            <div class="save-row" id="publishActiveRow" hidden>
-              <span class="live-share-status live-share-status-publish" id="publishStatus">Publishing <span class="live-share-ts" id="publishTs"></span></span>
-              <button id="publishCopyBtn" type="button">Copy viewer link</button>
-              <button id="publishStopBtn" type="button">Stop publishing</button>
-            </div>
-          </div>
-          </div>
-        </details>
-
       </div>
     </aside>
 
@@ -331,6 +283,10 @@
         <button id="nextMonthBtn" type="button" aria-label="Next month">&rsaquo;</button>
       </div>
       <div class="stage-actions">
+        <button class="fab fab-ghost" id="openSaveBtn" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Save
+        </button>
         <button class="fab" id="printBtn" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Print
@@ -351,6 +307,55 @@
       <div class="enlarged-cell-wrap" id="dayDialogWrap">
         <canvas id="dayDialogCanvas"></canvas>
         <div class="enlarged-cell-overlay" id="dayDialogOverlay"></div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="saveDialog" class="save-dialog" aria-labelledby="saveDialogTitle">
+    <header class="day-dialog-head">
+      <h2 id="saveDialogTitle">Save &amp; share</h2>
+      <button type="button" class="icon-btn" id="saveDialogClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </header>
+    <div class="day-dialog-body">
+      <p class="hint">Saved in this browser only.</p>
+      <div class="save-row">
+        <input id="calendarName" type="text" placeholder="Name this calendar" spellcheck="false" aria-label="Calendar name">
+        <button id="saveBtn" type="button">Save</button>
+      </div>
+      <div class="save-row">
+        <select id="savedCalendars" aria-label="Saved calendars">
+          <option value="">No saved calendars yet</option>
+        </select>
+        <button id="loadBtn" type="button">Load</button>
+        <button id="deleteBtn" type="button">Delete</button>
+      </div>
+
+      <p class="hint">Share this calendar with someone &mdash; send them a link to open, or a file to import.</p>
+      <div class="save-row">
+        <button id="shareLinkBtn" type="button">Copy share link</button>
+        <button id="exportBtn" type="button">Download as file</button>
+        <button id="importBtn" type="button">Load a file</button>
+        <input id="importFile" type="file" accept=".json,application/json" hidden>
+      </div>
+
+      <div class="live-share" id="liveShareBlock" hidden>
+        <p class="hint">Or use a <strong>shared link</strong> &mdash; <em>Publish</em> a read-only link recipients can open (you can edit and update it any time), or <em>Live share</em> a calendar everyone with the link can edit together.</p>
+        <div class="save-row" id="liveShareStartRow">
+          <button id="publishStartBtn" type="button">Publish read-only</button>
+          <button id="liveShareStartBtn" type="button">Live share (everyone edits)</button>
+        </div>
+        <div class="save-row" id="liveShareActiveRow" hidden>
+          <span class="live-share-status" id="liveShareStatus">Live <span class="live-share-ts" id="liveShareTs"></span></span>
+          <button id="liveShareCopyBtn" type="button">Copy live link</button>
+          <button id="liveShareStopBtn" type="button">Stop sharing</button>
+        </div>
+        <div class="save-row" id="publishActiveRow" hidden>
+          <span class="live-share-status live-share-status-publish" id="publishStatus">Publishing <span class="live-share-ts" id="publishTs"></span></span>
+          <button id="publishCopyBtn" type="button">Copy viewer link</button>
+          <button id="publishStopBtn" type="button">Stop publishing</button>
+        </div>
       </div>
     </div>
   </dialog>
