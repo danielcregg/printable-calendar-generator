@@ -915,8 +915,19 @@ canvas {
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
   padding: 0;
+  /* Default origin is the centre — FLIP animation in flipDialogFromCell()
+     scales+translates around it so the dialog appears to zoom out of the
+     tapped day cell. */
+  transform-origin: center center;
+  will-change: transform, opacity;
 }
 .day-dialog::backdrop { background: rgba(15, 23, 42, .48); }
+
+/* Honour the OS-level "reduce motion" preference — vestibular-sensitive
+   users will see the dialog appear instantly at centre, no zoom. */
+@media (prefers-reduced-motion: reduce) {
+  .day-dialog { transition: none !important; transform: none !important; }
+}
 
 /* Sub-section headings inside the Save dialog ("Save to this browser",
    "Save as file"). Small caps-y look so the two flows feel distinct

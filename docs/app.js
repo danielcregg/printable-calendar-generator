@@ -1320,8 +1320,10 @@ function handlePreviewClick(event) {
   const monthValue = document.getElementById("month").value;
   const monthIndex = monthValue === "all" ? 0 : Number(monthValue);
   const rows = monthRows(year, monthIndex);
-  const col = Math.floor((cx - gridX) / (gridW / 7));
-  const row = Math.floor((cy - gridY) / (gridH / rows));
+  const colW = gridW / 7;
+  const rowH = gridH / rows;
+  const col = Math.floor((cx - gridX) / colW);
+  const row = Math.floor((cy - gridY) / rowH);
   if (col < 0 || col > 6 || row < 0 || row >= rows) return;
 
   const first = new Date(year, monthIndex, 1);
@@ -1329,7 +1331,17 @@ function handlePreviewClick(event) {
   const day = row * 7 + col - mondayIndex(first) + 1;
   if (day < 1 || day > days) return;
 
-  openDayDialog(isoDate(new Date(year, monthIndex, day)));
+  // Convert the day-cell's canvas-pixel rect into viewport (CSS) pixels so
+  // openDayDialog can FLIP-animate the modal as a zoom out of that cell.
+  const cssScaleX = rect.width / canvas.width;
+  const cssScaleY = rect.height / canvas.height;
+  const cellRect = {
+    left: rect.left + (gridX + col * colW) * cssScaleX,
+    top: rect.top + (gridY + row * rowH) * cssScaleY,
+    width: colW * cssScaleX,
+    height: rowH * cssScaleY,
+  };
+  openDayDialog(isoDate(new Date(year, monthIndex, day)), cellRect);
 }
 
 // ============================================================================
@@ -1534,12 +1546,49 @@ function replaceCustomDateLine(index, newLine) {
   renderPreview();
 }
 
-function openDayDialog(date) {
+function openDayDialog(date, cellRect) {
   const dialog = document.getElementById("dayDialog");
   dialog.dataset.date = date;
   // showModal first so the wrap's clientWidth is measurable when we render.
-  if (!dialog.open) dialog.showModal();
+  if (!dialog.open) {
+    dialog.showModal();
+    // FLIP: animate the dialog as if it's growing out of the day cell the
+    // user tapped. We open at the natural centred position, then immediately
+    // jump-transform back to the cell's geometry (no transition), force a
+    // reflow, and finally remove the transform with a transition — the
+    // browser interpolates from cell → centre over ~320 ms. Skipped if the
+    // caller didn't pass a cell rect (e.g. ?d=YYYY-MM-DD deep link) or the
+    // user has reduced-motion enabled.
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (cellRect && !reduced) flipDialogFromCell(dialog, cellRect);
+  }
   renderDayDialogCell();
+}
+
+function flipDialogFromCell(dialog, cellRect) {
+  requestAnimationFrame(() => {
+    const final = dialog.getBoundingClientRect();
+    if (!final.width || !final.height) return;
+    const scale = Math.min(cellRect.width / final.width, cellRect.height / final.height);
+    const tx = (cellRect.left + cellRect.width / 2) - (final.left + final.width / 2);
+    const ty = (cellRect.top + cellRect.height / 2) - (final.top + final.height / 2);
+    dialog.style.transition = "none";
+    dialog.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    dialog.style.opacity = "0.6";
+    // Force layout flush so the browser commits the jump before the
+    // transition starts; otherwise it batches both and skips the animation.
+    void dialog.offsetWidth;
+    requestAnimationFrame(() => {
+      dialog.style.transition = "transform 320ms cubic-bezier(.2, .9, .3, 1), opacity 240ms ease-out";
+      dialog.style.transform = "";
+      dialog.style.opacity = "";
+      // Clean up inline styles once the animation finishes so resize/scroll
+      // doesn't snag on leftover transitions.
+      setTimeout(() => {
+        dialog.style.transition = "";
+      }, 360);
+    });
+  });
 }
 
 function closeDayDialog() {
