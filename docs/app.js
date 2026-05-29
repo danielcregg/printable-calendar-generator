@@ -2390,14 +2390,23 @@ window.addEventListener("DOMContentLoaded", () => {
     if (event.target.id === "dayDialog") closeDayDialog();
   });
 
-  // Save & share dialog (button in the bottom row, beside Print).
+  // Save & share dialogs (buttons in the bottom row, beside Print). Each
+  // dialog uses the same backdrop-click-to-close pattern as the day editor.
   const saveDialog = document.getElementById("saveDialog");
+  const shareDialog = document.getElementById("shareDialog");
   document.getElementById("openSaveBtn").addEventListener("click", () => {
     if (!saveDialog.open) saveDialog.showModal();
   });
   document.getElementById("saveDialogClose").addEventListener("click", () => saveDialog.close());
   saveDialog.addEventListener("click", (event) => {
     if (event.target === saveDialog) saveDialog.close();
+  });
+  document.getElementById("openShareBtn").addEventListener("click", () => {
+    if (!shareDialog.open) shareDialog.showModal();
+  });
+  document.getElementById("shareDialogClose").addEventListener("click", () => shareDialog.close());
+  shareDialog.addEventListener("click", (event) => {
+    if (event.target === shareDialog) shareDialog.close();
   });
   document.getElementById("prevMonthBtn").addEventListener("click", () => stepMonth(-1));
   document.getElementById("nextMonthBtn").addEventListener("click", () => stepMonth(1));
@@ -2434,9 +2443,11 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("addGroupBtn").addEventListener("click", addGroup);
   document.getElementById("deleteGroupBtn").addEventListener("click", deleteGroup);
 
-  // Sharing: copy link, download/import file.
+  // Sharing: copy link, download/import file. The Download button in the
+  // bottom row triggers the same JSON export as the old "Download as file"
+  // button used to (which lived inside the Save & share drawer section).
   document.getElementById("shareLinkBtn").addEventListener("click", copyShareLink);
-  document.getElementById("exportBtn").addEventListener("click", exportCalendarFile);
+  document.getElementById("downloadBtn").addEventListener("click", exportCalendarFile);
   document.getElementById("importBtn").addEventListener("click", () => document.getElementById("importFile").click());
   document.getElementById("importFile").addEventListener("change", (event) => {
     const file = event.target.files?.[0];

@@ -282,13 +282,17 @@
         <button id="nextMonthBtn" type="button" aria-label="Next month">&rsaquo;</button>
       </div>
       <div class="stage-actions">
-        <button class="fab fab-ghost" id="openSaveBtn" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Save
+        <button class="fab-icon fab-ghost" id="openShareBtn" type="button" title="Share calendar" aria-label="Share calendar">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
         </button>
-        <button class="fab" id="printBtn" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Print
+        <button class="fab-icon fab-ghost" id="openSaveBtn" type="button" title="Save calendar" aria-label="Save calendar">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        </button>
+        <button class="fab-icon fab-ghost" id="downloadBtn" type="button" title="Download as file" aria-label="Download as file">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button class="fab-icon" id="printBtn" type="button" title="Print" aria-label="Print">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>
         </button>
       </div>
       </div>
@@ -312,7 +316,7 @@
 
   <dialog id="saveDialog" class="save-dialog" aria-labelledby="saveDialogTitle">
     <header class="day-dialog-head">
-      <h2 id="saveDialogTitle">Save &amp; share</h2>
+      <h2 id="saveDialogTitle">Save</h2>
       <button type="button" class="icon-btn" id="saveDialogClose" aria-label="Close">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
@@ -330,13 +334,25 @@
         <button id="loadBtn" type="button">Load</button>
         <button id="deleteBtn" type="button">Delete</button>
       </div>
-
-      <p class="hint">Share this calendar with someone &mdash; send them a link to open, or a file to import.</p>
+      <p class="hint">Or load a previously downloaded calendar file.</p>
       <div class="save-row">
-        <button id="shareLinkBtn" type="button">Copy share link</button>
-        <button id="exportBtn" type="button">Download as file</button>
         <button id="importBtn" type="button">Load a file</button>
         <input id="importFile" type="file" accept=".json,application/json" hidden>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="shareDialog" class="save-dialog" aria-labelledby="shareDialogTitle">
+    <header class="day-dialog-head">
+      <h2 id="shareDialogTitle">Share</h2>
+      <button type="button" class="icon-btn" id="shareDialogClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </header>
+    <div class="day-dialog-body">
+      <p class="hint">Send someone a link to open this calendar.</p>
+      <div class="save-row">
+        <button id="shareLinkBtn" type="button">Copy share link</button>
       </div>
 
       <div class="live-share" id="liveShareBlock" hidden>
