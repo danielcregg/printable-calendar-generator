@@ -1302,7 +1302,24 @@ function stepMonth(delta) {
   if (year < MIN_YEAR || year > MAX_YEAR) return;
   monthSelect.value = String(month);
   yearInput.value = String(year);
+  // Mobile picker triggers don't fire `change` when we set .value directly,
+  // so refresh their visible text here. Otherwise the year button keeps
+  // saying "2026" after stepping back from January 2027 into December 2026.
+  syncPickerTrigger("year");
+  syncPickerTrigger("month");
   renderPreview();
+}
+
+// Keep the mobile year/month trigger button text in sync with the
+// underlying <select>'s current value. Hoisted out of the
+// DOMContentLoaded closure so stepMonth (and any other value-mutating
+// path) can call it without a circular dependency.
+function syncPickerTrigger(type) {
+  const select = document.getElementById(type);
+  const trigger = document.getElementById(type + "Trigger");
+  if (!trigger || !select) return;
+  const opt = select.selectedOptions[0];
+  trigger.textContent = opt ? opt.textContent : select.value;
 }
 
 // Click on a day in the preview canvas -> prompt for a label, append a
@@ -2669,14 +2686,7 @@ window.addEventListener("DOMContentLoaded", () => {
   // dialog whose options come from the underlying <select>; tapping an
   // option writes back to the select and dispatches `change`, so the
   // existing RENDER_TRIGGER_IDS pipeline picks up the new month/year with
-  // no separate wiring.
-  function syncPickerTrigger(type) {
-    const select = document.getElementById(type);
-    const trigger = document.getElementById(type + "Trigger");
-    if (!trigger || !select) return;
-    const opt = select.selectedOptions[0];
-    trigger.textContent = opt ? opt.textContent : select.value;
-  }
+  // no separate wiring. syncPickerTrigger is defined at module scope.
   function openPicker(type) {
     const select = document.getElementById(type);
     const dialog = document.getElementById("pickerDialog");

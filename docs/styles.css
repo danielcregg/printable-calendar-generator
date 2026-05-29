@@ -964,13 +964,19 @@ canvas {
   max-height: calc(60vh - 72px);
 }
 .picker-item {
-  padding: 14px 12px;
-  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 12px 10px;
+  border: 1px solid var(--border-strong);
   background: var(--panel);
+  color: var(--text);
   border-radius: var(--radius-md);
-  font: inherit;
-  font-size: var(--text-base);
-  font-weight: 500;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
   text-align: center;
 }
