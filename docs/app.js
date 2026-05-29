@@ -2615,7 +2615,10 @@ window.addEventListener("DOMContentLoaded", () => {
   // - shareLinkBtn = copy share link (inside Share dialog)
   document.getElementById("shareLinkBtn").addEventListener("click", copyShareLink);
   document.getElementById("downloadBtn").addEventListener("click", downloadCalendarPdf);
-  document.getElementById("exportBtn").addEventListener("click", exportCalendarFile);
+  document.getElementById("exportBtn").addEventListener("click", () => {
+    exportCalendarFile();
+    document.getElementById("saveDialog").close();
+  });
   document.getElementById("importBtn").addEventListener("click", () => document.getElementById("importFile").click());
   document.getElementById("importFile").addEventListener("change", (event) => {
     const file = event.target.files?.[0];

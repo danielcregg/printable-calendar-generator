@@ -335,17 +335,13 @@
       </button>
     </header>
     <div class="day-dialog-body">
-      <h3 class="save-section-title">Save to this browser</h3>
-      <p class="hint">Quick local save — sticks around until you clear browser data. Reopen later via the Load button.</p>
+      <p class="hint">Name the calendar, then save it to this browser (a quick local copy you can reopen with Load) or to a file (a JSON backup you can move to another browser or share).</p>
       <div class="save-row">
         <input id="calendarName" type="text" placeholder="Name this calendar" spellcheck="false" aria-label="Calendar name">
-        <button id="saveBtn" type="button">Save</button>
       </div>
-
-      <h3 class="save-section-title">Save as file</h3>
-      <p class="hint">A JSON file you can back up or move to another browser.</p>
       <div class="save-row">
-        <button id="exportBtn" type="button">Save as file</button>
+        <button id="saveBtn" type="button">Save to browser</button>
+        <button id="exportBtn" type="button">Save to file</button>
       </div>
     </div>
   </dialog>
