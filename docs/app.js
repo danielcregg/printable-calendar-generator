@@ -629,7 +629,9 @@ function applyLanguage() {
   const fullYear = FULL_YEAR_LABELS[lang] || FULL_YEAR_LABELS.en;
   for (const opt of document.getElementById("month").options) {
     if (opt.value === "all") opt.textContent = fullYear;
-    else opt.textContent = months[Number(opt.value)];
+    // Only re-label numeric month indexes (0–11). The year-at-a-glance
+    // overview options have non-numeric values and keep their HTML labels.
+    else if (/^\d+$/.test(opt.value)) opt.textContent = months[Number(opt.value)];
   }
 }
 
