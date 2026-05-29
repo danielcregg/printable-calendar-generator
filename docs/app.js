@@ -2192,9 +2192,15 @@ function setLiveStatus(text, isError = false) {
 }
 
 function setLiveModeUi(mode) {
-  document.getElementById("liveShareStartRow").hidden = mode !== "off";
-  document.getElementById("liveShareActiveRow").hidden = mode !== "live";
+  // Hide the other live mode entirely while one is active, so the dialog
+  // reads as "you're doing X" instead of "you could also do Y".
+  document.getElementById("publishSection").hidden = mode === "live";
+  document.getElementById("liveSection").hidden = mode === "publish";
+  // Within each section, swap the start button for its active-state row.
+  document.getElementById("publishStartRow").hidden = mode === "publish";
   document.getElementById("publishActiveRow").hidden = mode !== "publish";
+  document.getElementById("liveShareStartRow").hidden = mode === "live";
+  document.getElementById("liveShareActiveRow").hidden = mode !== "live";
   document.getElementById("viewBanner").hidden = mode !== "view";
   document.body.classList.toggle("is-viewing", mode === "view");
 }

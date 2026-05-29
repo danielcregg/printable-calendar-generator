@@ -384,27 +384,40 @@
       </button>
     </header>
     <div class="day-dialog-body">
-      <p class="hint">Send someone a link to open this calendar.</p>
+      <h3 class="save-section-title">Share a copy</h3>
+      <p class="hint">Recipients open the link and get their own copy of the calendar. They can edit it freely &mdash; your version stays untouched. Best for "here's a starting point, do what you like with it."</p>
       <div class="save-row">
-        <button id="shareLinkBtn" type="button">Copy share link</button>
+        <button id="shareLinkBtn" type="button">Copy link</button>
       </div>
 
       <div class="live-share" id="liveShareBlock" hidden>
-        <p class="hint">Or use a <strong>shared link</strong> &mdash; <em>Publish</em> a read-only link recipients can open (you can edit and update it any time), or <em>Live share</em> a calendar everyone with the link can edit together.</p>
-        <div class="save-row" id="liveShareStartRow">
-          <button id="publishStartBtn" type="button">Publish read-only</button>
-          <button id="liveShareStartBtn" type="button">Live share (everyone edits)</button>
+
+        <div class="share-mode" id="publishSection">
+          <h3 class="save-section-title">Share a live calendar &mdash; read only</h3>
+          <p class="hint">You stay the only editor. Recipients always see your latest version when they open the link, but they can't change it. Best for "this is the official calendar &mdash; check here for updates."</p>
+          <div class="save-row" id="publishStartRow">
+            <button id="publishStartBtn" type="button">Publish read-only link</button>
+          </div>
+          <div class="save-row" id="publishActiveRow" hidden>
+            <span class="live-share-status live-share-status-publish" id="publishStatus">Publishing <span class="live-share-ts" id="publishTs"></span></span>
+            <button id="publishCopyBtn" type="button">Copy viewer link</button>
+            <button id="publishStopBtn" type="button">Stop publishing</button>
+          </div>
         </div>
-        <div class="save-row" id="liveShareActiveRow" hidden>
-          <span class="live-share-status" id="liveShareStatus">Live <span class="live-share-ts" id="liveShareTs"></span></span>
-          <button id="liveShareCopyBtn" type="button">Copy live link</button>
-          <button id="liveShareStopBtn" type="button">Stop sharing</button>
+
+        <div class="share-mode" id="liveSection">
+          <h3 class="save-section-title">Share a live calendar &mdash; everyone edits</h3>
+          <p class="hint">A shared editable calendar. Two or three people open the same link and every edit syncs to everyone within seconds. Best for "we're planning this together."</p>
+          <div class="save-row" id="liveShareStartRow">
+            <button id="liveShareStartBtn" type="button">Start live share</button>
+          </div>
+          <div class="save-row" id="liveShareActiveRow" hidden>
+            <span class="live-share-status" id="liveShareStatus">Live <span class="live-share-ts" id="liveShareTs"></span></span>
+            <button id="liveShareCopyBtn" type="button">Copy live link</button>
+            <button id="liveShareStopBtn" type="button">Stop sharing</button>
+          </div>
         </div>
-        <div class="save-row" id="publishActiveRow" hidden>
-          <span class="live-share-status live-share-status-publish" id="publishStatus">Publishing <span class="live-share-ts" id="publishTs"></span></span>
-          <button id="publishCopyBtn" type="button">Copy viewer link</button>
-          <button id="publishStopBtn" type="button">Stop publishing</button>
-        </div>
+
       </div>
     </div>
   </dialog>
