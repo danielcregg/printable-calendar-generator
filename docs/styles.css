@@ -81,6 +81,12 @@ body {
 
 body.app.drawer-open { overflow: hidden; }
 
+/* Safety net — if any single child accidentally overflows its container
+   on a narrow phone (which happened when long dropdown options stretched
+   the month select past 360 px), the page should not start showing a
+   horizontal scrollbar that lets the user scroll the layout sideways. */
+body.app { overflow-x: hidden; }
+
 a {
   color: var(--primary);
   font-weight: 500;
