@@ -267,7 +267,6 @@
       <div class="month-nav">
         <button id="prevMonthBtn" type="button" aria-label="Previous month">&lsaquo;</button>
         <select id="year" aria-label="Year"></select>
-        <button id="yearTrigger" class="picker-trigger" type="button" aria-label="Pick year">2026</button>
         <select id="month" aria-label="Month">
           <option value="0" selected>January</option>
           <option value="1">February</option>
@@ -285,7 +284,6 @@
           <option value="overview-portrait">Year at a glance (portrait)</option>
           <option value="all">Full year (12 pages, one each month)</option>
         </select>
-        <button id="monthTrigger" class="picker-trigger" type="button" aria-label="Pick month">January</button>
         <button id="nextMonthBtn" type="button" aria-label="Next month">&rsaquo;</button>
       </div>
       <div class="stage-actions">
@@ -312,18 +310,6 @@
       </div>
     </main>
   </div>
-
-  <dialog id="pickerDialog" class="picker-dialog" aria-labelledby="pickerDialogTitle">
-    <header class="day-dialog-head">
-      <h2 id="pickerDialogTitle">Pick</h2>
-      <button type="button" class="icon-btn" id="pickerDialogClose" aria-label="Close">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-    </header>
-    <div class="day-dialog-body">
-      <div class="picker-list" id="pickerList"></div>
-    </div>
-  </dialog>
 
   <dialog id="dayDialog" class="day-dialog" aria-labelledby="dayDialogTitle">
     <header class="day-dialog-head">

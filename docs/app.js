@@ -1509,24 +1509,7 @@ function stepMonth(delta) {
   if (year < MIN_YEAR || year > MAX_YEAR) return;
   monthSelect.value = String(month);
   yearInput.value = String(year);
-  // Mobile picker triggers don't fire `change` when we set .value directly,
-  // so refresh their visible text here. Otherwise the year button keeps
-  // saying "2026" after stepping back from January 2027 into December 2026.
-  syncPickerTrigger("year");
-  syncPickerTrigger("month");
   renderPreview();
-}
-
-// Keep the mobile year/month trigger button text in sync with the
-// underlying <select>'s current value. Hoisted out of the
-// DOMContentLoaded closure so stepMonth (and any other value-mutating
-// path) can call it without a circular dependency.
-function syncPickerTrigger(type) {
-  const select = document.getElementById(type);
-  const trigger = document.getElementById(type + "Trigger");
-  if (!trigger || !select) return;
-  const opt = select.selectedOptions[0];
-  trigger.textContent = opt ? opt.textContent : select.value;
 }
 
 // Click on a day in the preview canvas -> prompt for a label, append a
@@ -2890,54 +2873,6 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("dayDialog").addEventListener("click", (event) => {
     if (event.target.id === "dayDialog") closeDayDialog();
   });
-
-  // Year / month custom picker. On mobile the native <select> opens a
-  // full-viewport sheet at the top of the screen — out of thumb reach. The
-  // picker-trigger buttons (visible on mobile only via CSS) open a custom
-  // dialog whose options come from the underlying <select>; tapping an
-  // option writes back to the select and dispatches `change`, so the
-  // existing RENDER_TRIGGER_IDS pipeline picks up the new month/year with
-  // no separate wiring. syncPickerTrigger is defined at module scope.
-  function openPicker(type) {
-    const select = document.getElementById(type);
-    const dialog = document.getElementById("pickerDialog");
-    const list = document.getElementById("pickerList");
-    const title = document.getElementById("pickerDialogTitle");
-    title.textContent = type === "year" ? "Pick year" : "Pick month";
-    list.innerHTML = "";
-    for (const option of select.options) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "picker-item" + (option.value === select.value ? " active" : "");
-      btn.textContent = option.textContent;
-      btn.addEventListener("click", () => {
-        select.value = option.value;
-        select.dispatchEvent(new Event("change", { bubbles: true }));
-        syncPickerTrigger(type);
-        dialog.close();
-      });
-      list.appendChild(btn);
-    }
-    dialog.showModal();
-    // Scroll the active item into view once the dialog has laid out.
-    requestAnimationFrame(() => {
-      const active = list.querySelector(".picker-item.active");
-      if (active) active.scrollIntoView({ block: "center" });
-    });
-  }
-  document.getElementById("yearTrigger").addEventListener("click", () => openPicker("year"));
-  document.getElementById("monthTrigger").addEventListener("click", () => openPicker("month"));
-  document.getElementById("pickerDialogClose").addEventListener("click",
-    () => document.getElementById("pickerDialog").close());
-  document.getElementById("pickerDialog").addEventListener("click", (event) => {
-    if (event.target.id === "pickerDialog") event.target.close();
-  });
-  // Keep the trigger text in sync when the select value changes via any
-  // other path (prev/next arrows, settings load, swipe gesture).
-  document.getElementById("year").addEventListener("change", () => syncPickerTrigger("year"));
-  document.getElementById("month").addEventListener("change", () => syncPickerTrigger("month"));
-  syncPickerTrigger("year");
-  syncPickerTrigger("month");
 
   // Save / Load / Share bottom-row dialogs. Save and Load are mirrored:
   // Save = outbound (browser + file), Load = inbound (browser + file).
