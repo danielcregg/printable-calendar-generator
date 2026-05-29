@@ -2511,9 +2511,10 @@ function showCoachBubble() {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  // Bail out when the generator controls aren't present (e.g. the tests.html
-  // page loads this script for its pure helpers and has no UI of its own).
-  if (!document.getElementById("previewBtn")) return;
+  // Bail out when the generator UI isn't present (e.g. the tests.html page
+  // loads this script for its pure helpers and has no calendar canvas).
+  // The canvas is the cheapest "is this the generator page?" sentinel.
+  if (!document.getElementById("preview")) return;
 
   // Populate the Year dropdown and pick sensible defaults for both year/month.
   const yearSelect = document.getElementById("year");
@@ -2527,7 +2528,6 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("month").value = String(new Date().getMonth());
 
   // Preview controls.
-  document.getElementById("previewBtn").addEventListener("click", renderPreview);
   document.getElementById("printBtn").addEventListener("click", printCalendar);
   document.getElementById("preview").addEventListener("click", handlePreviewClick);
   document.getElementById("dayDialogClose").addEventListener("click", closeDayDialog);
