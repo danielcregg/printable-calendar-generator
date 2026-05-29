@@ -936,6 +936,33 @@ canvas {
   border-top: 1px solid var(--border);
 }
 
+/* Toast: temporary confirmation banner that floats above the FAB row.
+   Used for "Downloaded X" / "Saved X" so mobile users can see that an
+   action worked without hunting the OS status bar. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translate(-50%, 12px);
+  background: #111;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  max-width: 90vw;
+  text-align: center;
+  transition: opacity .25s ease, transform .25s ease;
+}
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
 /* Save & share dialog — reuses day-dialog-head / day-dialog-body styling,
    just a slightly wider shell to fit the multi-row save/share form cleanly. */
 .save-dialog {

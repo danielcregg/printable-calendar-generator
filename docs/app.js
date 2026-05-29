@@ -64,6 +64,39 @@ function rgbCss(rgb) {
   return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
 }
 
+// Briefly disable a button after click so a rapid second tap (common on
+// mobile when the user can't tell if the first one worked) can't fire the
+// action twice. The button re-enables itself after `ms` milliseconds.
+function flashDisable(id, ms) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.disabled = true;
+  setTimeout(() => { btn.disabled = false; }, ms);
+}
+
+// Floating confirmation message at the bottom of the viewport. Mobile
+// browsers stash download notifications in a tiny status-bar pill that's
+// easy to miss — this puts a visible "Downloaded X" toast right above the
+// button the user just tapped so they know it worked. Created lazily on
+// first call and reused across calls.
+function showToast(message) {
+  let toast = document.getElementById("toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "toast";
+    toast.className = "toast";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  // requestAnimationFrame so the class change actually animates on the
+  // first invocation (otherwise the browser batches the create + add).
+  requestAnimationFrame(() => toast.classList.add("show"));
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(() => toast.classList.remove("show"), 2500);
+}
+
 // Shading-intensity slider modifier. `rgb` is a SHADE_THEMES tuple,
 // `intensity` is 0-100 (50 = passthrough). The adjustment runs in HSL so
 // the hue and saturation are preserved — a pale blue at intensity 100
@@ -1165,6 +1198,9 @@ function buildPdfDoc() {
 // browser to save it straight to disk — no print dialog, no extra tab.
 // Filename embeds the year and (for single-month exports) the month, so
 // repeated downloads don't all collide on the same generic name.
+// Shows a confirmation toast so mobile users (who otherwise only get a
+// tiny OS-level download pill) know it worked, and disables the button
+// for 1.5 s to head off the rapid double-tap → duplicate download trap.
 function downloadCalendarPdf() {
   const doc = buildPdfDoc();
   const year = Number(document.getElementById("year").value);
@@ -1173,6 +1209,8 @@ function downloadCalendarPdf() {
     ? `calendar-${year}.pdf`
     : `calendar-${year}-${String(Number(monthValue) + 1).padStart(2, "0")}.pdf`;
   doc.save(filename);
+  showToast(`Downloaded ${filename}`);
+  flashDisable("downloadBtn", 1500);
 }
 
 // Build the PDF, drop it into a hidden iframe, and call print() on the
@@ -2061,13 +2099,15 @@ function exportCalendarFile() {
   const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const safeName = (payload.name || "calendar").replaceAll(/[^a-z0-9_-]+/gi, "-") || "calendar";
+  const filename = `${safeName}.calendar.json`;
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${safeName}.calendar.json`;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+  showToast(`Saved ${filename}`);
 }
 
 function importCalendarFile(file) {
