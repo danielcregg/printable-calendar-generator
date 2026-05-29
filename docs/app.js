@@ -1094,10 +1094,43 @@ function buildPdfDoc() {
   return doc;
 }
 
+// Build the PDF, drop it into a hidden iframe, and call print() on the
+// iframe so the browser's native print dialog opens immediately. The old
+// behaviour of opening the PDF in a new tab — which forced the user to
+// click Print *again* inside the browser's PDF viewer — is kept only as a
+// fallback for browsers that block cross-document print() on PDFs
+// (typically mobile Safari). doc.autoPrint() embeds the same intent into
+// the PDF itself so the fallback also surfaces the print dialog on its own.
 function printCalendar() {
   const doc = buildPdfDoc();
   doc.autoPrint();
-  window.open(doc.output("bloburl"));
+  const blobUrl = URL.createObjectURL(doc.output("blob"));
+
+  const iframe = document.createElement("iframe");
+  iframe.style.cssText =
+    "position:fixed; right:-9999px; bottom:-9999px; width:1px; height:1px; opacity:0; pointer-events:none; border:0;";
+  iframe.src = blobUrl;
+  document.body.appendChild(iframe);
+
+  iframe.addEventListener("load", () => {
+    // 100 ms gives the PDF viewer time to mount its print machinery; without
+    // it Chrome occasionally swallows the print() call silently.
+    setTimeout(() => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (err) {
+        window.open(blobUrl, "_blank");
+      }
+    }, 100);
+  });
+
+  // Generous cleanup window so slow printer-picker users don't lose the
+  // PDF mid-dialog.
+  setTimeout(() => {
+    URL.revokeObjectURL(blobUrl);
+    if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+  }, 60_000);
 }
 
 // ============================================================================
