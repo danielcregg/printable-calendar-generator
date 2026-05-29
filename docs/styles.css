@@ -1108,6 +1108,11 @@ canvas {
      (which left them overlapping the month picker on narrow viewports). */
   .stage-bottom-row { flex-direction: column; gap: var(--space-3); }
   .stage-actions { position: static; transform: none; }
+  /* Push the calendar + controls into the bottom half of the screen so
+     every cell is thumb-reachable. justify-content: center on the parent
+     puts the canvas at vertical middle — fine on tablets, but on phones
+     that still leaves the top row of dates above the natural thumb arc. */
+  .stage { justify-content: flex-end; }
 }
 
 @media (max-width: 460px) {
