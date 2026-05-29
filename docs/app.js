@@ -1553,12 +1553,8 @@ function openDayDialog(date, cellRect) {
   if (!dialog.open) {
     dialog.showModal();
     // FLIP: animate the dialog as if it's growing out of the day cell the
-    // user tapped. We open at the natural centred position, then immediately
-    // jump-transform back to the cell's geometry (no transition), force a
-    // reflow, and finally remove the transform with a transition — the
-    // browser interpolates from cell → centre over ~320 ms. Skipped if the
-    // caller didn't pass a cell rect (e.g. ?d=YYYY-MM-DD deep link) or the
-    // user has reduced-motion enabled.
+    // user tapped. Skipped if the caller didn't pass a cell rect (deep link
+    // open) or the user has prefers-reduced-motion enabled.
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (cellRect && !reduced) flipDialogFromCell(dialog, cellRect);
   }
