@@ -712,18 +712,18 @@ function drawCalendar(ctx, year, monthIndex, labels, scale = 1, options = {}) {
   ctx.fillStyle = "white";
   ctx.fillRect(0, 0, w, h);
 
-  // Title — "Month" in bold, " Year" regular, centred as a single line.
-  // Title — month centred and bold; year smaller and right-aligned on the
-  // same baseline (the month is the hero of the page; the year is metadata).
+  // Title — bold month centred as the hero of the page. The year is lifted
+  // to the top-right corner as a small stamp (16 pt regular, baseline at
+  // margin + 4 mm) so it stops competing with the bold "SUN" weekday header
+  // directly below the original right-aligned-22pt position.
   ctx.fillStyle = "black";
   ctx.textBaseline = "alphabetic";
-  const titleY = margin + 8 * scale;
   ctx.font = `bold ${pt(40, scale)}px Arial`;
   ctx.textAlign = "center";
-  ctx.fillText(monthNames[monthIndex], w / 2, titleY);
-  ctx.font = `${pt(22, scale)}px Arial`;
+  ctx.fillText(monthNames[monthIndex], w / 2, margin + 8 * scale);
+  ctx.font = `${pt(16, scale)}px Arial`;
   ctx.textAlign = "right";
-  ctx.fillText(String(year), w - margin, titleY);
+  ctx.fillText(String(year), w - margin, margin + 4 * scale);
 
   // Shading.
   if (zebraWeeks) {
@@ -984,16 +984,16 @@ function drawPdfMonth(doc, year, monthIndex, labels) {
   doc.setFillColor(255, 255, 255);
   doc.rect(0, 0, w, h, "F");
 
-  // Title — "Month" in bold, " Year" regular, centred as a single line.
-  // Title — month centred and bold; year smaller and right-aligned on the
-  // same baseline (the month is the hero of the page; the year is metadata).
+  // Title — bold month centred as the hero. Year is lifted to the top-right
+  // corner as a small stamp (16 pt regular, baseline at margin + 4 mm) so it
+  // stops competing with the bold "SUN" weekday header directly below.
   doc.setTextColor(0, 0, 0);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(40);
   doc.text(monthNames[monthIndex], w / 2, margin + 8, { align: "center" });
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(22);
-  doc.text(String(year), w - margin, margin + 8, { align: "right" });
+  doc.setFontSize(16);
+  doc.text(String(year), w - margin, margin + 4, { align: "right" });
 
   // Shading.
   if (zebraWeeks) {
