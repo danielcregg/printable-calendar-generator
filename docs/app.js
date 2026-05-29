@@ -2996,6 +2996,32 @@ window.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => { swipeState.animating = false; }, 320);
   });
 
+  // Long-press ‹/› to fast-cycle months — useful for jumping across
+  // several months (or a year) without 12 individual taps. Holds beyond
+  // 450 ms start firing stepMonth() at 130 ms intervals; the unanimated
+  // path is intentional (the slide animation would queue and look
+  // strobed). A short tap is unaffected because the long-press timer
+  // hasn't fired yet by the time pointerup arrives.
+  function wireLongPress(buttonId, direction) {
+    const btn = document.getElementById(buttonId);
+    let holdTimer = null;
+    let cycleInterval = null;
+    const stop = () => {
+      clearTimeout(holdTimer); holdTimer = null;
+      clearInterval(cycleInterval); cycleInterval = null;
+    };
+    btn.addEventListener("pointerdown", () => {
+      holdTimer = setTimeout(() => {
+        cycleInterval = setInterval(() => stepMonth(direction), 130);
+      }, 450);
+    });
+    btn.addEventListener("pointerup", stop);
+    btn.addEventListener("pointerleave", stop);
+    btn.addEventListener("pointercancel", stop);
+  }
+  wireLongPress("prevMonthBtn", -1);
+  wireLongPress("nextMonthBtn", 1);
+
   // Drawer (hamburger menu) controls.
   document.getElementById("menuBtn").addEventListener("click", toggleDrawer);
   document.getElementById("drawerCloseBtn").addEventListener("click", () => {
