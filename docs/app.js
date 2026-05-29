@@ -1579,8 +1579,7 @@ function handlePreviewClick(event) {
   if (cx < gridX || cx > gridX + gridW || cy < gridY || cy > gridY + gridH) return;
 
   const year = Number(document.getElementById("year").value);
-  const monthValue = document.getElementById("month").value;
-  const monthIndex = monthValue === "all" ? 0 : Number(monthValue);
+  const monthIndex = Number(monthValue);
   const rows = monthRows(year, monthIndex);
   const colW = gridW / 7;
   const rowH = gridH / rows;
