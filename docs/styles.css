@@ -1039,21 +1039,32 @@ canvas {
 
 /* --- Responsive ------------------------------------------------------- */
 @media (max-width: 640px) {
-  /* Compact the month picker on phones — same content, less chrome. */
-  .month-nav { gap: var(--space-1); }
+  /* Phone-thumb sizing for the bottom row. Both rows are stacked vertically
+     (see .stage-bottom-row below) so we can afford 44 px tap targets — the
+     Apple HIG minimum — on every control instead of fighting horizontal
+     space. SVG icons + select text scale up proportionally so the visuals
+     still look balanced inside the larger hit-zone. */
+  .month-nav { gap: var(--space-2); }
   .month-nav select {
-    font-size: var(--text-xs);
-    /* Right padding still has to clear the chevron (right:10 + 16 = 26). */
-    padding: 5px 28px 5px 10px;
-    min-width: 102px;
+    font-size: var(--text-sm);
+    /* Padding-right keeps clearing the 16 px chevron at right:10 — anything
+       ≥ 30 px is safe; 36 px gives the text a touch more room. */
+    padding: 11px 36px 11px 14px;
+    min-width: 108px;
   }
-  .month-nav button { width: 32px; height: 32px; flex: 0 0 32px; }
-  .stage-actions .fab-icon { width: 32px; height: 32px; }
-  .stage-actions .fab-icon svg { width: 16px; height: 16px; }
+  .month-nav button {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    font-size: var(--text-xl);
+  }
+  .stage-actions { gap: var(--space-3); }
+  .stage-actions .fab-icon { width: 44px; height: 44px; }
+  .stage-actions .fab-icon svg { width: 22px; height: 22px; }
   /* Stack the bottom row vertically on phones: month-nav on top, the five
      FABs centred below it, instead of trying to fit them side-by-side
      (which left them overlapping the month picker on narrow viewports). */
-  .stage-bottom-row { flex-direction: column; gap: var(--space-2); }
+  .stage-bottom-row { flex-direction: column; gap: var(--space-3); }
   .stage-actions { position: static; transform: none; }
 }
 
