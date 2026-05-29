@@ -1307,6 +1307,39 @@ function stepMonth(delta) {
 
 // Click on a day in the preview canvas -> prompt for a label, append a
 // "DD-MM-YYYY | Label" line to the Custom dates textarea.
+// Pointer-event wiring on the calendar canvas. Combines two behaviours:
+// - Tap → opens the day editor for that cell (handlePreviewClick)
+// - Horizontal swipe (≥ 40 px, mostly horizontal) → advances or retreats
+//   the month, just like the ‹/› buttons. Vertical movement is ignored so
+//   the page can still scroll on phones.
+// The justSwiped flag prevents the click that fires immediately after a
+// swipe from also opening the day dialog.
+const swipeState = { startX: 0, startY: 0, justSwiped: false };
+
+function wireCanvasInteractions(canvas) {
+  canvas.addEventListener("pointerdown", (e) => {
+    swipeState.startX = e.clientX;
+    swipeState.startY = e.clientY;
+  });
+  canvas.addEventListener("pointerup", (e) => {
+    const dx = e.clientX - swipeState.startX;
+    const dy = e.clientY - swipeState.startY;
+    if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      swipeState.justSwiped = true;
+      // Swipe right = previous month (calendar "moves" right to reveal it);
+      // swipe left = next month. Matches native iOS / Android conventions.
+      stepMonth(dx > 0 ? -1 : 1);
+    }
+  });
+  canvas.addEventListener("click", (event) => {
+    if (swipeState.justSwiped) {
+      swipeState.justSwiped = false;
+      return;
+    }
+    handlePreviewClick(event);
+  });
+}
+
 function handlePreviewClick(event) {
   const canvas = document.getElementById("preview");
   const rect = canvas.getBoundingClientRect();
@@ -2614,7 +2647,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // Preview controls.
   document.getElementById("printBtn").addEventListener("click", printCalendar);
-  document.getElementById("preview").addEventListener("click", handlePreviewClick);
+  wireCanvasInteractions(document.getElementById("preview"));
   document.getElementById("dayDialogClose").addEventListener("click", closeDayDialog);
   // When the day editor closes — by X button, backdrop click, ESC key, or
   // programmatic close — and we got here via a widget deep link, navigate

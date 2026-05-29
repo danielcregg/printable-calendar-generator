@@ -575,6 +575,10 @@ button:focus-visible {
    when either viewport width OR available height is the binding constraint,
    so the bottom of the page never falls off the screen on a short window. */
 .stage canvas {
+  /* Capture horizontal swipes for our month-change gesture but let the
+     page scroll vertically. Without this Android Chrome would steal
+     left-swipes for back-navigation. */
+  touch-action: pan-y;
   /* 150px reserves space for: top padding (24) + bottom padding (48)
      + the single bottom-row (~50, picker + Print sharing one line) + gap (16) + safety (12) */
   width: min(100%, 1120px, calc((100dvh - var(--topbar-h) - 150px) * 1.4143));
