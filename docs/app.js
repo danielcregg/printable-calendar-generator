@@ -1094,6 +1094,20 @@ function buildPdfDoc() {
   return doc;
 }
 
+// Triggered by the Download bottom-row icon. Builds the PDF and asks the
+// browser to save it straight to disk — no print dialog, no extra tab.
+// Filename embeds the year and (for single-month exports) the month, so
+// repeated downloads don't all collide on the same generic name.
+function downloadCalendarPdf() {
+  const doc = buildPdfDoc();
+  const year = Number(document.getElementById("year").value);
+  const monthValue = document.getElementById("month").value;
+  const filename = monthValue === "all"
+    ? `calendar-${year}.pdf`
+    : `calendar-${year}-${String(Number(monthValue) + 1).padStart(2, "0")}.pdf`;
+  doc.save(filename);
+}
+
 // Build the PDF, drop it into a hidden iframe, and call print() on the
 // iframe so the browser's native print dialog opens immediately. The old
 // behaviour of opening the PDF in a new tab — which forced the user to
@@ -2510,12 +2524,15 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("addGroupBtn").addEventListener("click", addGroup);
   document.getElementById("deleteGroupBtn").addEventListener("click", deleteGroup);
 
-  // Sharing: copy link, download/import file. The Download button in the
-  // bottom row triggers the same JSON export as the old "Download as file"
-  // button used to (which lived inside the Save & share drawer section).
+  // Bottom-row file actions and their dialog-internal siblings:
+  // - Download = PDF download (bottom row, direct)
+  // - Upload   = JSON file picker (bottom row, direct — triggers importFile)
+  // - exportBtn = JSON download (inside Save dialog, "Save as file")
+  // - shareLinkBtn = copy share link (inside Share dialog)
   document.getElementById("shareLinkBtn").addEventListener("click", copyShareLink);
-  document.getElementById("downloadBtn").addEventListener("click", exportCalendarFile);
-  document.getElementById("importBtn").addEventListener("click", () => document.getElementById("importFile").click());
+  document.getElementById("downloadBtn").addEventListener("click", downloadCalendarPdf);
+  document.getElementById("exportBtn").addEventListener("click", exportCalendarFile);
+  document.getElementById("uploadBtn").addEventListener("click", () => document.getElementById("importFile").click());
   document.getElementById("importFile").addEventListener("change", (event) => {
     const file = event.target.files?.[0];
     if (file) importCalendarFile(file);
