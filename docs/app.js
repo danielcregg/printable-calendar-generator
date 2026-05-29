@@ -65,19 +65,78 @@ function rgbCss(rgb) {
 }
 
 // Shading-intensity slider modifier. `rgb` is a SHADE_THEMES tuple,
-// `intensity` is 0-100 (50 = passthrough). Below 50 lerps toward white
-// (lighter, less shading); above 50 scales channels down (darker, more
-// saturated). Returns a new [r, g, b] tuple — the source array is untouched.
+// `intensity` is 0-100 (50 = passthrough). The adjustment runs in HSL so
+// the hue and saturation are preserved — a pale blue at intensity 100
+// becomes a stronger blue, NOT a dark grey (which is what happens if you
+// just multiply RGB channels uniformly: all colours converge on grey).
+// Below 50 lerps the lightness toward white. Above 50 lerps it toward
+// `original L - 0.30`, floored at 0.20 so the calendar never becomes
+// unreadable. Returns a new [r, g, b] tuple — source array untouched.
 function applyShadeIntensity(rgb, intensity) {
   const i = Math.max(0, Math.min(100, Number(intensity)));
   if (Number.isNaN(i) || i === 50) return rgb;
+  const hsl = rgbToHsl(rgb);
+  let newL;
   if (i < 50) {
     const t = i / 50;
-    return rgb.map((c) => Math.round(255 - (255 - c) * t));
+    newL = 1 - (1 - hsl.l) * t;
+  } else {
+    const t = (i - 50) / 50;
+    const targetL = Math.max(0.2, hsl.l - 0.30);
+    newL = hsl.l + (targetL - hsl.l) * t;
   }
-  const t = (i - 50) / 50;
-  const k = 1 - 0.45 * t;  // at intensity 100, channels scale to 55% of original
-  return rgb.map((c) => Math.round(c * k));
+  return hslToRgb({ h: hsl.h, s: hsl.s, l: newL });
+}
+
+function rgbToHsl([r, g, b]) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return { h: 0, s: 0, l };
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (max === g) h = ((b - r) / d + 2) / 6;
+  else h = ((r - g) / d + 4) / 6;
+  return { h, s, l };
+}
+
+function hslToRgb({ h, s, l }) {
+  if (s === 0) {
+    const v = Math.round(l * 255);
+    return [v, v, v];
+  }
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const hue2rgb = (t) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  };
+  return [
+    Math.round(hue2rgb(h + 1 / 3) * 255),
+    Math.round(hue2rgb(h) * 255),
+    Math.round(hue2rgb(h - 1 / 3) * 255),
+  ];
+}
+
+// Repaint each swatch in the Calendar Shading palette to reflect the
+// current intensity slider. Called whenever the slider moves and after
+// settings load so the swatch you'd pick previews what you'd actually
+// see on the calendar.
+function updateShadeSwatches() {
+  const intensity = document.getElementById("shadeIntensity")?.value ?? 50;
+  for (const sw of document.querySelectorAll("#shadeColourPalette .label-colour-swatch")) {
+    const base = SHADE_THEMES[sw.dataset.shade];
+    if (!base) continue;
+    const [r, g, b] = applyShadeIntensity(base.weekend, intensity);
+    sw.style.background = `rgb(${r}, ${g}, ${b})`;
+  }
 }
 
 // Looks up a SHADE_THEMES entry and applies the intensity-slider modifier
@@ -1749,6 +1808,7 @@ function applySettings(settings) {
     sw.classList.toggle("active", matches);
     sw.setAttribute("aria-checked", String(matches));
   }
+  updateShadeSwatches();
   const loadedHoliday = settings.holidayColour || "black";
   document.getElementById("holidayColour").value = loadedHoliday;
   for (const sw of document.querySelectorAll("#holidayColourPalette .label-colour-swatch")) {
@@ -2608,6 +2668,11 @@ window.addEventListener("DOMContentLoaded", () => {
       });
     }
   }
+  // Swatch previews track the intensity slider so users see what they'd
+  // actually get on the calendar before picking a colour. `input` fires
+  // continuously while dragging — repainting four swatches is cheap.
+  document.getElementById("shadeIntensity").addEventListener("input", updateShadeSwatches);
+  updateShadeSwatches();
   // Holiday-colour palette: same pattern as shading. Hidden #holidayColour
   // input gets the selected colour name; labelStack reads it when stacking
   // each day's holiday entry. Change event triggers a re-render.
