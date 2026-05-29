@@ -1506,11 +1506,17 @@ function stepMonth(delta) {
   const yearInput = document.getElementById("year");
   let month = Number(monthSelect.value) + delta;
   let year = Number(yearInput.value);
+  const oldYear = Number(yearInput.value);
   if (month > 11) { month = 0; year += 1; }
   else if (month < 0) { month = 11; year -= 1; }
   if (year < MIN_YEAR || year > MAX_YEAR) return;
   monthSelect.value = String(month);
   yearInput.value = String(year);
+  // Crossing a year boundary via ‹/› doesn't fire the year <select>'s
+  // change event (we're assigning .value directly), so the auto-fill
+  // year-change listener never runs. Do it explicitly so teaching-week
+  // labels stay correct for the new year.
+  if (year !== oldYear) autoFillTeachingDates();
   renderPreview();
 }
 
@@ -3045,7 +3051,17 @@ window.addEventListener("DOMContentLoaded", () => {
     renderPreview();
   });
   document.getElementById("teachingWeeks").addEventListener("change", updateTeachingPanel);
-  document.getElementById("year").addEventListener("change", autoFillTeachingDates);
+  // Year change → recompute the ATU default teaching-week dates AND
+  // re-render. Without the explicit renderPreview, the
+  // RENDER_TRIGGER_IDS listener fires *before* this one (it's wired
+  // earlier in DOMContentLoaded), draws the new year using the *old*
+  // year's stale s1Start/s2Start values, sees no matching Mondays for
+  // the new year, and shows no W1-W13 labels. The redundant second
+  // render here lands the fresh dates on screen.
+  document.getElementById("year").addEventListener("change", () => {
+    autoFillTeachingDates();
+    renderPreview();
+  });
   document.getElementById("language").addEventListener("change", () => {
     applyLanguage();
     renderPreview();
