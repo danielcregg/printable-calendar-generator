@@ -2471,9 +2471,11 @@ window.addEventListener("DOMContentLoaded", () => {
     if (event.target.id === "dayDialog") closeDayDialog();
   });
 
-  // Save & share dialogs (buttons in the bottom row, beside Print). Each
-  // dialog uses the same backdrop-click-to-close pattern as the day editor.
+  // Save / Load / Share bottom-row dialogs. Save and Load are mirrored:
+  // Save = outbound (browser + file), Load = inbound (browser + file).
+  // Each uses the same backdrop-click-to-close pattern as the day editor.
   const saveDialog = document.getElementById("saveDialog");
+  const loadDialog = document.getElementById("loadDialog");
   const shareDialog = document.getElementById("shareDialog");
   document.getElementById("openSaveBtn").addEventListener("click", () => {
     if (!saveDialog.open) saveDialog.showModal();
@@ -2481,6 +2483,13 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("saveDialogClose").addEventListener("click", () => saveDialog.close());
   saveDialog.addEventListener("click", (event) => {
     if (event.target === saveDialog) saveDialog.close();
+  });
+  document.getElementById("openLoadBtn").addEventListener("click", () => {
+    if (!loadDialog.open) loadDialog.showModal();
+  });
+  document.getElementById("loadDialogClose").addEventListener("click", () => loadDialog.close());
+  loadDialog.addEventListener("click", (event) => {
+    if (event.target === loadDialog) loadDialog.close();
   });
   document.getElementById("openShareBtn").addEventListener("click", () => {
     if (!shareDialog.open) shareDialog.showModal();
@@ -2516,9 +2525,17 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Saved-calendar and date-group controls.
-  document.getElementById("saveBtn").addEventListener("click", saveCalendar);
-  document.getElementById("loadBtn").addEventListener("click", loadCalendar);
+  // Saved-calendar and date-group controls. saveCalendar / loadCalendar /
+  // deleteCalendar are wrapped to also close the parent dialog on success
+  // so the user lands back on the calendar after the action they came for.
+  document.getElementById("saveBtn").addEventListener("click", () => {
+    saveCalendar();
+    document.getElementById("saveDialog").close();
+  });
+  document.getElementById("loadBtn").addEventListener("click", () => {
+    loadCalendar();
+    document.getElementById("loadDialog").close();
+  });
   document.getElementById("deleteBtn").addEventListener("click", deleteCalendar);
   document.getElementById("saveGroupBtn").addEventListener("click", saveGroup);
   document.getElementById("addGroupBtn").addEventListener("click", addGroup);
@@ -2526,16 +2543,21 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // Bottom-row file actions and their dialog-internal siblings:
   // - Download = PDF download (bottom row, direct)
-  // - Upload   = JSON file picker (bottom row, direct — triggers importFile)
+  // - openLoadBtn = opens Load dialog (bottom row); Load dialog's importBtn
+  //   then triggers the actual file picker via importFile.
   // - exportBtn = JSON download (inside Save dialog, "Save as file")
   // - shareLinkBtn = copy share link (inside Share dialog)
   document.getElementById("shareLinkBtn").addEventListener("click", copyShareLink);
   document.getElementById("downloadBtn").addEventListener("click", downloadCalendarPdf);
   document.getElementById("exportBtn").addEventListener("click", exportCalendarFile);
-  document.getElementById("uploadBtn").addEventListener("click", () => document.getElementById("importFile").click());
+  document.getElementById("importBtn").addEventListener("click", () => document.getElementById("importFile").click());
   document.getElementById("importFile").addEventListener("change", (event) => {
     const file = event.target.files?.[0];
-    if (file) importCalendarFile(file);
+    if (file) {
+      importCalendarFile(file);
+      const ld = document.getElementById("loadDialog");
+      if (ld?.open) ld.close();
+    }
     event.target.value = "";  // allow re-importing the same file
   });
   wireLiveShare();

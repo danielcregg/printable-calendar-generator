@@ -294,7 +294,7 @@
         <button class="fab-icon fab-ghost" id="openSaveBtn" type="button" title="Save calendar" aria-label="Save calendar">
           <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
         </button>
-        <button class="fab-icon fab-ghost" id="uploadBtn" type="button" title="Load calendar from file" aria-label="Load calendar from file">
+        <button class="fab-icon fab-ghost" id="openLoadBtn" type="button" title="Load calendar" aria-label="Load calendar">
           <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         </button>
         <button class="fab-icon fab-ghost" id="downloadBtn" type="button" title="Download calendar as PDF" aria-label="Download calendar as PDF">
@@ -336,11 +336,30 @@
     </header>
     <div class="day-dialog-body">
       <h3 class="save-section-title">Save to this browser</h3>
-      <p class="hint">Quick local save — sticks around until you clear browser data.</p>
+      <p class="hint">Quick local save — sticks around until you clear browser data. Reopen later via the Load button.</p>
       <div class="save-row">
         <input id="calendarName" type="text" placeholder="Name this calendar" spellcheck="false" aria-label="Calendar name">
         <button id="saveBtn" type="button">Save</button>
       </div>
+
+      <h3 class="save-section-title">Save as file</h3>
+      <p class="hint">A JSON file you can back up or move to another browser.</p>
+      <div class="save-row">
+        <button id="exportBtn" type="button">Save as file</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="loadDialog" class="save-dialog" aria-labelledby="loadDialogTitle">
+    <header class="day-dialog-head">
+      <h2 id="loadDialogTitle">Load</h2>
+      <button type="button" class="icon-btn" id="loadDialogClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </header>
+    <div class="day-dialog-body">
+      <h3 class="save-section-title">Load from browser</h3>
+      <p class="hint">Pick a calendar you saved earlier in this browser.</p>
       <div class="save-row">
         <select id="savedCalendars" aria-label="Saved calendars">
           <option value="">No saved calendars yet</option>
@@ -349,10 +368,10 @@
         <button id="deleteBtn" type="button">Delete</button>
       </div>
 
-      <h3 class="save-section-title">Save as file</h3>
-      <p class="hint">A JSON file you can back up or move to another browser. Use the Upload button in the bottom row to bring it back.</p>
+      <h3 class="save-section-title">Load from file</h3>
+      <p class="hint">Open a JSON file you previously saved or received.</p>
       <div class="save-row">
-        <button id="exportBtn" type="button">Save as file</button>
+        <button id="importBtn" type="button">Choose file&hellip;</button>
       </div>
     </div>
   </dialog>
