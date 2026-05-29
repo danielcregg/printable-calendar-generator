@@ -1107,14 +1107,20 @@ canvas {
   .month-nav select {
     font-size: var(--text-sm);
     /* Padding-right keeps clearing the 16 px chevron at right:10 — anything
-       ≥ 30 px is safe; 36 px gives the text a touch more room. */
-    padding: 11px 36px 11px 14px;
-    min-width: 108px;
+       ≥ 30 px is safe; 32 px gives the text a touch more room. */
+    padding: 11px 32px 11px 10px;
+    min-width: 92px;
     /* Cap the closed-button width — long options like "Year on 1 page
        (landscape)" otherwise stretch the select past the viewport. The
        dropdown sheet still shows full option text when tapped. */
-    max-width: 160px;
+    max-width: 132px;
   }
+  /* Tighten the stage's side padding on phones so the calendar canvas
+     gets as much of the screen width as possible (you'd asked for it
+     to sit right up to a small margin from the edges) AND so the
+     month-nav row beneath fits without horizontal scrolling. */
+  .stage { padding-left: var(--space-1); padding-right: var(--space-1); }
+  .month-nav { gap: var(--space-1); }
   .month-nav button {
     width: 44px;
     height: 44px;
