@@ -1185,6 +1185,14 @@ function buildPdfDoc() {
   const year = Number(document.getElementById("year").value);
   const monthValue = document.getElementById("month").value;
   const labels = buildLabels(year);
+  // Year-at-a-glance modes — a single A4 page (landscape or portrait) with
+  // all 12 months as mini-calendars in a 4×3 / 3×4 grid.
+  if (monthValue === "overview-landscape" || monthValue === "overview-portrait") {
+    const orientation = monthValue === "overview-portrait" ? "portrait" : "landscape";
+    const doc = new jsPDF({ orientation, unit: "mm", format: "a4" });
+    drawYearOverviewPdf(doc, year, labels, orientation);
+    return doc;
+  }
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const months = monthValue === "all" ? [...Array(12).keys()] : [Number(monthValue)];
   months.forEach((m, i) => {
@@ -1192,6 +1200,179 @@ function buildPdfDoc() {
     drawPdfMonth(doc, year, m, labels);
   });
   return doc;
+}
+
+// Layout maths for the year-at-a-glance modes. Used by both renderers so
+// they always agree on cell positions. All values in mm (PDF native).
+function yearOverviewLayout(orientation) {
+  const isLandscape = orientation === "landscape";
+  const w = isLandscape ? 297 : 210;
+  const h = isLandscape ? 210 : 297;
+  const cols = isLandscape ? 4 : 3;
+  const rows = isLandscape ? 3 : 4;
+  const margin = 6;
+  const titleH = 16;          // band reserved for the big year stamp at top
+  const bottomMargin = 6;
+  const gridW = w - 2 * margin;
+  const gridH = h - margin - titleH - bottomMargin;
+  return {
+    w, h, cols, rows, margin, titleH,
+    gridW, gridH,
+    cellW: gridW / cols,
+    cellH: gridH / rows,
+  };
+}
+
+// PDF renderer for the year-at-a-glance pages. One A4 page, 12 mini-month
+// cells in a grid, big year stamp at top. Holidays shown by colouring the
+// day number red; custom-date labels are intentionally omitted because the
+// per-day cell is only a few mm tall.
+function drawYearOverviewPdf(doc, year, labels, orientation) {
+  const lo = yearOverviewLayout(orientation);
+  const lang = document.getElementById("language").value || "en";
+  const monthNames = MONTH_NAMES[lang] || MONTH_NAMES.en;
+
+  doc.setTextColor(0, 0, 0);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(34);
+  doc.text(String(year), lo.w / 2, lo.margin + 11, { align: "center" });
+
+  for (let m = 0; m < 12; m++) {
+    const col = m % lo.cols;
+    const row = Math.floor(m / lo.cols);
+    const x = lo.margin + col * lo.cellW;
+    const y = lo.margin + lo.titleH + row * lo.cellH;
+    drawMiniMonthPdf(doc, year, m, labels, x, y, lo.cellW, lo.cellH, monthNames);
+  }
+}
+
+function drawMiniMonthPdf(doc, year, monthIndex, labels, x, y, w, h, monthNames) {
+  doc.setTextColor(0, 0, 0);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text(monthNames[monthIndex], x + w / 2, y + 4, { align: "center" });
+
+  const colW = w / 7;
+  const headerY = y + 8.5;
+  const gridTop = y + 11;
+  const gridBottom = y + h - 1;
+  const rowH = (gridBottom - gridTop) / 6;
+
+  // Weekend shading band behind columns 5+6 (Sat, Sun).
+  doc.setFillColor(245, 245, 245);
+  doc.rect(x + colW * 5, gridTop, colW * 2, gridBottom - gridTop, "F");
+
+  // Weekday headers M T W T F S S
+  const weekdays = ["M", "T", "W", "T", "F", "S", "S"];
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  for (let d = 0; d < 7; d++) {
+    doc.setTextColor(d >= 5 ? 120 : 60, d >= 5 ? 120 : 60, d >= 5 ? 120 : 60);
+    doc.text(weekdays[d], x + colW * (d + 0.5), headerY, { align: "center" });
+  }
+
+  // Day numbers in their Monday-first positions.
+  const first = new Date(year, monthIndex, 1);
+  const firstDay = mondayIndex(first);
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  for (let day = 1; day <= daysInMonth; day++) {
+    const pos = firstDay + day - 1;
+    const r = Math.floor(pos / 7);
+    const c = pos % 7;
+    const cx = x + colW * (c + 0.5);
+    const cy = gridTop + rowH * (r + 0.5);
+    const iso = isoDate(new Date(year, monthIndex, day));
+    const entry = labels.get(iso);
+    doc.setTextColor(entry?.holiday ? 220 : 0, entry?.holiday ? 38 : 0, entry?.holiday ? 38 : 0);
+    doc.text(String(day), cx, cy, { align: "center", baseline: "middle" });
+  }
+}
+
+// Canvas (preview) twin of the PDF renderer above. Same layout maths via
+// yearOverviewLayout(); coordinates multiplied by `scale` (canvas pixels
+// per mm) when drawn.
+function drawYearOverviewCanvas(ctx, year, labels, orientation) {
+  const canvas = ctx.canvas;
+  const lo = yearOverviewLayout(orientation);
+  const scale = canvas.width / lo.w;
+  const lang = document.getElementById("language").value || "en";
+  const monthNames = MONTH_NAMES[lang] || MONTH_NAMES.en;
+
+  // Background.
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "white";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Big year stamp at top.
+  ctx.fillStyle = "black";
+  ctx.font = `bold ${pt(34, scale)}px Arial`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(String(year), canvas.width / 2, (lo.margin + 11) * scale);
+
+  for (let m = 0; m < 12; m++) {
+    const col = m % lo.cols;
+    const row = Math.floor(m / lo.cols);
+    const x = (lo.margin + col * lo.cellW) * scale;
+    const y = (lo.margin + lo.titleH + row * lo.cellH) * scale;
+    drawMiniMonthCanvas(ctx, year, m, labels, x, y, lo.cellW * scale, lo.cellH * scale, scale, monthNames);
+  }
+}
+
+function drawMiniMonthCanvas(ctx, year, monthIndex, labels, x, y, w, h, scale, monthNames) {
+  // Month name.
+  ctx.fillStyle = "black";
+  ctx.font = `bold ${pt(10, scale)}px Arial`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText(monthNames[monthIndex], x + w / 2, y + 4 * scale);
+
+  const colW = w / 7;
+  const headerY = y + 8.5 * scale;
+  const gridTop = y + 11 * scale;
+  const gridBottom = y + h - 1 * scale;
+  const rowH = (gridBottom - gridTop) / 6;
+
+  // Weekend shading.
+  ctx.fillStyle = "#f5f5f5";
+  ctx.fillRect(x + colW * 5, gridTop, colW * 2, gridBottom - gridTop);
+
+  // Weekday headers.
+  const weekdays = ["M", "T", "W", "T", "F", "S", "S"];
+  ctx.font = `bold ${pt(7, scale)}px Arial`;
+  for (let d = 0; d < 7; d++) {
+    ctx.fillStyle = d >= 5 ? "#777" : "#3a3a3a";
+    ctx.fillText(weekdays[d], x + colW * (d + 0.5), headerY);
+  }
+
+  // Day numbers.
+  const first = new Date(year, monthIndex, 1);
+  const firstDay = mondayIndex(first);
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  ctx.font = `${pt(8, scale)}px Arial`;
+  ctx.textBaseline = "middle";
+  for (let day = 1; day <= daysInMonth; day++) {
+    const pos = firstDay + day - 1;
+    const r = Math.floor(pos / 7);
+    const c = pos % 7;
+    const cx = x + colW * (c + 0.5);
+    const cy = gridTop + rowH * (r + 0.5);
+    const iso = isoDate(new Date(year, monthIndex, day));
+    const entry = labels.get(iso);
+    ctx.fillStyle = entry?.holiday ? "#dc2626" : "black";
+    ctx.fillText(String(day), cx, cy);
+  }
+}
+
+// Returns a filename slug for the current calendar state. Used by Print's
+// (implicit) tab-title and by Download's `doc.save()` call.
+function pdfFilename(year, monthValue) {
+  if (monthValue === "overview-landscape") return `calendar-${year}-overview-landscape.pdf`;
+  if (monthValue === "overview-portrait")  return `calendar-${year}-overview-portrait.pdf`;
+  if (monthValue === "all")                return `calendar-${year}.pdf`;
+  return `calendar-${year}-${String(Number(monthValue) + 1).padStart(2, "0")}.pdf`;
 }
 
 // Triggered by the Download bottom-row icon. Builds the PDF and asks the
@@ -1205,9 +1386,7 @@ function downloadCalendarPdf() {
   const doc = buildPdfDoc();
   const year = Number(document.getElementById("year").value);
   const monthValue = document.getElementById("month").value;
-  const filename = monthValue === "all"
-    ? `calendar-${year}.pdf`
-    : `calendar-${year}-${String(Number(monthValue) + 1).padStart(2, "0")}.pdf`;
+  const filename = pdfFilename(year, monthValue);
   doc.save(filename);
   showToast(`Downloaded ${filename}`);
   flashDisable("downloadBtn", 1500);
@@ -1259,11 +1438,25 @@ function printCalendar() {
 function renderPreview() {
   const canvas = document.getElementById("preview");
   const ctx = canvas.getContext("2d");
-  const scale = canvas.width / 297;
   const year = Number(document.getElementById("year").value);
   const monthValue = document.getElementById("month").value;
-  const month = monthValue === "all" ? 0 : Number(monthValue);
   const labels = buildLabels(year);
+
+  // Year-at-a-glance branches: swap the canvas to the right A4 aspect and
+  // call the overview renderer instead of the per-month one. Day-cell
+  // interactions (tap + swipe) early-return in these modes elsewhere.
+  if (monthValue === "overview-landscape" || monthValue === "overview-portrait") {
+    const orientation = monthValue === "overview-portrait" ? "portrait" : "landscape";
+    setCanvasOrientation(canvas, orientation);
+    drawYearOverviewCanvas(ctx, year, labels, orientation);
+    updateMonthNav();
+    liveShareSchedulePush();
+    return;
+  }
+
+  setCanvasOrientation(canvas, "landscape");
+  const scale = canvas.width / 297;
+  const month = monthValue === "all" ? 0 : Number(monthValue);
   drawCalendar(ctx, year, month, labels, scale, {
     shadeWeekends: document.getElementById("shadeWeekends").checked,
     zebraWeeks: document.getElementById("zebraWeeks").checked,
@@ -1281,6 +1474,18 @@ function renderPreview() {
   liveShareSchedulePush();
 }
 
+// Switches the canvas bitmap dimensions and a CSS class so the preview
+// renders at the right A4 aspect for the active mode. Idempotent — only
+// touches attributes when they actually need changing.
+function setCanvasOrientation(canvas, orientation) {
+  const isPortrait = orientation === "portrait";
+  const wantedW = isPortrait ? 794 : 1123;
+  const wantedH = isPortrait ? 1123 : 794;
+  if (canvas.width !== wantedW) canvas.width = wantedW;
+  if (canvas.height !== wantedH) canvas.height = wantedH;
+  canvas.classList.toggle("portrait", isPortrait);
+}
+
 // Disables the prev/next arrows in full-year mode (no single month to step
 // from). The Year and Month dropdowns serve as the visual label themselves.
 function updateMonthNav() {
@@ -1293,7 +1498,9 @@ function updateMonthNav() {
 // December/January boundary. Clamps at the bounds of the year dropdown.
 function stepMonth(delta) {
   const monthSelect = document.getElementById("month");
-  if (monthSelect.value === "all") return;
+  // Both "all" (12 pages) and "overview-*" (year-at-a-glance) ignore
+  // ‹/› — there's no single month to step in those modes.
+  if (monthSelect.value === "all" || monthSelect.value.startsWith("overview")) return;
   const yearInput = document.getElementById("year");
   let month = Number(monthSelect.value) + delta;
   let year = Number(yearInput.value);
@@ -1358,6 +1565,11 @@ function wireCanvasInteractions(canvas) {
 }
 
 function handlePreviewClick(event) {
+  // Day-cell clicks are only meaningful in single-month mode. In Full year
+  // and year-at-a-glance modes the cells are either non-existent or too
+  // small for the editor's UX to make sense.
+  const monthValue = document.getElementById("month").value;
+  if (monthValue === "all" || monthValue.startsWith("overview")) return;
   const canvas = document.getElementById("preview");
   const rect = canvas.getBoundingClientRect();
   const scale = canvas.width / 297;

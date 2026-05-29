@@ -583,6 +583,17 @@ button:focus-visible {
      + the single bottom-row (~50, picker + Print sharing one line) + gap (16) + safety (12) */
   width: min(100%, 1120px, calc((100dvh - var(--topbar-h) - 150px) * 1.4143));
   height: auto;
+}
+
+/* Portrait variant — year-at-a-glance (portrait) mode. Height-constrained
+   instead of width-constrained, with width auto-following from the
+   bitmap's natural aspect ratio (794×1123). The same available-height
+   formula (100dvh − topbar − 150 px chrome) keeps the canvas inside the
+   viewport without scroll. */
+.stage canvas.portrait {
+  width: auto;
+  height: min(calc(100dvh - var(--topbar-h) - 150px), 100%);
+  max-width: 100%;
   background: white;
   display: block;
   box-shadow: var(--shadow-md);
