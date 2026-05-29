@@ -1522,6 +1522,77 @@ function stepMonth(delta) {
 
 // Click on a day in the preview canvas -> prompt for a label, append a
 // "DD-MM-YYYY | Label" line to the Custom dates textarea.
+// Month-change slide animation. Snapshots the current canvas into an
+// <img> overlay, fires stepMonth() to repaint the canvas with the new
+// month behind the img, then animates the old-month img out one
+// direction and the new-month canvas in from the other. ~280 ms,
+// GPU-composited (transform-only). Respects prefers-reduced-motion and
+// silently no-ops when stepMonth would (Full year / overview / year-
+// range edges). The body's existing overflow-x: hidden clips the
+// off-screen pieces at the viewport edge.
+//
+// direction = +1 → next month (canvas enters from right, old slides left)
+// direction = -1 → previous month (canvas enters from left, old slides right)
+function animateMonthSlide(direction) {
+  const monthSelect = document.getElementById("month");
+  if (monthSelect.value === "all" || monthSelect.value.startsWith("overview")) {
+    stepMonth(direction);
+    return;
+  }
+  const yearInput = document.getElementById("year");
+  const month = Number(monthSelect.value) + direction;
+  let year = Number(yearInput.value);
+  if (month > 11) year += 1;
+  else if (month < 0) year -= 1;
+  if (year < MIN_YEAR || year > MAX_YEAR) return;
+
+  const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  if (reduced) { stepMonth(direction); return; }
+
+  const canvas = document.getElementById("preview");
+  const rect = canvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) { stepMonth(direction); return; }
+
+  // Snapshot the OLD canvas into a position-fixed <img> overlay.
+  const dataUrl = canvas.toDataURL("image/png");
+  const img = document.createElement("img");
+  img.src = dataUrl;
+  img.style.cssText = [
+    "position: fixed",
+    `left: ${rect.left}px`,
+    `top: ${rect.top}px`,
+    `width: ${rect.width}px`,
+    `height: ${rect.height}px`,
+    "pointer-events: none",
+    "z-index: 60",
+    "transition: transform 280ms cubic-bezier(.2, .9, .3, 1)",
+  ].join(";");
+  document.body.appendChild(img);
+
+  // Render the new month into the canvas (hidden behind the img).
+  stepMonth(direction);
+
+  // Snap the canvas off-screen in the entering direction, no transition.
+  const offset = rect.width;
+  const enterFromOffset = direction > 0 ? offset : -offset;
+  canvas.style.transition = "none";
+  canvas.style.transform = `translateX(${enterFromOffset}px)`;
+  void canvas.offsetWidth;
+
+  // Animate both into place.
+  requestAnimationFrame(() => {
+    canvas.style.transition = "transform 280ms cubic-bezier(.2, .9, .3, 1)";
+    canvas.style.transform = "translateX(0)";
+    img.style.transform = `translateX(${-enterFromOffset}px)`;
+  });
+
+  setTimeout(() => {
+    canvas.style.transition = "";
+    canvas.style.transform = "";
+    img.remove();
+  }, 320);
+}
+
 // Pointer-event wiring on the calendar canvas. Combines two behaviours:
 // - Tap → opens the day editor for that cell (handlePreviewClick)
 // - Horizontal swipe (≥ 40 px, mostly horizontal) → advances or retreats
@@ -1529,7 +1600,7 @@ function stepMonth(delta) {
 //   the page can still scroll on phones.
 // The justSwiped flag prevents the click that fires immediately after a
 // swipe from also opening the day dialog.
-const swipeState = { startX: 0, startY: 0, justSwiped: false };
+const swipeState = { startX: 0, startY: 0, justSwiped: false, animating: false };
 
 function wireCanvasInteractions(canvas) {
   canvas.addEventListener("pointerdown", (e) => {
@@ -1541,9 +1612,12 @@ function wireCanvasInteractions(canvas) {
     const dy = e.clientY - swipeState.startY;
     if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
       swipeState.justSwiped = true;
+      if (swipeState.animating) return;
       // Swipe right = previous month (calendar "moves" right to reveal it);
       // swipe left = next month. Matches native iOS / Android conventions.
-      stepMonth(dx > 0 ? -1 : 1);
+      swipeState.animating = true;
+      animateMonthSlide(dx > 0 ? -1 : 1);
+      setTimeout(() => { swipeState.animating = false; }, 320);
     }
   });
   canvas.addEventListener("click", (event) => {
@@ -2909,8 +2983,18 @@ window.addEventListener("DOMContentLoaded", () => {
   shareDialog.addEventListener("click", (event) => {
     if (event.target === shareDialog) shareDialog.close();
   });
-  document.getElementById("prevMonthBtn").addEventListener("click", () => stepMonth(-1));
-  document.getElementById("nextMonthBtn").addEventListener("click", () => stepMonth(1));
+  document.getElementById("prevMonthBtn").addEventListener("click", () => {
+    if (swipeState.animating) return;
+    swipeState.animating = true;
+    animateMonthSlide(-1);
+    setTimeout(() => { swipeState.animating = false; }, 320);
+  });
+  document.getElementById("nextMonthBtn").addEventListener("click", () => {
+    if (swipeState.animating) return;
+    swipeState.animating = true;
+    animateMonthSlide(1);
+    setTimeout(() => { swipeState.animating = false; }, 320);
+  });
 
   // Drawer (hamburger menu) controls.
   document.getElementById("menuBtn").addEventListener("click", toggleDrawer);
