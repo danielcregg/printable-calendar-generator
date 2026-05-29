@@ -1050,6 +1050,11 @@ canvas {
   .month-nav button { width: 32px; height: 32px; flex: 0 0 32px; }
   .stage-actions .fab-icon { width: 32px; height: 32px; }
   .stage-actions .fab-icon svg { width: 16px; height: 16px; }
+  /* Stack the bottom row vertically on phones: month-nav on top, the five
+     FABs centred below it, instead of trying to fit them side-by-side
+     (which left them overlapping the month picker on narrow viewports). */
+  .stage-bottom-row { flex-direction: column; gap: var(--space-2); }
+  .stage-actions { position: static; transform: none; }
 }
 
 @media (max-width: 460px) {
