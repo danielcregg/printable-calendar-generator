@@ -472,7 +472,15 @@ function parseCustomDates(text, year) {
       const text = birthYear != null
         ? formatBirthdayLabel(label, Number(occ.slice(0, 4)) - birthYear)
         : label;
-      labels.get(occ).push({ text, colour });
+      // Drop exact-duplicate labels on the same day. Same date + same
+      // rendered text = the same entry as far as the printed cell is
+      // concerned, so an accidental paste of the same line 20 times
+      // collapses back to one stack entry. Different label text on the
+      // same day still stacks (two people sharing a birthday are not
+      // duplicates).
+      const dayLabels = labels.get(occ);
+      if (dayLabels.some((entry) => entry.text === text)) continue;
+      dayLabels.push({ text, colour });
     }
   }
   return labels;
