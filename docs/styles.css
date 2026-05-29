@@ -1110,6 +1110,10 @@ canvas {
        ≥ 30 px is safe; 36 px gives the text a touch more room. */
     padding: 11px 36px 11px 14px;
     min-width: 108px;
+    /* Cap the closed-button width — long options like "Year on 1 page
+       (landscape)" otherwise stretch the select past the viewport. The
+       dropdown sheet still shows full option text when tapped. */
+    max-width: 160px;
   }
   .month-nav button {
     width: 44px;
